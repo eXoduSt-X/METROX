@@ -86,15 +86,24 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
 
     private var adapter: SongFileAdapter? = null
     private var storageAdapter: StorageAdapter? = null
-    private val fileComparator = Comparator { lhs: File, rhs: File ->
-        if (lhs.isDirectory && !rhs.isDirectory) {
-            return@Comparator -1
-        } else if (!lhs.isDirectory && rhs.isDirectory) {
-            return@Comparator 1
-        } else {
-            return@Comparator lhs.name.compareTo(rhs.name, ignoreCase = true)
-        }
+private val fileComparator = Comparator { lhs: File, rhs: File ->
+    if (lhs.isDirectory && !rhs.isDirectory) {
+        return@Comparator -1
+    } else if (!lhs.isDirectory && rhs.isDirectory) {
+        return@Comparator 1
+    } else {
+        return@Comparator lhs.name.compareTo(rhs.name, ignoreCase = true)
     }
+}
+
+// Comparador para la cola: agrupa por carpeta padre, luego alfabético dentro de cada carpeta
+private val folderAwareComparator = Comparator { lhs: File, rhs: File ->
+    val lhsParent = lhs.parent ?: ""
+    val rhsParent = rhs.parent ?: ""
+    val parentCmp = lhsParent.compareTo(rhsParent, ignoreCase = true)
+    if (parentCmp != 0) parentCmp
+    else lhs.name.compareTo(rhs.name, ignoreCase = true)
+}
     private var storageItems = ArrayList<Storage>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
