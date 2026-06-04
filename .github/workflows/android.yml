@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch: # Esto activa el botón para correrlo manualmente cuando quieras
+  workflow_dispatch:
 
 jobs:
   check:
@@ -19,6 +19,11 @@ jobs:
           distribution: 'zulu'
           java-version: 17
       - uses: gradle/gradle-build-action@v2
+      
+      # CORRECCIÓN: Dar permisos de ejecución al ejecutable de Gradle
+      - name: Change wrapper permissions
+        run: chmod +x gradlew
+        
       - name: Lint Android
         run: ./gradlew lint
 
@@ -31,6 +36,10 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
       - uses: gradle/gradle-build-action@v2
+      
+      # CORRECCIÓN: Dar permisos de ejecución al ejecutable de Gradle
+      - name: Change wrapper permissions
+        run: chmod +x gradlew
+        
       - name: Build
         run: ./gradlew app:assembleDebug
-        
