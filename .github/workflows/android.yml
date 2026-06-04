@@ -1,10 +1,11 @@
-name: Android CI
+Name: Android CI
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ dev ]
+    branches: [ main ]
+  workflow_dispatch: # Esto activa el botón para correrlo manualmente cuando quieras
 
 jobs:
   check:
@@ -31,4 +32,5 @@ jobs:
           distribution: 'zulu'
       - uses: gradle/gradle-build-action@v2
       - name: Build
-        run: ./gradlew app:assemble
+        run: ./gradlew app:assembleDebug
+        
