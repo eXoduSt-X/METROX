@@ -32,7 +32,7 @@ object PreferenceUtil {
         val defaultCategories = listOf(
         CategoryInfo(CategoryInfo.Category.Folder, true), // <--- Carpetas primero y activadas
         CategoryInfo(CategoryInfo.Category.Home, true),   // <--- "Para ti" pasa a segundo plano
-        CategoryInfo(CategoryInfo.Category.Songs, true),
+        CategoryInfo(CategoryInfo.Category.Songs, false),
         CategoryInfo(CategoryInfo.Category.Albums, true),
         CategoryInfo(CategoryInfo.Category.Artists, true),
         CategoryInfo(CategoryInfo.Category.Playlists, true),
