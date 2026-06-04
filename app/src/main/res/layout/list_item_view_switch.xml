@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -23,13 +24,14 @@
         tools:srcCompat="@drawable/ic_telegram_white" />
 
     <com.google.android.material.textview.MaterialTextView
-        android:id="@android:id/title"
+        android:id="@+id/custom_pref_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingStart="0dp"
         android:paddingEnd="16dp"
         android:textAppearance="@style/TextViewSubtitle1"
-        android:textColor="@android:color/white" app:layout_constrainedWidth="true"
+        android:textColor="@android:color/white" 
+        app:layout_constrainedWidth="true"
         app:layout_constraintEnd_toStartOf="@android:id/checkbox"
         app:layout_constraintStart_toStartOf="@+id/guideline_front_margin"
         app:layout_constraintTop_toTopOf="parent"
@@ -48,8 +50,7 @@
         app:layout_constrainedWidth="true"
         app:layout_constraintEnd_toStartOf="@android:id/checkbox"
         app:layout_constraintStart_toStartOf="@+id/guideline_front_margin"
-        app:layout_constraintTop_toBottomOf="@android:id/title"
-        tools:maxLines="2"
+        app:layout_constraintTop_toBottomOf="@+id/custom_pref_title" tools:maxLines="2"
         tools:text="@tools:sample/lorem/random" />
 
     <androidx.constraintlayout.widget.Guideline
