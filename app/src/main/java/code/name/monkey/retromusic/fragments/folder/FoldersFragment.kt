@@ -198,7 +198,7 @@ private val folderAwareComparator = Comparator { lhs: File, rhs: File ->
                                 requireContext(),
                                 listOf(file),
                                 AUDIO_FILE_FILTER,
-                                fileComparator
+                                folderAwareComparator 
                             ) { songs ->
                                 if (songs.isNotEmpty()) {
                                     SongsMenuHelper.handleMenuClick(
@@ -337,7 +337,7 @@ private val folderAwareComparator = Comparator { lhs: File, rhs: File ->
         val itemId = item.itemId
 
         lifecycleScope.launch(Dispatchers.IO) {
-            listSongs(requireContext(), files, AUDIO_FILE_FILTER, fileComparator) { songs ->
+            listSongs(requireContext(), files, AUDIO_FILE_FILTER, folderAwareComparator ) { songs ->
                 if (songs.isNotEmpty()) {
                     SongsMenuHelper.handleMenuClick(
                         requireActivity(), songs, itemId
