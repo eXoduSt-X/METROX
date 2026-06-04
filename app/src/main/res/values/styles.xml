@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.RetroMusic" parent="Theme.RetroMusic.Base" />
@@ -15,6 +16,15 @@
         <item name="rectSelector">@drawable/rect_selector</item>
         <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
         <item name="materialButtonStyle">@style/MaterialButtonTheme</item>
+        
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="textColorPrimary">@android:color/white</item>
+
+        <item name="android:textColorSecondary">#B3FFFFFF</item>
+        <item name="textColorSecondary">#B3FFFFFF</item>
+
+        <item name="colorOnSurface">@android:color/white</item>
+        <item name="colorOnSurfaceVariant">#B3FFFFFF</item>
     </style>
 
     <style name="Theme.RetroMusic.Notification" parent="@android:style/TextAppearance.StatusBar.EventContent" />
@@ -178,7 +188,6 @@
         <item name="cardElevation">0dp</item>
     </style>
 
-    <!-- This will set the fade in animation on all your activities by default -->
     <style name="WindowAnimationTransition">
         <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
         <item name="android:windowExitAnimation">@android:anim/fade_out</item>
@@ -196,7 +205,6 @@
         <item name="chipMinHeight">40dp</item>
         <item name="chipStartPadding">10dp</item>
     </style>
-    <!--Bottom Sheet Dialog Style-->
     <style name="BottomSheetDialogStyle" parent="Theme.Design.BottomSheetDialog">
         <item name="android:windowIsFloating">false</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
