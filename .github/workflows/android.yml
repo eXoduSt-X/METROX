@@ -2,10 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ dev ]
 
 jobs:
   check:
@@ -19,11 +18,6 @@ jobs:
           distribution: 'zulu'
           java-version: 17
       - uses: gradle/gradle-build-action@v2
-      
-      # CORRECCIÓN: Dar permisos de ejecución al ejecutable de Gradle
-      - name: Change wrapper permissions
-        run: chmod +x gradlew
-        
       - name: Lint Android
         run: ./gradlew lint
 
@@ -36,10 +30,5 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
       - uses: gradle/gradle-build-action@v2
-      
-      # CORRECCIÓN: Dar permisos de ejecución al ejecutable de Gradle
-      - name: Change wrapper permissions
-        run: chmod +x gradlew
-        
       - name: Build
-        run: ./gradlew app:assembleDebug
+        run: ./gradlew app:assemble
