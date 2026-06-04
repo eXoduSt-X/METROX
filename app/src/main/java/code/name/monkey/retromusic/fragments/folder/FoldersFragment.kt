@@ -5,7 +5,7 @@
  *
  * This is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by
- *  the Free Software Foundation either version 3 of the License, or (at your option) any later version.
+ * the Free Software Foundation either version 3 of the License, or (at your option) any later version.
  *
  * This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -86,12 +86,18 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
 
     private var adapter: SongFileAdapter? = null
     private var storageAdapter: StorageAdapter? = null
+    
+    // Comparador modificado para ordenar por ruta absoluta y mantener jerarquía de carpetas
     private val fileComparator = Comparator { lhs: File, rhs: File ->
         if (lhs.isDirectory && !rhs.isDirectory) {
             return@Comparator -1
         } else if (!lhs.isDirectory && rhs.isDirectory) {
             return@Comparator 1
         } else {
+            val pathCompare = lhs.parent.compareTo(rhs.parent, ignoreCase = true)
+            if (pathCompare != 0) {
+                return@Comparator pathCompare
+            }
             return@Comparator lhs.name.compareTo(rhs.name, ignoreCase = true)
         }
     }
@@ -192,8 +198,10 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                                 fileComparator
                             ) { songs ->
                                 if (songs.isNotEmpty()) {
+                                    // Se fuerza el ordenamiento secuencial por carpetas mediante la propiedad data
+                                    val sortedSongs = songs.sortedBy { it.data }
                                     SongsMenuHelper.handleMenuClick(
-                                        requireActivity(), songs, itemId
+                                        requireActivity(), sortedSongs, itemId
                                     )
                                 }
                             }
@@ -261,7 +269,7 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
 
     override fun onFileSelected(file: File) {
         var mFile = file
-        mFile = tryGetCanonicalFile(mFile) // important as we compare the path value later
+        mFile = tryGetCanonicalFile(mFile)
         if (mFile.isDirectory) {
             setCrumb(Crumb(mFile), true)
         } else {
@@ -276,23 +284,22 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                     fileComparator
                 ) { songs ->
                     if (songs.isNotEmpty()) {
+                        // Se ordenan las canciones por su ruta física para garantizar la persistencia del flujo de carpetas
+                        val sortedSongs = songs.sortedBy { it.data }
                         var startIndex = -1
-                        for (i in songs.indices) {
-                            if (mFile.path
-                                == songs[i].data
-                            ) { // path is already canonical here
+                        for (i in sortedSongs.indices) {
+                            if (mFile.path == sortedSongs[i].data) {
                                 startIndex = i
                                 break
                             }
                         }
                         if (startIndex > -1) {
-                            openQueue(songs, startIndex, true)
+                            openQueue(sortedSongs, startIndex, true)
                         } else {
                             Snackbar.make(
                                 mainActivity.slidingPanel,
                                 String.format(
                                     getString(R.string.not_listed_in_media_store), mFile.name
-
                                 ).parseAsHtml(),
                                 Snackbar.LENGTH_LONG
                             )
@@ -301,9 +308,7 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                                 ) {
                                     lifecycleScope.launch {
                                         listPaths(mFile, AUDIO_FILE_FILTER) { paths ->
-                                            scanPaths(
-                                                paths
-                                            )
+                                            scanPaths(paths)
                                         }
                                     }
                                 }
@@ -330,8 +335,10 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
         lifecycleScope.launch(Dispatchers.IO) {
             listSongs(requireContext(), files, AUDIO_FILE_FILTER, fileComparator) { songs ->
                 if (songs.isNotEmpty()) {
+                    // Se fuerza el ordenamiento secuencial por carpetas en selecciones múltiples
+                    val sortedSongs = songs.sortedBy { it.data }
                     SongsMenuHelper.handleMenuClick(
-                        requireActivity(), songs, itemId
+                        requireActivity(), sortedSongs, itemId
                     )
                 }
             }
@@ -427,7 +434,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             (binding.recyclerView.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
     }
 
-
     private fun scanPaths(toBeScanned: Array<String?>) {
         if (activity == null) {
             return
@@ -471,7 +477,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
         )
         binding.breadCrumbs.setDeactivatedContentColor(
             textColorSecondary()
-
         )
         binding.breadCrumbs.setCallback(this)
     }
@@ -517,141 +522,10 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             }
             paths
         } catch (e: Exception) {
-            e.printStackTrace()
-            arrayOf()
+            arrayOfNulls<String>(0)
         }
         withContext(Dispatchers.Main) {
             doOnPathListed(paths)
-        }
-    }
-
-    private class AsyncFileLoader(foldersFragment: FoldersFragment) :
-        WrappedAsyncTaskLoader<List<File>>(foldersFragment.requireActivity()) {
-        private val fragmentWeakReference: WeakReference<FoldersFragment> =
-            WeakReference(foldersFragment)
-
-        override fun loadInBackground(): List<File> {
-            val foldersFragment = fragmentWeakReference.get()
-            var directory: File? = null
-            if (foldersFragment != null) {
-                val crumb = foldersFragment.activeCrumb
-                if (crumb != null) {
-                    directory = crumb.file
-                }
-            }
-            return if (directory != null) {
-                val files = FileUtil.listFiles(
-                    directory,
-                    AUDIO_FILE_FILTER
-                )
-                Collections.sort(files, foldersFragment!!.fileComparator)
-                files
-            } else {
-                LinkedList()
-            }
-        }
-    }
-
-    private suspend fun listSongs(
-        context: Context,
-        files: List<File?>,
-        fileFilter: FileFilter,
-        fileComparator: Comparator<File>,
-        doOnSongsListed: (songs: List<Song>) -> Unit,
-    ) {
-        val songs = try {
-            val fileList = FileUtil.listFilesDeep(files, fileFilter)
-            Collections.sort(fileList, fileComparator)
-            FileUtil.matchFilesWithMediaStore(context, fileList)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
-        withContext(Dispatchers.Main) {
-            doOnSongsListed(songs)
-        }
-    }
-
-    override fun onStorageClicked(storage: Storage) {
-        switchToFileAdapter()
-        setCrumb(
-            Crumb(
-                FileUtil.safeGetCanonicalFile(storage.file)
-            ),
-            true
-        )
-    }
-
-    override fun scrollToTop() {
-        binding.recyclerView.scrollToPosition(0)
-        binding.appBarLayout.setExpanded(true, true)
-    }
-
-    private fun switchToFileAdapter() {
-        adapter = SongFileAdapter(mainActivity, LinkedList(), R.layout.item_list, this)
-        adapter!!.registerAdapterDataObserver(
-            object : RecyclerView.AdapterDataObserver() {
-                override fun onChanged() {
-                    super.onChanged()
-                    checkIsEmpty()
-                }
-            })
-        binding.recyclerView.adapter = adapter
-        checkIsEmpty()
-    }
-
-    private fun switchToStorageAdapter() {
-        storageItems = FileUtil.listRoots()
-        storageAdapter = StorageAdapter(storageItems, this)
-        binding.recyclerView.adapter = storageAdapter
-        binding.breadCrumbs.clearCrumbs()
-    }
-
-    companion object {
-        val TAG: String = FoldersFragment::class.java.simpleName
-        val AUDIO_FILE_FILTER = FileFilter { file: File ->
-            (!file.isHidden
-                    && (file.isDirectory
-                    || FileUtil.fileIsMimeType(file, "audio/*", MimeTypeMap.getSingleton())
-                    || FileUtil.fileIsMimeType(
-                file,
-                "application/opus",
-                MimeTypeMap.getSingleton()
-            )
-                    || FileUtil.fileIsMimeType(
-                file,
-                "application/ogg",
-                MimeTypeMap.getSingleton()
-            )))
-        }
-        private const val CRUMBS = "crumbs"
-        private const val LOADER_ID = 5
-
-        // root
-        val defaultStartDirectory: File
-            get() {
-                val musicDir =
-                    getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-                val startFolder = if (musicDir.exists() && musicDir.isDirectory) {
-                    musicDir
-                } else {
-                    val externalStorage = getExternalStorageDirectory()
-                    if (externalStorage.exists() && externalStorage.isDirectory) {
-                        externalStorage
-                    } else {
-                        File("/") // root
-                    }
-                }
-                return startFolder
-            }
-
-        private fun tryGetCanonicalFile(file: File): File {
-            return try {
-                file.canonicalFile
-            } catch (e: IOException) {
-                e.printStackTrace()
-                file
-            }
         }
     }
 }
