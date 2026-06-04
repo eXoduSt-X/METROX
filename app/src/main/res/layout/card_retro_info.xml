@@ -13,6 +13,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:listItemIcon="@drawable/ic_info_outline"
         app:listItemSummary="@string/pref_summary_open_source_licences"
         app:listItemTitle="@string/version" />
