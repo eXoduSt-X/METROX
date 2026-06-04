@@ -79,6 +79,7 @@ import java.util.*
 class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
     IMainActivityFragmentCallbacks, SelectionCallback, ICallbacks,
     LoaderManager.LoaderCallbacks<List<File>>, StorageClickListener, IScrollHelper {
+    
     private var _binding: FragmentFolderBinding? = null
     private val binding get() = _binding!!
 
@@ -87,7 +88,7 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
     private var adapter: SongFileAdapter? = null
     private var storageAdapter: StorageAdapter? = null
     
-    // Comparador modificado para ordenar por ruta absoluta y mantener jerarquía de carpetas
+    // Comparador modificado para mantener el orden secuencial de carpetas
     private val fileComparator = Comparator { lhs: File, rhs: File ->
         if (lhs.isDirectory && !rhs.isDirectory) {
             return@Comparator -1
@@ -198,7 +199,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                                 fileComparator
                             ) { songs ->
                                 if (songs.isNotEmpty()) {
-                                    // Se fuerza el ordenamiento secuencial por carpetas mediante la propiedad data
                                     val sortedSongs = songs.sortedBy { it.data }
                                     SongsMenuHelper.handleMenuClick(
                                         requireActivity(), sortedSongs, itemId
@@ -284,7 +284,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
                     fileComparator
                 ) { songs ->
                     if (songs.isNotEmpty()) {
-                        // Se ordenan las canciones por su ruta física para garantizar la persistencia del flujo de carpetas
                         val sortedSongs = songs.sortedBy { it.data }
                         var startIndex = -1
                         for (i in sortedSongs.indices) {
@@ -335,7 +334,6 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
         lifecycleScope.launch(Dispatchers.IO) {
             listSongs(requireContext(), files, AUDIO_FILE_FILTER, fileComparator) { songs ->
                 if (songs.isNotEmpty()) {
-                    // Se fuerza el ordenamiento secuencial por carpetas en selecciones múltiples
                     val sortedSongs = songs.sortedBy { it.data }
                     SongsMenuHelper.handleMenuClick(
                         requireActivity(), sortedSongs, itemId
@@ -497,6 +495,28 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
         }
     }
 
+    // FIX: Métodos perdidos para intercambiar adaptadores de archivos y almacenamiento
+    private fun switchToFileAdapter() {
+        if (adapter == null) {
+            adapter = SongFileAdapter(requireActivity(), LinkedList(), this)
+        }
+        binding.recyclerView.adapter = adapter
+    }
+
+private fun switchToStorageAdapter() {
+        if (storageAdapter == null) {
+            storageAdapter = StorageAdapter(requireActivity(), storageItems, this)
+        } else {
+            storageAdapter?.notifyDataSetChanged()
+        }
+        binding.recyclerView.adapter = storageAdapter
+    }
+
+    // FIX: Implementación obligatoria de la interfaz StorageClickListener
+    override fun onStorageClicked(storage: Storage) {
+        setCrumb(Crumb(storage.file), true)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -528,4 +548,10 @@ class FoldersFragment : AbsMainActivityFragment(R.layout.fragment_folder),
             doOnPathListed(paths)
         }
     }
-}
+
+    // FIX: Constantes movidas a un companion object interno estructural válido
+    companion object {
+        private const val CRUMBS = "crumbs"
+        private const val LOADER_ID = 1
+    }
+    }
