@@ -163,19 +163,21 @@
             android:layout_height="match_parent"
             android:fillViewport="true">
 
-            <FrameLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <EditText
                     android:id="@+id/etLyrics"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="top|start"
                     android:inputType="textMultiLine|textNoSuggestions"
-                    android:padding="16dp"
                     android:scrollbars="vertical"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                    android:visibility="visible"
                     tools:ignore="SpeakableTextPresentCheck" />
 
                 <TextView
@@ -183,7 +185,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:lineSpacingMultiplier="1.2"
-                    android:padding="16dp"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                     android:visibility="gone" />
 
@@ -195,7 +196,7 @@
                     android:text="@string/no_lyrics_found"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                     android:visibility="gone" />
-            </FrameLayout>
+            </LinearLayout>
         </androidx.core.widget.NestedScrollView>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
