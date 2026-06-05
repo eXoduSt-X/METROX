@@ -50,6 +50,7 @@ import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.collections.set
 import kotlin.math.max
@@ -95,7 +96,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
                 if (it.resultCode == Activity.RESULT_OK) {
                     requireContext().contentResolver.openOutputStream(syncedFileUri)?.use { os ->
                         (os as FileOutputStream).channel.truncate(0)
-                        os.write(syncedLyrics.toByteArray())
+                        os.write(syncedLyrics.toByteArray(StandardCharsets.UTF_8))
                         os.flush()
                     }
                 }
@@ -163,7 +164,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
         binding.btnPlayPause.setOnClickListener {
-            // Verificado: Se usan los métodos reales de tu MusicPlayerRemote.kt
             if (MusicPlayerRemote.isPlaying) {
                 MusicPlayerRemote.pauseSong()
             } else {
@@ -176,21 +176,33 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
 
         binding.btnRew.setOnClickListener {
-            val newPos = MusicPlayerRemote.position - 5000
-            MusicPlayerRemote.seekTo(max(newPos, 0))
-            binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
+            // Protección contra desincronización o valores negativos del servicio activo
+            val currentPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
+            val newPos = max(currentPos - 5000, 0)
+            MusicPlayerRemote.position = newPos
+            
+            // Refresco visual forzado instantáneo de la interfaz
+            binding.lyricsView.updateTime(newPos.toLong())
+            binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
 
         binding.btnFwd.setOnClickListener {
-            val newPos = MusicPlayerRemote.position + 5000
-            MusicPlayerRemote.seekTo(min(newPos, MusicPlayerRemote.songDurationMillis))
-            binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
+            val currentPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
+            val duration = if (MusicPlayerRemote.songDurationMillis > 0) MusicPlayerRemote.songDurationMillis else 0
+            val newPos = min(currentPos + 5000, duration)
+            MusicPlayerRemote.position = newPos
+            
+            // Refresco visual forzado instantáneo de la interfaz
+            binding.lyricsView.updateTime(newPos.toLong())
+            binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
 
         binding.btnMark.setOnClickListener {
             handleMarking()
             binding.lyricsView.loadLrc(binding.etLyrics.text.toString())
-            binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
+            // Forzamos al marcador a reflejar la posición exacta
+            val actualPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
+            binding.lyricsView.updateTime(actualPos.toLong())
         }
 
         binding.btnLeft.setOnClickListener {
@@ -252,7 +264,9 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             fullLine.trim()
         }
 
-        val timeStamp = formatTimeLrc(MusicPlayerRemote.position)
+        // Obtención robusta de la posición en caliente para estampar la marca de tiempo
+        val actualPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
+        val timeStamp = formatTimeLrc(actualPos)
         val newLine = "$timeStamp $cleanLine"
 
         val updatedText = text.substring(0, lineStart) + newLine + text.substring(lineEnd)
@@ -276,9 +290,17 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun getEmbeddedLyricsText(): String {
         return try {
             val file = File(song.data)
-            AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
+            val lyricsRaw = AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
+            // Re-codificación manual preventiva para forzar UTF-8 y limpiar caracteres rotos
+            String(lyricsRaw.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
         } catch (e: Exception) {
-            ""
+            try {
+                // Fallback directo por si los bytes ya venían legibles de origen
+                val file = File(song.data)
+                AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS) ?: ""
+            } catch (ex: Exception) {
+                ""
+            }
         }
     }
 
@@ -428,6 +450,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     override fun onResume() {
         super.onResume()
+        updateTitleSong()
         updateHelper.start()
     }
 
@@ -447,5 +470,4 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-    }
-    
+}
