@@ -163,7 +163,12 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
         binding.btnPlayPause.setOnClickListener {
-            MusicPlayerRemote.togglePlayPause()
+            // Verificado: Se usan los métodos reales de tu MusicPlayerRemote.kt
+            if (MusicPlayerRemote.isPlaying) {
+                MusicPlayerRemote.pauseSong()
+            } else {
+                MusicPlayerRemote.resumePlaying()
+            }
             
             binding.btnPlayPause.postDelayed({
                 binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
@@ -442,4 +447,5 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-}
+    }
+    
