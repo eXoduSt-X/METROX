@@ -169,8 +169,8 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             val downEvent = android.view.KeyEvent(eventTime, eventTime, android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
             val upEvent = android.view.KeyEvent(eventTime, eventTime, android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
             
-            requireContext().dispatchKeyEvent(downEvent)
-            requireContext().dispatchKeyEvent(upEvent)
+            requireActivity().dispatchKeyEvent(downEvent)
+            requireActivity().dispatchKeyEvent(upEvent)
             
             // Margen de 100ms para asegurar que el estado de reproducción cambie antes de actualizar el texto del botón
             binding.btnPlayPause.postDelayed({
