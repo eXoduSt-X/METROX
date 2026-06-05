@@ -1,4 +1,4 @@
-/*
+   /*
  * Copyright (c) 2020 Hemanth Savarla.
  *
  * Licensed under the GNU General Public License v3
@@ -168,7 +168,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
-        // Evitamos que los botones roben foco del cuadro de texto editable
         binding.btnLeft.isFocusable = false
         binding.btnRight.isFocusable = false
         binding.btnUp.isFocusable = false
@@ -315,21 +314,23 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun getEmbeddedLyricsText(): String {
         return try {
             val file = File(song.data)
-            val lyricsRaw = AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
-            String(lyricsRaw.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
-        } catch (e: Exception) {
-            try {
-                val file = File(song.data)
-                AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS) ?: ""
-            } catch (ex: Exception) {
-                ""
+            if (!file.exists()) return ""
+            val tag = AudioFileIO.read(file).tagOrCreateDefault
+            val lyricsRaw = tag.getFirst(FieldKey.LYRICS) ?: ""
+            
+            if (lyricsRaw.contains("") || lyricsRaw.any { it.code == 0xFFFD }) {
+                String(lyricsRaw.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
+            } else {
+                lyricsRaw
             }
+        } catch (e: Exception) {
+            ""
         }
     }
 
     private fun saveNormalLyricsData(input: String) {
         val fieldKeyValueMap = EnumMap<FieldKey, String>(FieldKey::class.java)
-        fieldKeyValueMap[FieldKey.LYRICS] = input
+        fieldKeyValueMap[FieldKey.LYRICS] = String(input.toByteArray(StandardCharsets.UTF_8), StandardCharsets.UTF_8)
         GlobalScope.launch {
             if (VersionUtils.hasR()) {
                 cacheFile = TagWriter.writeTagsToFilesR(
@@ -352,8 +353,9 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun saveSyncedLyricsData(input: String) {
+        val sanitizedInput = String(input.toByteArray(StandardCharsets.UTF_8), StandardCharsets.UTF_8)
         if (VersionUtils.hasR()) {
-            syncedLyrics = input
+            syncedLyrics = sanitizedInput
             val lrcFile = LyricUtil.getSyncedLyricsFile(song)
             if (lrcFile?.exists() == true) {
                 syncedFileUri = UriUtil.getUriFromPath(requireContext(), lrcFile.absolutePath)
@@ -364,7 +366,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
                 editSyncedLyricsLauncher.launch(IntentSenderRequest.Builder(pendingIntent).build())
             } else {
                 val fieldKeyValueMap = EnumMap<FieldKey, String>(FieldKey::class.java)
-                fieldKeyValueMap[FieldKey.LYRICS] = input
+                fieldKeyValueMap[FieldKey.LYRICS] = sanitizedInput
                 GlobalScope.launch {
                     cacheFile = TagWriter.writeTagsToFilesR(
                         requireContext(),
@@ -378,7 +380,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
                 }
             }
         } else {
-            LyricUtil.writeLrc(song, input)
+            LyricUtil.writeLrc(song, sanitizedInput)
             loadLRCLyrics()
         }
     }
@@ -392,7 +394,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     private fun loadLRCLyrics(): Boolean {
         val lrcFile = LyricUtil.getSyncedLyricsFile(song)
-        if (lrcFile != null) {
+        if (lrcFile != null && lrcFile.exists()) {
             binding.lyricsView.loadLrc(lrcFile)
         } else {
             val embeddedLyrics = LyricUtil.getEmbeddedSyncedLyrics(song.data)
