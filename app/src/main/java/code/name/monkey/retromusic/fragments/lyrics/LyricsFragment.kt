@@ -168,11 +168,15 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
-        // Evitamos que los botones de dirección roben el foco del teclado del sistema
+        // Evitamos que los botones roben foco del cuadro de texto editable
         binding.btnLeft.isFocusable = false
         binding.btnRight.isFocusable = false
         binding.btnUp.isFocusable = false
         binding.btnDown.isFocusable = false
+        binding.btnRew.isFocusable = false
+        binding.btnFwd.isFocusable = false
+        binding.btnMark.isFocusable = false
+        binding.btnPlayPause.isFocusable = false
 
         binding.btnPlayPause.setOnClickListener {
             if (MusicPlayerRemote.isPlaying) {
@@ -237,9 +241,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun maintainKeyboardBehavior() {
-        // Forzamos a que el cuadro de texto retenga el cursor de forma prioritaria
         binding.etLyrics.requestFocus()
-        // Le ordenamos al gestor de entrada de Android mantener visible el teclado activo
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(binding.etLyrics, InputMethodManager.SHOW_IMPLICIT)
     }
