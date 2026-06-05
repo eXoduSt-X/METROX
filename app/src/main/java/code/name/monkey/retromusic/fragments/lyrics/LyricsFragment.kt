@@ -176,12 +176,12 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
 
         binding.btnRew.setOnClickListener {
-            // Protección contra desincronización o valores negativos del servicio activo
             val currentPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
             val newPos = max(currentPos - 5000, 0)
-            MusicPlayerRemote.position = newPos
             
-            // Refresco visual forzado instantáneo de la interfaz
+            // seekTo envía la orden real al buffer de sonido de Android
+            MusicPlayerRemote.seekTo(newPos)
+            
             binding.lyricsView.updateTime(newPos.toLong())
             binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
@@ -190,9 +190,10 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             val currentPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
             val duration = if (MusicPlayerRemote.songDurationMillis > 0) MusicPlayerRemote.songDurationMillis else 0
             val newPos = min(currentPos + 5000, duration)
-            MusicPlayerRemote.position = newPos
             
-            // Refresco visual forzado instantáneo de la interfaz
+            // seekTo envía la orden real al buffer de sonido de Android
+            MusicPlayerRemote.seekTo(newPos)
+            
             binding.lyricsView.updateTime(newPos.toLong())
             binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
@@ -200,7 +201,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.btnMark.setOnClickListener {
             handleMarking()
             binding.lyricsView.loadLrc(binding.etLyrics.text.toString())
-            // Forzamos al marcador a reflejar la posición exacta
             val actualPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
             binding.lyricsView.updateTime(actualPos.toLong())
         }
@@ -264,7 +264,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             fullLine.trim()
         }
 
-        // Obtención robusta de la posición en caliente para estampar la marca de tiempo
         val actualPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
         val timeStamp = formatTimeLrc(actualPos)
         val newLine = "$timeStamp $cleanLine"
@@ -291,11 +290,9 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         return try {
             val file = File(song.data)
             val lyricsRaw = AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
-            // Re-codificación manual preventiva para forzar UTF-8 y limpiar caracteres rotos
             String(lyricsRaw.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
         } catch (e: Exception) {
             try {
-                // Fallback directo por si los bytes ya venían legibles de origen
                 val file = File(song.data)
                 AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS) ?: ""
             } catch (ex: Exception) {
@@ -470,4 +467,5 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-}
+    }
+    
