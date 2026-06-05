@@ -5,8 +5,7 @@
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:paddingBottom="@dimen/mini_player_height">
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -38,49 +37,176 @@
             app:titleTextAppearance="@style/ToolbarTextAppearanceNormal" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <FrameLayout
+    <!-- Contenedor principal que divide la pantalla en Karaoke (arriba) y Editor (abajo) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize">
+        android:orientation="vertical"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <ScrollView
+        <!-- Mitad Superior: Visor de letras nativo de MetroX (Ocupa el 45% de la pantalla) -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scrollbars="vertical">
+            android:layout_height="0dp"
+            android:layout_weight="0.9"
+            android:padding="8dp">
+
+            <ScrollView
+                android:id="@+id/lyricsScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/normalLyrics"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/normal_lyrics_padding"
+                    android:textIsSelectable="true"
+                    android:textSize="@dimen/lyrics_text_size"
+                    tools:text="@tools:sample/lorem[100]" />
+            </ScrollView>
+
+            <code.name.monkey.retromusic.lyrics.LrcView
+                android:id="@+id/lyricsView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:lrcLabel="@string/no_lyrics_found"
+                app:lrcNormalTextSize="24sp"
+                app:lrcPadding="24dp"
+                app:lrcTextGravity="center"
+                app:lrcTextSize="28sp" />
 
             <TextView
-                android:id="@+id/normalLyrics"
+                android:id="@+id/noLyricsFound"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="@string/no_lyrics_found"
+                android:textSize="24sp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Mitad Inferior: Herramientas de Sincronización Avanzada (Ocupa el 55% restante) -->
+        <LinearLayout
+            android:id="@+id/editorPanel"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.1"
+            android:background="?attr/colorSurface"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- Fila de Tiempo actual y saltos del reproductor -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="@dimen/normal_lyrics_padding"
-                android:textIsSelectable="true"
-                android:textSize="@dimen/lyrics_text_size"
-                tools:text="@tools:sample/lorem[100]" />
-        </ScrollView>
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp"
+                android:orientation="horizontal">
 
-        <code.name.monkey.retromusic.lyrics.LrcView
-            android:id="@+id/lyricsView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
-            app:lrcLabel="@string/no_lyrics_found"
-            app:lrcNormalTextSize="24sp"
-            app:lrcPadding="24dp"
-            app:lrcTextGravity="left"
-            app:lrcTextSize="28sp" />
+                <TextView
+                    android:id="@+id/tvCurrentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00.00"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:textColor="?attr/colorAccent"
+                    android:textStyle="bold"
+                    android:paddingEnd="12dp" />
 
-        <TextView
-            android:id="@+id/noLyricsFound"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="@string/no_lyrics_found"
-            android:textSize="24sp"
-            android:visibility="gone" />
-    </FrameLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRew"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-5s" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPlayPause"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pause" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFwd"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+5s" />
+            </LinearLayout>
+
+            <!-- Botón de Estampado de marcas LRC -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMark"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="MARCAR / SIGUIENTE LINEA"
+                android:layout_marginBottom="6dp"
+                app:icon="@drawable/ic_play_arrow" />
+
+            <!-- Pad de control del cursor sin usar el teclado táctil -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="4"
+                android:layout_marginBottom="6dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="38dp"
+                    android:layout_weight="1"
+                    android:text="▲" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDown"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="38dp"
+                    android:layout_weight="1"
+                    android:text="▼" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLeft"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="38dp"
+                    android:layout_weight="1"
+                    android:text="◀" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRight"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="38dp"
+                    android:layout_weight="1"
+                    android:text="▶" />
+            </LinearLayout>
+
+            <!-- Caja de texto editable para modificar o pegar la letra -->
+            <EditText
+                android:id="@+id/etLyrics"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="top|start"
+                android:hint="Pega la letra limpia aquí para empezar a sincronizar..."
+                android:inputType="textMultiLine|textNoSuggestions"
+                android:background="?attr/colorSurfaceVariant"
+                android:padding="8dp"
+                android:scrollbars="vertical"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Botón flotante para guardar definitivamente la sincronización -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/edit_button"
+        android:id="@+id/save_fab"
         style="@style/Widget.Material3.FloatingActionButton.Primary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -88,5 +214,6 @@
         android:layout_margin="16dp"
         android:clickable="true"
         android:focusable="true"
-        app:srcCompat="@drawable/ic_edit" />
+        app:srcCompat="@drawable/ic_done" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
