@@ -71,6 +71,9 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private lateinit var syncedFileUri: Uri
 
     private var lyricsType: LyricsType = LyricsType.NORMAL_LYRICS
+    
+    // Variable local para almacenar el tiempo exacto e incontestable de la reproducción viva
+    private var currentProgressMillis: Int = 0
 
     private val googleSearchLrcUrl: String
         get() {
@@ -109,6 +112,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         exitTransition = Fade()
         _binding = FragmentLyricsBinding.bind(view)
         
+        // El Helper se encarga de interrogar al servicio nativo en un hilo seguro
         updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
         
         updateTitleSong()
@@ -129,12 +133,16 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             setTimelineTextColor(accentColor())
             setDraggable(true, LrcView.OnPlayClickListener {
                 MusicPlayerRemote.seekTo(it.toInt())
+                currentProgressMillis = it.toInt()
                 return@OnPlayClickListener true
             })
         }
     }
 
     override fun onUpdateProgressViews(progress: Int, total: Int) {
+        // Guardamos el progreso real del callback activo del reproductor
+        currentProgressMillis = progress
+        
         binding.lyricsView.updateTime(progress.toLong())
         binding.tvCurrentTime.text = formatTimeLrc(progress)
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
@@ -176,23 +184,23 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
 
         binding.btnRew.setOnClickListener {
-            val currentPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
-            val newPos = max(currentPos - 5000, 0)
+            // Usamos la variable local garantizada en lugar de la propiedad remota rota
+            val newPos = max(currentProgressMillis - 5000, 0)
             
-            // seekTo envía la orden real al buffer de sonido de Android
             MusicPlayerRemote.seekTo(newPos)
+            currentProgressMillis = newPos // Sincronizamos la variable local de inmediato
             
             binding.lyricsView.updateTime(newPos.toLong())
             binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
 
         binding.btnFwd.setOnClickListener {
-            val currentPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
             val duration = if (MusicPlayerRemote.songDurationMillis > 0) MusicPlayerRemote.songDurationMillis else 0
-            val newPos = min(currentPos + 5000, duration)
+            // Usamos la variable local garantizada en lugar de la propiedad remota rota
+            val newPos = min(currentProgressMillis + 5000, duration)
             
-            // seekTo envía la orden real al buffer de sonido de Android
             MusicPlayerRemote.seekTo(newPos)
+            currentProgressMillis = newPos // Sincronizamos la variable local de inmediato
             
             binding.lyricsView.updateTime(newPos.toLong())
             binding.tvCurrentTime.text = formatTimeLrc(newPos)
@@ -201,8 +209,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.btnMark.setOnClickListener {
             handleMarking()
             binding.lyricsView.loadLrc(binding.etLyrics.text.toString())
-            val actualPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
-            binding.lyricsView.updateTime(actualPos.toLong())
+            binding.lyricsView.updateTime(currentProgressMillis.toLong())
         }
 
         binding.btnLeft.setOnClickListener {
@@ -264,8 +271,8 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             fullLine.trim()
         }
 
-        val actualPos = if (MusicPlayerRemote.position < 0) 0 else MusicPlayerRemote.position
-        val timeStamp = formatTimeLrc(actualPos)
+        // Estampamos el timestamp usando el progreso real guardado localmente
+        val timeStamp = formatTimeLrc(currentProgressMillis)
         val newLine = "$timeStamp $cleanLine"
 
         val updatedText = text.substring(0, lineStart) + newLine + text.substring(lineEnd)
@@ -467,5 +474,4 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-    }
-    
+}
