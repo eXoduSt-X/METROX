@@ -110,7 +110,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         enterTransition = Fade()
         exitTransition = Fade()
         
-        // Inicialización correcta de View Binding requerida por el fragmento padre
         _binding = FragmentLyricsBinding.bind(view)
         
         updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
@@ -169,12 +168,12 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
-        // Desactivamos completamente estados de foco nativos para evitar rebotes de teclado
-        val clickableViews = listOf(
+        // Desactivar foco para que no requieran doble clic ni interfieran con el teclado abierto
+        val nonFocusableViews = listOf(
             binding.btnRew, binding.btnFwd, binding.btnMark, binding.btnPlayPause,
             binding.btnLeft, binding.btnRight, binding.btnUp, binding.btnDown
         )
-        clickableViews.forEach { view ->
+        nonFocusableViews.forEach { view ->
             view.isFocusable = false
             view.isFocusableInTouchMode = false
         }
@@ -214,7 +213,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             binding.etLyrics.requestFocus()
         }
 
-        // CONTROL EXCLUSIVO DEL CURSOR MANTENIENDO EL TECLADO ABIERTO
+        // CONTROL INMEDIATO DEL CURSOR DE TEXTO CON UN SOLO TOQUE
         binding.btnLeft.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
             if (pos > 0) {
@@ -242,7 +241,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
     }
 
-    // DEFINICIÓN DE LA FUNCIÓN DE NAVEGACIÓN DE LÍNEAS REQUERIDA
+    // NAVEGACIÓN PRECISA POR LÍNEAS
     private fun moveCursorLine(direction: Int) {
         val pos = binding.etLyrics.selectionStart
         val text = binding.etLyrics.text.toString()
@@ -418,12 +417,17 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             LyricsType.SYNCED_LYRICS
         }
         
-        val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
-            LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
+        // APAGADO ESTRICTO DE COMPONENTES ANIDADOS PARA EVITAR CAPAS SOLAPADAS
+        if (lyricsType == LyricsType.SYNCED_LYRICS) {
+            binding.etLyrics.isVisible = true
+            binding.normalLyrics.isVisible = false
+            
+            val currentContent = LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
+            binding.etLyrics.setText(currentContent)
         } else {
-            getEmbeddedLyricsText()
+            binding.etLyrics.isVisible = false 
+            binding.normalLyrics.isVisible = true
         }
-        binding.etLyrics.setText(currentContent)
     }
 
     override fun onPlayingMetaChanged() {
