@@ -84,7 +84,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Normal lyrics launcher
         normalLyricsLauncher =
             registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
                 if (it.resultCode == Activity.RESULT_OK) {
@@ -109,7 +108,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         exitTransition = Fade()
         _binding = FragmentLyricsBinding.bind(view)
         
-        // Frecuencia de actualización a 50ms para sincronización exacta del contador
         updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
         
         updateTitleSong()
@@ -138,12 +136,12 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     override fun onUpdateProgressViews(progress: Int, total: Int) {
         binding.lyricsView.updateTime(progress.toLong())
         binding.tvCurrentTime.text = formatTimeLrc(progress)
+        binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
     }
 
     private fun setupViews() {
         binding.saveFab.accentColor()
         
-        // Carga inicial del EditText con el contenido disponible
         val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
             LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
         } else {
@@ -151,7 +149,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
         binding.etLyrics.setText(currentContent)
 
-        // FAB guarda el estado actual según el formato de la letra
         binding.saveFab.setOnClickListener {
             val outputText = binding.etLyrics.text.toString()
             if (lyricsType == LyricsType.SYNCED_LYRICS || outputText.contains(Regex("\\[\\d{2}:\\d{2}\\.\\d{2}\\]"))) {
@@ -163,21 +160,11 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun setupSincroControls() {
+        binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
+
         binding.btnPlayPause.setOnClickListener {
-            // Solución definitiva: Simulamos un botón multimedia físico (Auriculares/Bluetooth)
-            val eventTime = android.os.SystemClock.uptimeMillis()
-            val downEvent = android.view.KeyEvent(eventTime, eventTime, android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
-            val upEvent = android.view.KeyEvent(eventTime, eventTime, android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
-            
-            requireActivity().dispatchKeyEvent(downEvent)
-            requireActivity().dispatchKeyEvent(upEvent)
-            
-            // Margen de 100ms para asegurar que el estado de reproducción cambie antes de actualizar el texto del botón
-                    binding.btnPlayPause.setOnClickListener {
-            // El método oficial del fork de MetroX que no rompe el Lint
             MusicPlayerRemote.togglePlayPause()
             
-            // Margen de 100ms para asegurar que el estado de reproducción cambie antes de actualizar el texto del botón
             binding.btnPlayPause.postDelayed({
                 binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
             }, 100)
@@ -455,4 +442,4 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-    }
+}
