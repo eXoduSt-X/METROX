@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/windowBackground"
+    android:background="#121212"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -14,27 +14,31 @@
         style="@style/Widget.MaterialComponents.Toolbar.Primary"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary" />
+        android:background="#1A1A1A"
+        app:titleTextColor="@android:color/white" />
 
     <LinearLayout
         android:id="@+id/llSincroControls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp"
-        android:background="#2A2A2A">
+        android:paddingLeft="16dp"
+        android:paddingTop="8dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="12dp"
+        android:background="#1A1A1A">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/tvCurrentTime"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
                 android:text="[00:00.00]"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                 android:textColor="@android:color/white"
@@ -46,8 +50,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="2dp"
-                android:textColor="#2A2A2A"
-                app:backgroundTint="@android:color/white"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
                 android:text="-5s" />
 
             <com.google.android.material.button.MaterialButton
@@ -56,8 +60,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="2dp"
-                android:textColor="#2A2A2A"
-                app:backgroundTint="@android:color/white"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
                 android:text="Play" />
 
             <com.google.android.material.button.MaterialButton
@@ -66,24 +70,25 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="2dp"
-                android:textColor="#2A2A2A"
-                app:backgroundTint="@android:color/white"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
                 android:text="+5s" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="10dp"
             android:gravity="center"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/btnLeft"
-                android:layout_width="50dp"
-                android:layout_height="40dp"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
                 android:layout_margin="2dp"
-                android:background="?attr/selectableItemBackground"
+                android:layout_weight="1"
+                android:background="#2D2D2D"
                 android:clickable="true"
                 android:focusable="false"
                 android:gravity="center"
@@ -94,10 +99,11 @@
 
             <TextView
                 android:id="@+id/btnUp"
-                android:layout_width="50dp"
-                android:layout_height="40dp"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
                 android:layout_margin="2dp"
-                android:background="?attr/selectableItemBackground"
+                android:layout_weight="1"
+                android:background="#2D2D2D"
                 android:clickable="true"
                 android:focusable="false"
                 android:gravity="center"
@@ -109,19 +115,24 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMark"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
                 android:layout_margin="2dp"
-                android:textColor="@android:color/black"
-                app:backgroundTint="#FFE082"
-                android:text="MARCAR" />
+                android:layout_weight="1.4"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#3A3A3A"
+                android:text="MARCAR"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/btnDown"
-                android:layout_width="50dp"
-                android:layout_height="40dp"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
                 android:layout_margin="2dp"
-                android:background="?attr/selectableItemBackground"
+                android:layout_weight="1"
+                android:background="#2D2D2D"
                 android:clickable="true"
                 android:focusable="false"
                 android:gravity="center"
@@ -132,10 +143,11 @@
 
             <TextView
                 android:id="@+id/btnRight"
-                android:layout_width="50dp"
-                android:layout_height="40dp"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
                 android:layout_margin="2dp"
-                android:background="?attr/selectableItemBackground"
+                android:layout_weight="1"
+                android:background="#2D2D2D"
                 android:clickable="true"
                 android:focusable="false"
                 android:gravity="center"
@@ -150,7 +162,9 @@
         android:id="@+id/lyricsView"
         android:layout_width="match_parent"
         android:layout_height="120dp"
-        android:background="#1A000000"
+        android:background="#1F000000"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
         android:visibility="visible" />
 
     <FrameLayout
@@ -167,7 +181,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:paddingLeft="16dp"
+                android:paddingTop="12dp"
+                android:paddingRight="16dp"
+                android:paddingBottom="16dp">
 
                 <EditText
                     android:id="@+id/etLyrics"
@@ -175,6 +192,8 @@
                     android:layout_height="wrap_content"
                     android:gravity="top|start"
                     android:inputType="textMultiLine|textNoSuggestions"
+                    android:background="@android:color/transparent"
+                    android:textColor="@android:color/white"
                     android:scrollbars="vertical"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                     android:visibility="visible"
@@ -185,6 +204,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:lineSpacingMultiplier="1.2"
+                    android:textColor="@android:color/white"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                     android:visibility="gone" />
 
@@ -206,6 +226,8 @@
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
             app:srcCompat="@drawable/ic_save"
+            app:backgroundTint="#2D2D2D"
+            android:tint="@android:color/white"
             tools:ignore="SpeakableTextPresentCheck" />
     </FrameLayout>
 </LinearLayout>
