@@ -173,6 +173,11 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             requireActivity().dispatchKeyEvent(upEvent)
             
             // Margen de 100ms para asegurar que el estado de reproducción cambie antes de actualizar el texto del botón
+                    binding.btnPlayPause.setOnClickListener {
+            // El método oficial del fork de MetroX que no rompe el Lint
+            MusicPlayerRemote.togglePlayPause()
+            
+            // Margen de 100ms para asegurar que el estado de reproducción cambie antes de actualizar el texto del botón
             binding.btnPlayPause.postDelayed({
                 binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
             }, 100)
