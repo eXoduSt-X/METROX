@@ -109,7 +109,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         exitTransition = Fade()
         _binding = FragmentLyricsBinding.bind(view)
         
-        // Intervalo optimizado a 50ms para refresco milimétrico del reloj del editor
+        // Frecuencia de actualización a 50ms para sincronización exacta del contador
         updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
         
         updateTitleSong()
@@ -143,7 +143,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupViews() {
         binding.saveFab.accentColor()
         
-        // Rellenar caja de edición inicialmente
+        // Carga inicial del EditText con el contenido disponible
         val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
             LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
         } else {
@@ -151,7 +151,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
         binding.etLyrics.setText(currentContent)
 
-        // Acción del FAB para procesar el guardado definitivo
+        // FAB guarda el estado actual según el formato de la letra
         binding.saveFab.setOnClickListener {
             val outputText = binding.etLyrics.text.toString()
             if (lyricsType == LyricsType.SYNCED_LYRICS || outputText.contains(Regex("\\[\\d{2}:\\d{2}\\.\\d{2}\\]"))) {
@@ -166,12 +166,13 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
         binding.btnPlayPause.setOnClickListener {
-            if (MusicPlayerRemote.isPlaying) {
-                MusicPlayerRemote.pauseSong()
-            } else {
-                MusicPlayerRemote.resumeSong()
-            }
-            binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
+            // Se usa el método nativo universal de MetroX
+            MusicPlayerRemote.playOrPause()
+            
+            // Margen de 50ms para que impacte el cambio de estado en el reproductor antes de refrescar el texto
+            binding.btnPlayPause.postDelayed({
+                binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
+            }, 50)
         }
 
         binding.btnRew.setOnClickListener {
@@ -447,4 +448,3 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         SYNCED_LYRICS
     }
     }
-    
