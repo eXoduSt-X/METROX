@@ -16,10 +16,12 @@ package code.name.monkey.retromusic.fragments.lyrics
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.*
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -71,8 +73,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private lateinit var syncedFileUri: Uri
 
     private var lyricsType: LyricsType = LyricsType.NORMAL_LYRICS
-    
-    // Variable local para almacenar el tiempo exacto e incontestable de la reproducción viva
     private var currentProgressMillis: Int = 0
 
     private val googleSearchLrcUrl: String
@@ -112,7 +112,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         exitTransition = Fade()
         _binding = FragmentLyricsBinding.bind(view)
         
-        // El Helper se encarga de interrogar al servicio nativo en un hilo seguro
         updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
         
         updateTitleSong()
@@ -140,9 +139,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     override fun onUpdateProgressViews(progress: Int, total: Int) {
-        // Guardamos el progreso real del callback activo del reproductor
         currentProgressMillis = progress
-        
         binding.lyricsView.updateTime(progress.toLong())
         binding.tvCurrentTime.text = formatTimeLrc(progress)
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
@@ -171,6 +168,12 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
+        // Evitamos que los botones de dirección roben el foco del teclado del sistema
+        binding.btnLeft.isFocusable = false
+        binding.btnRight.isFocusable = false
+        binding.btnUp.isFocusable = false
+        binding.btnDown.isFocusable = false
+
         binding.btnPlayPause.setOnClickListener {
             if (MusicPlayerRemote.isPlaying) {
                 MusicPlayerRemote.pauseSong()
@@ -184,24 +187,18 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
 
         binding.btnRew.setOnClickListener {
-            // Usamos la variable local garantizada en lugar de la propiedad remota rota
             val newPos = max(currentProgressMillis - 5000, 0)
-            
             MusicPlayerRemote.seekTo(newPos)
-            currentProgressMillis = newPos // Sincronizamos la variable local de inmediato
-            
+            currentProgressMillis = newPos
             binding.lyricsView.updateTime(newPos.toLong())
             binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
 
         binding.btnFwd.setOnClickListener {
             val duration = if (MusicPlayerRemote.songDurationMillis > 0) MusicPlayerRemote.songDurationMillis else 0
-            // Usamos la variable local garantizada en lugar de la propiedad remota rota
             val newPos = min(currentProgressMillis + 5000, duration)
-            
             MusicPlayerRemote.seekTo(newPos)
-            currentProgressMillis = newPos // Sincronizamos la variable local de inmediato
-            
+            currentProgressMillis = newPos
             binding.lyricsView.updateTime(newPos.toLong())
             binding.tvCurrentTime.text = formatTimeLrc(newPos)
         }
@@ -214,16 +211,37 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
         binding.btnLeft.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
-            if (pos > 0) binding.etLyrics.setSelection(pos - 1)
+            if (pos > 0) {
+                binding.etLyrics.setSelection(pos - 1)
+            }
+            maintainKeyboardBehavior()
         }
 
         binding.btnRight.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
-            if (pos < binding.etLyrics.text.length) binding.etLyrics.setSelection(pos + 1)
+            if (pos < binding.etLyrics.text.length) {
+                binding.etLyrics.setSelection(pos + 1)
+            }
+            maintainKeyboardBehavior()
         }
 
-        binding.btnUp.setOnClickListener { moveCursorLine(-1) }
-        binding.btnDown.setOnClickListener { moveCursorLine(1) }
+        binding.btnUp.setOnClickListener { 
+            moveCursorLine(-1)
+            maintainKeyboardBehavior()
+        }
+        
+        binding.btnDown.setOnClickListener { 
+            moveCursorLine(1)
+            maintainKeyboardBehavior()
+        }
+    }
+
+    private fun maintainKeyboardBehavior() {
+        // Forzamos a que el cuadro de texto retenga el cursor de forma prioritaria
+        binding.etLyrics.requestFocus()
+        // Le ordenamos al gestor de entrada de Android mantener visible el teclado activo
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(binding.etLyrics, InputMethodManager.SHOW_IMPLICIT)
     }
 
     private fun moveCursorLine(direction: Int) {
@@ -271,7 +289,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             fullLine.trim()
         }
 
-        // Estampamos el timestamp usando el progreso real guardado localmente
         val timeStamp = formatTimeLrc(currentProgressMillis)
         val newLine = "$timeStamp $cleanLine"
 
@@ -474,4 +491,5 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-}
+    }
+    
