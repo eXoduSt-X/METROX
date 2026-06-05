@@ -6,6 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="?android:attr/windowBackground"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -33,33 +34,40 @@
                 android:id="@+id/tvCurrentTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
+                android:layout_marginEnd="8dp"
                 android:text="[00:00.00]"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                android:textColor="?android:attr/textColorPrimary"
+                android:textColor="@android:color/white"
                 android:textStyle="bold" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRew"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="-5s" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPlayPause"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="Play" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFwd"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="+5s" />
         </LinearLayout>
 
@@ -70,55 +78,69 @@
             android:gravity="center"
             android:orientation="horizontal">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLeft"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="48dp"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="46dp"
                 android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="←" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUp"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="48dp"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="46dp"
                 android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="↑" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMark"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
+                android:layout_margin="2dp"
+                android:textColor="@android:color/black"
+                app:backgroundTint="@color/md_amber_200"
                 android:text="MARCAR" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDown"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="48dp"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="46dp"
                 android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="↓" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRight"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="48dp"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="46dp"
                 android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:textColor="?attr/colorPrimary"
+                app:backgroundTint="@android:color/white"
                 android:text="→" />
         </LinearLayout>
     </LinearLayout>
+
+    <code.name.monkey.retromusic.lyrics.LrcView
+        android:id="@+id/lyricsView"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="#1A000000"
+        android:visibility="visible" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
-
-        <code.name.monkey.retromusic.lyrics.LrcView
-            android:id="@+id/lyricsView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone" />
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -169,5 +191,5 @@
             app:srcCompat="@drawable/ic_save"
             tools:ignore="SpeakableTextPresentCheck" />
     </FrameLayout>
-
 </LinearLayout>
+
