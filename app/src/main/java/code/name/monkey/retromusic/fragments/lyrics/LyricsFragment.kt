@@ -168,7 +168,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
-        // Desactivar foco touch para evitar el requerimiento de doble toque
         val nonFocusableViews = listOf(
             binding.btnRew, binding.btnFwd, binding.btnMark, binding.btnPlayPause,
             binding.btnLeft, binding.btnRight, binding.btnUp, binding.btnDown
@@ -213,7 +212,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             binding.etLyrics.requestFocus()
         }
 
-        // CONTROL ULTRA-FLUIDO AL PRIMER TOQUE (MIGRADO A TEXTVIEWS EN EL XML)
         binding.btnLeft.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
             if (pos > 0) {
@@ -416,7 +414,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             LyricsType.SYNCED_LYRICS
         }
         
-        // APAGADO ESTRICTO DE VISIBILIDAD PARA EVITAR ENCIMADOS DE TEXTO
         if (lyricsType == LyricsType.SYNCED_LYRICS) {
             binding.etLyrics.isVisible = true
             binding.normalLyrics.isVisible = false
@@ -449,7 +446,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         mainActivity.setSupportActionBar(binding.toolbar)
         ToolbarContentTintHelper.colorBackButton(binding.toolbar)
         binding.toolbar.setNavigationOnClickListener {
-            // Se usa popBackStack para asegurar que se remueva limpiamente del stack sin congelar la vista previa
             findNavController().popBackStack()
         }
     }
@@ -460,12 +456,11 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_lyrics, menu)
-        ToolbarContentTintHelper.handleOnCreateOptionsMenu(
-            requireContext(),
-            binding.toolbar,
-            menu,
-            ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar)
-        )
+        // Forzar tinte blanco puro en los iconos del menú de la Toolbar (como el botón de búsqueda)
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            item.icon?.setTint(android.graphics.Color.WHITE)
+        }
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
@@ -487,12 +482,8 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     override fun onDestroyView() {
-        // Limpiamos la bandera de pantalla encendida para evitar inestabilidad en la ventana del activity
         requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        
         super.onDestroyView()
-        
-        // Evitamos tirones visuales al validar de manera estricta si el fragmento está siendo removido por el usuario
         if (MusicPlayerRemote.playingQueue.isNotEmpty() && isRemoving) {
             mainActivity.expandPanel()
         }
