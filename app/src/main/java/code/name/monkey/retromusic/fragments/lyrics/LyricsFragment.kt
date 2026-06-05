@@ -168,7 +168,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
-        // Desactivar foco para que no requieran doble clic ni interfieran con el teclado abierto
+        // Desactivar foco touch para evitar el requerimiento de doble toque
         val nonFocusableViews = listOf(
             binding.btnRew, binding.btnFwd, binding.btnMark, binding.btnPlayPause,
             binding.btnLeft, binding.btnRight, binding.btnUp, binding.btnDown
@@ -213,7 +213,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             binding.etLyrics.requestFocus()
         }
 
-        // CONTROL INMEDIATO DEL CURSOR DE TEXTO CON UN SOLO TOQUE
+        // CONTROL ULTRA-FLUIDO AL PRIMER TOQUE (MIGRADO A TEXTVIEWS EN EL XML)
         binding.btnLeft.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
             if (pos > 0) {
@@ -241,7 +241,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         }
     }
 
-    // NAVEGACIÓN PRECISA POR LÍNEAS
     private fun moveCursorLine(direction: Int) {
         val pos = binding.etLyrics.selectionStart
         val text = binding.etLyrics.text.toString()
@@ -417,7 +416,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             LyricsType.SYNCED_LYRICS
         }
         
-        // APAGADO ESTRICTO DE COMPONENTES ANIDADOS PARA EVITAR CAPAS SOLAPADAS
+        // APAGADO ESTRICTO DE VISIBILIDAD PARA EVITAR ENCIMADOS DE TEXTO
         if (lyricsType == LyricsType.SYNCED_LYRICS) {
             binding.etLyrics.isVisible = true
             binding.normalLyrics.isVisible = false
@@ -450,7 +449,8 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         mainActivity.setSupportActionBar(binding.toolbar)
         ToolbarContentTintHelper.colorBackButton(binding.toolbar)
         binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
+            // Se usa popBackStack para asegurar que se remueva limpiamente del stack sin congelar la vista previa
+            findNavController().popBackStack()
         }
     }
 
@@ -487,9 +487,15 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     override fun onDestroyView() {
+        // Limpiamos la bandera de pantalla encendida para evitar inestabilidad en la ventana del activity
+        requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        
         super.onDestroyView()
-        if (MusicPlayerRemote.playingQueue.isNotEmpty())
+        
+        // Evitamos tirones visuales al validar de manera estricta si el fragmento está siendo removido por el usuario
+        if (MusicPlayerRemote.playingQueue.isNotEmpty() && isRemoving) {
             mainActivity.expandPanel()
+        }
         _binding = null
     }
 
@@ -497,5 +503,4 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-    }
-    
+}
