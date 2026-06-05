@@ -163,16 +163,19 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun setupSincroControls() {
-        binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
-
         binding.btnPlayPause.setOnClickListener {
-            // Se usa el método nativo universal de MetroX
-            MusicPlayerRemote.playOrPause()
+            // Solución definitiva: Simulamos un botón multimedia físico (Auriculares/Bluetooth)
+            val eventTime = android.os.SystemClock.uptimeMillis()
+            val downEvent = android.view.KeyEvent(eventTime, eventTime, android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
+            val upEvent = android.view.KeyEvent(eventTime, eventTime, android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
             
-            // Margen de 50ms para que impacte el cambio de estado en el reproductor antes de refrescar el texto
+            requireContext().dispatchKeyEvent(downEvent)
+            requireContext().dispatchKeyEvent(upEvent)
+            
+            // Margen de 100ms para asegurar que el estado de reproducción cambie antes de actualizar el texto del botón
             binding.btnPlayPause.postDelayed({
                 binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
-            }, 50)
+            }, 100)
         }
 
         binding.btnRew.setOnClickListener {
