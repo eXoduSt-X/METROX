@@ -19,7 +19,6 @@ import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.text.InputType
 import android.view.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
@@ -34,7 +33,6 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.activities.tageditor.TagWriter
 import code.name.monkey.retromusic.databinding.FragmentLyricsBinding
 import code.name.monkey.retromusic.extensions.accentColor
-import code.name.monkey.retromusic.extensions.materialDialog
 import code.name.monkey.retromusic.extensions.openUrl
 import code.name.monkey.retromusic.extensions.uri
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
@@ -46,7 +44,6 @@ import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.util.FileUtils
 import code.name.monkey.retromusic.util.LyricUtil
 import code.name.monkey.retromusic.util.UriUtil
-import com.afollestad.materialdialogs.input.input
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.jaudiotagger.audio.AudioFileIO
@@ -55,6 +52,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.*
 import kotlin.collections.set
+import kotlin.math.max
+import kotlin.math.min
 
 class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     MusicProgressViewUpdateHelper.Callback {
@@ -109,7 +108,10 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         enterTransition = Fade()
         exitTransition = Fade()
         _binding = FragmentLyricsBinding.bind(view)
-        updateHelper = MusicProgressViewUpdateHelper(this, 500, 1000)
+        
+        // Cambiado a un intervalo de 50ms para permitir fluidez exacta en el reloj y marcado lrc
+        updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
+        
         updateTitleSong()
         setupLyricsView()
         loadLyrics()
@@ -117,6 +119,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         setupWakelock()
         setupViews()
         setupToolbar()
+        setupSincroControls()
     }
 
     private fun setupLyricsView() {
@@ -134,20 +137,250 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     override fun onUpdateProgressViews(progress: Int, total: Int) {
         binding.lyricsView.updateTime(progress.toLong())
+        binding.tvCurrentTime.text = formatTimeLrc(progress)
     }
 
     private fun setupViews() {
-        binding.editButton.accentColor()
-        binding.editButton.setOnClickListener {
-            when (lyricsType) {
-                LyricsType.SYNCED_LYRICS -> {
-                    editSyncedLyrics()
-                }
-                LyricsType.NORMAL_LYRICS -> {
-                    editNormalLyrics()
-                }
+        binding.saveFab.accentColor()
+        
+        // Al cargar la pantalla, rellenamos el EditText con lo que ya tenga la canción de base
+        val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
+            LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
+        } else {
+            getEmbeddedLyricsText()
+        }
+        binding.etLyrics.setText(currentContent)
+
+        // Acción del FAB para procesar el guardado definitivo
+        binding.saveFab.setOnClickListener {
+            val outputText = binding.etLyrics.text.toString()
+            if (lyricsType == LyricsType.SYNCED_LYRICS || outputText.contains(Regex("\\[\\d{2}:\\d{2}\\.\\d{2}\\]"))) {
+                saveSyncedLyricsData(outputText)
+            } else {
+                saveNormalLyricsData(outputText)
             }
         }
+    }
+
+    private fun setupSincroControls() {
+        // Estado inicial del botón Play/Pause
+        binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
+
+        binding.btnPlayPause.setOnClickListener {
+            MusicPlayerRemote.playOrPause()
+            binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
+        }
+
+        binding.btnRew.setOnClickListener {
+            val newPos = MusicPlayerRemote.position - 5000
+            MusicPlayerRemote.seekTo(max(newPos, 0))
+            binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
+        }
+
+        binding.btnFwd.setOnClickListener {
+            val newPos = MusicPlayerRemote.position + 5000
+            MusicPlayerRemote.seekTo(min(newPos, MusicPlayerRemote.duration))
+            binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
+        }
+
+        // Motor de estampado del botón maestro
+        binding.btnMark.setOnClickListener {
+            handleMarking()
+            // Inyectamos el texto dinámicamente al LrcView de la mitad superior en caliente
+            binding.lyricsView.loadLrc(binding.etLyrics.text.toString())
+            binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
+        }
+
+        // Navegación fina por caracteres con botones Left/Right
+        binding.btnLeft.setOnClickListener {
+            val pos = binding.etLyrics.selectionStart
+            if (pos > 0) binding.etLyrics.setSelection(pos - 1)
+        }
+
+        binding.btnRight.setOnClickListener {
+            val pos = binding.etLyrics.selectionStart
+            if (pos < binding.etLyrics.text.length) binding.etLyrics.setSelection(pos + 1)
+        }
+
+        binding.btnUp.setOnClickListener { moveCursorLine(-1) }
+        binding.btnDown.setOnClickListener { moveCursorLine(1) }
+    }
+
+    private fun moveCursorLine(direction: Int) {
+        val pos = binding.etLyrics.selectionStart
+        val text = binding.etLyrics.text.toString()
+        if (text.isEmpty()) return
+
+        val currentLineStart = text.lastIndexOf("\n", pos - 1) + 1
+        var currentLineEnd = text.indexOf("\n", pos)
+        if (currentLineEnd == -1) currentLineEnd = text.length
+
+        val column = pos - currentLineStart
+
+        if (direction == -1) {
+            if (currentLineStart <= 0) return
+            val prevLineStart = text.lastIndexOf("\n", currentLineStart - 2) + 1
+            val prevLineEnd = currentLineStart - 1
+            val prevLineLength = prevLineEnd - prevLineStart
+            val targetPos = prevLineStart + min(column, prevLineLength)
+            binding.etLyrics.setSelection(targetPos)
+        } else if (direction == 1) {
+            if (currentLineEnd >= text.length) return
+            val nextLineStart = currentLineEnd + 1
+            var nextLineEnd = text.indexOf("\n", nextLineStart)
+            if (nextLineEnd == -1) nextLineEnd = text.length
+            val nextLineLength = nextLineEnd - nextLineStart
+            val targetPos = nextLineStart + min(column, nextLineLength)
+            binding.etLyrics.setSelection(targetPos)
+        }
+    }
+
+    private fun handleMarking() {
+        val pos = binding.etLyrics.selectionStart
+        val text = binding.etLyrics.text.toString().replace("\r\n", "\n").replace("\r", "\n")
+        if (text.isEmpty()) return
+
+        val lineStart = text.lastIndexOf("\n", pos - 1) + 1
+        var lineEnd = text.indexOf("\n", pos)
+        if (lineEnd == -1) lineEnd = text.length
+
+        val fullLine = text.substring(lineStart, lineEnd)
+        // Limpiamos etiquetas de tiempo previas si ya existían en esa línea
+        val cleanLine = if (fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())) {
+            fullLine.substring(10).trim()
+        } else {
+            fullLine.trim()
+        }
+
+        val timeStamp = formatTimeLrc(MusicPlayerRemote.position)
+        val newLine = "$timeStamp $cleanLine"
+
+        val updatedText = text.substring(0, lineStart) + newLine + text.substring(lineEnd)
+        binding.etLyrics.setText(updatedText)
+
+        // Mover cursor automáticamente al inicio de la siguiente frase
+        val nextLinePos = lineStart + newLine.length + 1
+        if (nextLinePos <= updatedText.length) {
+            binding.etLyrics.setSelection(nextLinePos)
+        } else {
+            binding.etLyrics.setSelection(updatedText.length)
+        }
+    }
+
+    private fun formatTimeLrc(ms: Int): String {
+        val m = (ms / 1000) / 60
+        val s = (ms / 1000) % 60
+        val mm = (ms % 1000) / 10
+        return String.format("[%02d:%02d.%02d]", m, s, mm)
+    }
+
+    private fun getEmbeddedLyricsText(): String {
+        return try {
+            val file = File(song.data)
+            AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    private fun saveNormalLyricsData(input: String) {
+        val fieldKeyValueMap = EnumMap<FieldKey, String>(FieldKey::class.java)
+        fieldKeyValueMap[FieldKey.LYRICS] = input
+        GlobalScope.launch {
+            if (VersionUtils.hasR()) {
+                cacheFile = TagWriter.writeTagsToFilesR(
+                    requireContext(), AudioTagInfo(
+                        listOf(song.data), fieldKeyValueMap, null
+                    )
+                )[0]
+                val pendingIntent = MediaStore.createWriteRequest(
+                    requireContext().contentResolver,
+                    listOf(song.uri)
+                )
+                normalLyricsLauncher.launch(IntentSenderRequest.Builder(pendingIntent).build())
+            } else {
+                TagWriter.writeTagsToFiles(
+                    requireContext(), AudioTagInfo(listOf(song.data), fieldKeyValueMap, null)
+                )
+                activity?.runOnUiThread { loadNormalLyrics() }
+            }
+        }
+    }
+
+    private fun saveSyncedLyricsData(input: String) {
+        if (VersionUtils.hasR()) {
+            syncedLyrics = input
+            val lrcFile = LyricUtil.getSyncedLyricsFile(song)
+            if (lrcFile?.exists() == true) {
+                syncedFileUri = UriUtil.getUriFromPath(requireContext(), lrcFile.absolutePath)
+                val pendingIntent = MediaStore.createWriteRequest(
+                    requireContext().contentResolver,
+                    listOf(syncedFileUri)
+                )
+                editSyncedLyricsLauncher.launch(IntentSenderRequest.Builder(pendingIntent).build())
+            } else {
+                val fieldKeyValueMap = EnumMap<FieldKey, String>(FieldKey::class.java)
+                fieldKeyValueMap[FieldKey.LYRICS] = input
+                GlobalScope.launch {
+                    cacheFile = TagWriter.writeTagsToFilesR(
+                        requireContext(),
+                        AudioTagInfo(listOf(song.data), fieldKeyValueMap, null)
+                    )[0]
+                    val pendingIntent = MediaStore.createWriteRequest(
+                        requireContext().contentResolver,
+                        listOf(song.uri)
+                    )
+                    normalLyricsLauncher.launch(IntentSenderRequest.Builder(pendingIntent).build())
+                }
+            }
+        } else {
+            LyricUtil.writeLrc(song, input)
+            loadLRCLyrics()
+        }
+    }
+
+    private fun loadNormalLyrics() {
+        val lyrics = getEmbeddedLyricsText()
+        binding.normalLyrics.isVisible = !lyrics.isNullOrEmpty()
+        binding.noLyricsFound.isVisible = lyrics.isNullOrEmpty()
+        binding.normalLyrics.text = lyrics
+    }
+
+    private fun loadLRCLyrics(): Boolean {
+        val lrcFile = LyricUtil.getSyncedLyricsFile(song)
+        if (lrcFile != null) {
+            binding.lyricsView.loadLrc(lrcFile)
+        } else {
+            val embeddedLyrics = LyricUtil.getEmbeddedSyncedLyrics(song.data)
+            if (embeddedLyrics != null) {
+                binding.lyricsView.loadLrc(embeddedLyrics)
+            } else {
+                binding.lyricsView.setLabel(getString(R.string.empty))
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun loadLyrics() {
+        lyricsType = if (!loadLRCLyrics()) {
+            binding.lyricsView.isVisible = false
+            loadNormalLyrics()
+            LyricsType.NORMAL_LYRICS
+        } else {
+            binding.normalLyrics.isVisible = false
+            binding.noLyricsFound.isVisible = false
+            binding.lyricsView.isVisible = true
+            LyricsType.SYNCED_LYRICS
+        }
+        
+        // Actualizar el EditText tras saber el tipo de letra cargada
+        val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
+            LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
+        } else {
+            getEmbeddedLyricsText()
+        }
+        binding.etLyrics.setText(currentContent)
     }
 
     override fun onPlayingMetaChanged() {
@@ -195,160 +428,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         return false
     }
 
-    @SuppressLint("CheckResult")
-    private fun editNormalLyrics(lyrics: String? = null) {
-        val file = File(song.data)
-        val content = lyrics ?: try {
-            AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ""
-        }
-
-        val song = song
-
-        materialDialog().show {
-            title(res = R.string.edit_normal_lyrics)
-            input(
-                hintRes = R.string.paste_lyrics_here,
-                prefill = content,
-                inputType = InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_CLASS_TEXT
-            ) { _, input ->
-                val fieldKeyValueMap = EnumMap<FieldKey, String>(FieldKey::class.java)
-                fieldKeyValueMap[FieldKey.LYRICS] = input.toString()
-                GlobalScope.launch {
-                    if (VersionUtils.hasR()) {
-                        cacheFile = TagWriter.writeTagsToFilesR(
-                            requireContext(), AudioTagInfo(
-                                listOf(song.data), fieldKeyValueMap, null
-                            )
-                        )[0]
-                        val pendingIntent =
-                            MediaStore.createWriteRequest(
-                                requireContext().contentResolver,
-                                listOf(song.uri)
-                            )
-
-                        normalLyricsLauncher.launch(
-                            IntentSenderRequest.Builder(pendingIntent).build()
-                        )
-                    } else {
-                        TagWriter.writeTagsToFiles(
-                            requireContext(), AudioTagInfo(
-                                listOf(song.data), fieldKeyValueMap, null
-                            )
-                        )
-                    }
-                }
-            }
-            positiveButton(res = R.string.save) {
-                loadNormalLyrics()
-            }
-            negativeButton(res = android.R.string.cancel)
-        }
-    }
-
-
-    @SuppressLint("CheckResult")
-    private fun editSyncedLyrics(lyrics: String? = null) {
-        val content = lyrics ?: LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song))
-
-        val song = song
-        materialDialog().show {
-            title(res = R.string.edit_synced_lyrics)
-            input(
-                hintRes = R.string.paste_timeframe_lyrics_here,
-                prefill = content,
-                inputType = InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_CLASS_TEXT
-            ) { _, input ->
-                if (VersionUtils.hasR()) {
-                    syncedLyrics = input.toString()
-                    val lrcFile = LyricUtil.getSyncedLyricsFile(song)
-                    if (lrcFile?.exists() == true) {
-                        syncedFileUri =
-                            UriUtil.getUriFromPath(requireContext(), lrcFile.absolutePath)
-                        val pendingIntent =
-                            MediaStore.createWriteRequest(
-                                requireContext().contentResolver,
-                                listOf(syncedFileUri)
-                            )
-                        editSyncedLyricsLauncher.launch(
-                            IntentSenderRequest.Builder(pendingIntent).build()
-                        )
-                    } else {
-                        val fieldKeyValueMap = EnumMap<FieldKey, String>(FieldKey::class.java)
-                        fieldKeyValueMap[FieldKey.LYRICS] = input.toString()
-                        GlobalScope.launch {
-                            cacheFile = TagWriter.writeTagsToFilesR(
-                                requireContext(),
-                                AudioTagInfo(listOf(song.data), fieldKeyValueMap, null)
-                            )[0]
-                            val pendingIntent = MediaStore.createWriteRequest(
-                                requireContext().contentResolver,
-                                listOf(song.uri)
-                            )
-
-                            normalLyricsLauncher.launch(
-                                IntentSenderRequest.Builder(pendingIntent).build()
-                            )
-                        }
-                    }
-                } else {
-                    LyricUtil.writeLrc(song, input.toString())
-                }
-            }
-            positiveButton(res = R.string.save) {
-                loadLRCLyrics()
-            }
-            negativeButton(res = android.R.string.cancel)
-        }
-    }
-
-    private fun loadNormalLyrics() {
-        val file = File(song.data)
-        val lyrics = try {
-            AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ""
-        }
-        binding.normalLyrics.isVisible = !lyrics.isNullOrEmpty()
-        binding.noLyricsFound.isVisible = lyrics.isNullOrEmpty()
-        binding.normalLyrics.text = lyrics
-    }
-
-    /**
-     * @return success
-     */
-    private fun loadLRCLyrics(): Boolean {
-        val lrcFile = LyricUtil.getSyncedLyricsFile(song)
-        if (lrcFile != null) {
-            binding.lyricsView.loadLrc(lrcFile)
-        } else {
-            val embeddedLyrics = LyricUtil.getEmbeddedSyncedLyrics(song.data)
-            if (embeddedLyrics != null) {
-                binding.lyricsView.loadLrc(embeddedLyrics)
-            } else {
-                binding.lyricsView.setLabel(getString(R.string.empty))
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun loadLyrics() {
-        lyricsType = if (!loadLRCLyrics()) {
-            binding.lyricsView.isVisible = false
-            loadNormalLyrics()
-            LyricsType.NORMAL_LYRICS
-        } else {
-            binding.normalLyrics.isVisible = false
-            binding.noLyricsFound.isVisible = false
-            binding.lyricsView.isVisible = true
-            LyricsType.SYNCED_LYRICS
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         updateHelper.start()
@@ -371,3 +450,4 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         SYNCED_LYRICS
     }
 }
+
