@@ -1,17 +1,3 @@
-   /*
- * Copyright (c) 2020 Hemanth Savarla.
- *
- * Licensed under the GNU General Public License v3
- *
- * This is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- */
 package code.name.monkey.retromusic.fragments.lyrics
 
 import android.annotation.SuppressLint
@@ -54,7 +40,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.util.*
-import kotlin.collections.set
 import kotlin.math.max
 import kotlin.math.min
 
@@ -168,14 +153,15 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupSincroControls() {
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
-        binding.btnLeft.isFocusable = false
-        binding.btnRight.isFocusable = false
-        binding.btnUp.isFocusable = false
-        binding.btnDown.isFocusable = false
-        binding.btnRew.isFocusable = false
-        binding.btnFwd.isFocusable = false
-        binding.btnMark.isFocusable = false
-        binding.btnPlayPause.isFocusable = false
+        // Evitamos pérdidas de foco nativas que cierran el teclado al pulsar el botón
+        val controls = listOf(
+            binding.btnLeft, binding.btnRight, binding.btnUp, binding.btnDown,
+            binding.btnRew, binding.btnFwd, binding.btnMark, binding.btnPlayPause
+        )
+        controls.forEach { button ->
+            button.isFocusable = false
+            button.isFocusableInTouchMode = false
+        }
 
         binding.btnPlayPause.setOnClickListener {
             if (MusicPlayerRemote.isPlaying) {
@@ -183,7 +169,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             } else {
                 MusicPlayerRemote.resumePlaying()
             }
-            
             binding.btnPlayPause.postDelayed({
                 binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
             }, 100)
@@ -212,12 +197,12 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             binding.lyricsView.updateTime(currentProgressMillis.toLong())
         }
 
+        // LÓGICA DE CURSOR FLUIDA SIN AFECTAR EL TECLADO
         binding.btnLeft.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
             if (pos > 0) {
                 binding.etLyrics.setSelection(pos - 1)
             }
-            maintainKeyboardBehavior()
         }
 
         binding.btnRight.setOnClickListener {
@@ -225,24 +210,15 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             if (pos < binding.etLyrics.text.length) {
                 binding.etLyrics.setSelection(pos + 1)
             }
-            maintainKeyboardBehavior()
         }
 
         binding.btnUp.setOnClickListener { 
             moveCursorLine(-1)
-            maintainKeyboardBehavior()
         }
         
         binding.btnDown.setOnClickListener { 
             moveCursorLine(1)
-            maintainKeyboardBehavior()
         }
-    }
-
-    private fun maintainKeyboardBehavior() {
-        binding.etLyrics.requestFocus()
-        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.showSoftInput(binding.etLyrics, InputMethodManager.SHOW_IMPLICIT)
     }
 
     private fun moveCursorLine(direction: Int) {
@@ -495,5 +471,4 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-    }
-    
+}
