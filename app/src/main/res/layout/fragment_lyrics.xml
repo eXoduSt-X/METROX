@@ -214,6 +214,6 @@
         android:layout_margin="16dp"
         android:clickable="true"
         android:focusable="true"
-        app:srcCompat="@drawable/ic_done" />
+        app:srcCompat="@drawable/ic_check" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
