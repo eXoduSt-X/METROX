@@ -109,7 +109,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         exitTransition = Fade()
         _binding = FragmentLyricsBinding.bind(view)
         
-        // Cambiado a un intervalo de 50ms para permitir fluidez exacta en el reloj y marcado lrc
+        // Intervalo optimizado a 50ms para refresco milimétrico del reloj del editor
         updateHelper = MusicProgressViewUpdateHelper(this, 50, 50)
         
         updateTitleSong()
@@ -143,7 +143,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupViews() {
         binding.saveFab.accentColor()
         
-        // Al cargar la pantalla, rellenamos el EditText con lo que ya tenga la canción de base
+        // Rellenar caja de edición inicialmente
         val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
             LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
         } else {
@@ -163,11 +163,14 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun setupSincroControls() {
-        // Estado inicial del botón Play/Pause
         binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
 
         binding.btnPlayPause.setOnClickListener {
-            MusicPlayerRemote.playOrPause()
+            if (MusicPlayerRemote.isPlaying) {
+                MusicPlayerRemote.pauseSong()
+            } else {
+                MusicPlayerRemote.playSong()
+            }
             binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
         }
 
@@ -179,19 +182,16 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
         binding.btnFwd.setOnClickListener {
             val newPos = MusicPlayerRemote.position + 5000
-            MusicPlayerRemote.seekTo(min(newPos, MusicPlayerRemote.duration))
+            MusicPlayerRemote.seekTo(min(newPos, MusicPlayerRemote.songDurationMillis))
             binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
         }
 
-        // Motor de estampado del botón maestro
         binding.btnMark.setOnClickListener {
             handleMarking()
-            // Inyectamos el texto dinámicamente al LrcView de la mitad superior en caliente
             binding.lyricsView.loadLrc(binding.etLyrics.text.toString())
             binding.lyricsView.updateTime(MusicPlayerRemote.position.toLong())
         }
 
-        // Navegación fina por caracteres con botones Left/Right
         binding.btnLeft.setOnClickListener {
             val pos = binding.etLyrics.selectionStart
             if (pos > 0) binding.etLyrics.setSelection(pos - 1)
@@ -245,7 +245,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         if (lineEnd == -1) lineEnd = text.length
 
         val fullLine = text.substring(lineStart, lineEnd)
-        // Limpiamos etiquetas de tiempo previas si ya existían en esa línea
         val cleanLine = if (fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())) {
             fullLine.substring(10).trim()
         } else {
@@ -258,7 +257,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         val updatedText = text.substring(0, lineStart) + newLine + text.substring(lineEnd)
         binding.etLyrics.setText(updatedText)
 
-        // Mover cursor automáticamente al inicio de la siguiente frase
         val nextLinePos = lineStart + newLine.length + 1
         if (nextLinePos <= updatedText.length) {
             binding.etLyrics.setSelection(nextLinePos)
@@ -374,7 +372,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             LyricsType.SYNCED_LYRICS
         }
         
-        // Actualizar el EditText tras saber el tipo de letra cargada
         val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
             LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
         } else {
@@ -449,5 +446,5 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         NORMAL_LYRICS,
         SYNCED_LYRICS
     }
-}
-
+    }
+    
