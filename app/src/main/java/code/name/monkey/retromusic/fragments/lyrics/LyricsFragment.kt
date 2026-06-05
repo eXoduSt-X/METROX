@@ -169,7 +169,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             if (MusicPlayerRemote.isPlaying) {
                 MusicPlayerRemote.pauseSong()
             } else {
-                MusicPlayerRemote.playSong()
+                MusicPlayerRemote.resumeSong()
             }
             binding.btnPlayPause.text = if (MusicPlayerRemote.isPlaying) "Pause" else "Play"
         }
