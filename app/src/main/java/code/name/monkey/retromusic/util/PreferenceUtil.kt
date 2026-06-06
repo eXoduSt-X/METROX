@@ -304,7 +304,7 @@ object PreferenceUtil {
 
     var isDesaturatedColor
         get() = sharedPreferences.getBoolean(
-            DESATURATED_COLOR, false
+            DESATURATED_COLOR, true
         )
         set(value) = sharedPreferences.edit {
             putBoolean(DESATURATED_COLOR, value)
@@ -513,7 +513,7 @@ object PreferenceUtil {
             App.getContext().getIntRes(R.integer.default_grid_columns_land)
         )
         set(value) = sharedPreferences.edit {
-            putInt(ALBUM_GRID_SIZE_LAND, value)
+            putInt(ARTIST_GRID_SIZE_LAND, value)
         }
 
 
@@ -533,7 +533,7 @@ object PreferenceUtil {
             App.getContext().getIntRes(R.integer.default_grid_columns_land)
         )
         set(value) = sharedPreferences.edit {
-            putInt(PLAYLIST_GRID_SIZE, value)
+            putInt(PLAYLIST_GRID_SIZE_LAND, value)
         }
 
     var albumCoverStyle: AlbumCoverStyle
@@ -664,7 +664,7 @@ object PreferenceUtil {
     val isCrossfadeEnabled get() = crossFadeDuration > 0
 
     val materialYou
-        get() = sharedPreferences.getBoolean(MATERIAL_YOU, VersionUtils.hasS())
+        get() = sharedPreferences.getBoolean(MATERIAL_YOU, false)
 
     val isCustomFont
         get() = sharedPreferences.getBoolean(CUSTOM_FONT, false)
