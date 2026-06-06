@@ -109,69 +109,83 @@ class HomeFragment :
         binding.videoDownloadView.start()
     }
 
-    private fun procesarEnlaceHome(urlVideo: String) {
+   private fun procesarEnlaceHome(urlVideo: String) {
         Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
 
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val apiUrL = URL("https://api.cobalt.tools/api/json")
-                val conn = apiUrL.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                // Cabeceras estrictas de identificación y formato
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Accept", "application/json")
-                conn.doOutput = true
+            // Lista de instancias y nodos alternativos de Cobalt que aceptan peticiones desde APKs
+            val endpoints = listOf(
+                "https://cobalt.api.0x0.st/api/json",
+                "https://api.cobalt.tools/api/json",
+                "https://co.wuk.sh/api/json"
+            )
+            
+            var exito = false
+            var codigoErrorFinal = 400
 
-                // JSON plano simplificado compatible al 100% con la API v10 de Cobalt
-                val jsonInput = """
-                {
-                  "url": "$urlVideo",
-                  "videoQuality": "720p",
-                  "downloadMode": "video"
-                }
-                """.trimIndent()
-
-                conn.outputStream.use { os ->
-                    val input = jsonInput.toByteArray(Charsets.UTF_8)
-                    os.write(input, 0, input.size)
-                }
-
-                val responseCode = conn.responseCode
-                if (responseCode == 200 || responseCode == 201) {
-                    val response = conn.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+            for (apiUrlStr in endpoints) {
+                try {
+                    val apiUrL = URL(apiUrlStr)
+                    val conn = apiUrL.openConnection() as HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.connectTimeout = 8000 // Evita que la app se quede colgada esperando
+                    conn.readTimeout = 8000
                     
-                    // Extraemos la URL directa devuelta por el backend
-                    val urlDirecta = jsonResponse.optString("url")
+                    // Enmascaramos la petición emulando un navegador web estándar completo
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("Accept", "application/json")
+                    conn.doOutput = true
 
-                    if (urlDirecta.isNotEmpty()) {
-                        withContext(Dispatchers.Main) {
-                            reproducirVideoEnPanel(Uri.parse(urlDirecta))
+                    // JSON plano con los requerimientos base de conversión
+                    val jsonInput = """
+                    {
+                      "url": "$urlVideo",
+                      "videoQuality": "720p",
+                      "downloadMode": "video"
+                    }
+                    """.trimIndent()
 
-                            val cancionActual = MusicPlayerRemote.currentSong
-                            val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
-                                "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
-                            } else {
-                                "Metraje_Sincro_${System.currentTimeMillis()}"
+                    conn.outputStream.use { os ->
+                        val input = jsonInput.toByteArray(Charsets.UTF_8)
+                        os.write(input, 0, input.size)
+                    }
+
+                    val responseCode = conn.responseCode
+                    if (responseCode == 200 || responseCode == 201) {
+                        val response = conn.inputStream.bufferedReader().use { it.readText() }
+                        val jsonResponse = JSONObject(response)
+                        val urlDirecta = jsonResponse.optString("url")
+
+                        if (urlDirecta.isNotEmpty()) {
+                            withContext(Dispatchers.Main) {
+                                reproducirVideoEnPanel(Uri.parse(urlDirecta))
+
+                                val cancionActual = MusicPlayerRemote.currentSong
+                                val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
+                                    "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
+                                } else {
+                                    "Metraje_Sincro_${System.currentTimeMillis()}"
+                                }
+                                
+                                ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
                             }
-                            
-                            ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
+                            exito = true
+                            break // Salimos del bucle al procesar con éxito
                         }
                     } else {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(requireContext(), "Cobalt no devolvió un enlace reproducible", Toast.LENGTH_SHORT).show()
-                        }
+                        codigoErrorFinal = responseCode
                     }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Error del servidor: $responseCode", Toast.LENGTH_SHORT).show()
-                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Si un nodo falla por timeout o caída, el bucle continúa con la siguiente URL
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            }
+
+            // Si ningún servidor pudo resolver la petición exitosamente
+            if (!exito) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Fallo de conexión", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Error de procesamiento (Código: $codigoErrorFinal). Reintenta en unos instantes.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
