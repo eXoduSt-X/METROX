@@ -46,28 +46,6 @@
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSrt"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#3A3A3A"
-                android:text="SRT" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLoadVideo"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1.2"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#3A3A3A"
-                android:text="Video" />
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRew"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
@@ -99,6 +77,28 @@
                 android:textColor="@android:color/white"
                 app:backgroundTint="#2D2D2D"
                 android:text="+5s" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLoadVideo"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:layout_weight="1.2"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#3A3A3A"
+                android:text="Video" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSrt"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="2dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#3A3A3A"
+                android:text="SRT" />
         </LinearLayout>
 
         <LinearLayout
