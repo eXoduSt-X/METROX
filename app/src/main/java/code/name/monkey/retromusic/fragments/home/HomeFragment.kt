@@ -122,10 +122,11 @@ class HomeFragment :
                 conn.setRequestProperty("Accept", "application/json")
                 conn.doOutput = true
 
+                // ESTRUCTURA CORREGIDA PARA PREVENIR EL ERROR 400
                 val jsonInput = JSONObject().apply {
                     put("url", urlVideo)
-                    put("videoQuality", "720")
-                    put("isAudioOnly", false)
+                    put("videoQuality", "720p") // Formato nativo correcto reconocido por Cobalt
+                    put("downloadMode", "video") // Indica explícitamente que procese el contenedor completo
                 }
 
                 conn.outputStream.use { os ->
@@ -137,6 +138,8 @@ class HomeFragment :
                 if (responseCode == 200 || responseCode == 201) {
                     val response = conn.inputStream.bufferedReader().use { it.readText() }
                     val jsonResponse = JSONObject(response)
+                    
+                    // Cobalt responde con la clave "url" si el estado es un éxito
                     val urlDirecta = jsonResponse.optString("url")
 
                     if (urlDirecta.isNotEmpty()) {
@@ -152,6 +155,10 @@ class HomeFragment :
                             
                             ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
                         }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(requireContext(), "La API no devolvió un enlace de video válido", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } else {
                     withContext(Dispatchers.Main) {
@@ -166,7 +173,6 @@ class HomeFragment :
             }
         }
     }
-
     private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
         try {
             val request = DownloadManager.Request(Uri.parse(url)).apply {
