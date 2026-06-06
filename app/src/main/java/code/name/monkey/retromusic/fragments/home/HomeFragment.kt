@@ -138,13 +138,11 @@ class HomeFragment :
                     conn.doOutput = true
 
                     // JSON plano con los requerimientos base de conversión
-                    val jsonInput = """
-                    {
-                      "url": "$urlVideo",
-                      "videoQuality": "720p",
-                      "downloadMode": "video"
-                    }
-                    """.trimIndent()
+                   val jsonInput = """
+{
+  "url": "$urlVideo"
+}
+""".trimIndent()
 
                     conn.outputStream.use { os ->
                         val input = jsonInput.toByteArray(Charsets.UTF_8)
@@ -152,6 +150,18 @@ class HomeFragment :
                     }
 
                     val responseCode = conn.responseCode
+                    val errorBody = try {
+    conn.errorStream?.bufferedReader()?.use {
+        it.readText()
+    }
+} catch (e: Exception) {
+    "Sin detalle"
+}
+
+android.util.Log.e(
+    "COBALT",
+    "ENDPOINT=$apiUrlStr HTTP=$responseCode BODY=$errorBody"
+)
                     if (responseCode == 200 || responseCode == 201) {
                         val response = conn.inputStream.bufferedReader().use { it.readText() }
                         val jsonResponse = JSONObject(response)
