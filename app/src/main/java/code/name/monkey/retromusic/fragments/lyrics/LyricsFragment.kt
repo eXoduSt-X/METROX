@@ -270,15 +270,11 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     val fullLine = text.substring(lineStart, lineEnd)
 
-    // Detectar si ya tenía timestamp
-    val hadTimestamp =
-    "\\[\\d{2}:\\d{2}\\.\\d{2}\\]".toRegex()
-        .containsMatchIn(fullLine)
-
-    // Eliminar cualquier timestamp existente
+    // Eliminar TODOS los timestamps existentes
     val cleanLine = fullLine
-    .replace("\\[[^\\]]+\\]".toRegex(), "")
-    .trim()
+        .replace("\\[[^\\]]+\\]".toRegex(), "")
+        .trim()
+
     val timeStamp = formatTimeLrc(currentProgressMillis)
 
     val newLine = "$timeStamp $cleanLine"
@@ -290,34 +286,13 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     binding.etLyrics.setText(updatedText)
 
-    if (hadTimestamp) {
+    // Avanzar SIEMPRE a la siguiente línea
+    val nextLineStart = updatedText.indexOf('\n', lineStart)
 
-        // Modo re-sincronización:
-        // quedarse en la misma línea
-        val newCursorPos =
-            lineStart + newLine.length
-
-        binding.etLyrics.setSelection(
-            min(newCursorPos, updatedText.length)
-        )
-
+    if (nextLineStart != -1) {
+        binding.etLyrics.setSelection(nextLineStart + 1)
     } else {
-
-        // Línea nueva:
-        // avanzar a la siguiente línea
-
-        val nextLineStart =
-            updatedText.indexOf('\n', lineStart)
-
-        if (nextLineStart != -1) {
-            binding.etLyrics.setSelection(
-                nextLineStart + 1
-            )
-        } else {
-            binding.etLyrics.setSelection(
-                updatedText.length
-            )
-        }
+        binding.etLyrics.setSelection(updatedText.length)
     }
 }
 
