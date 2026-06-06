@@ -14,43 +14,46 @@
  */
 package code.name.monkey.retromusic.fragments.home
 
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.view.*
 import android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM
+import android.widget.Toast
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnPreDraw
-import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
 import code.name.monkey.appthemehelper.common.ATHToolbarActivity
-import code.name.monkey.appthemehelper.util.ColorUtil
 import code.name.monkey.appthemehelper.util.ToolbarContentTintHelper
 import code.name.monkey.retromusic.*
-import code.name.monkey.retromusic.adapter.HomeAdapter
 import code.name.monkey.retromusic.databinding.FragmentHomeBinding
 import code.name.monkey.retromusic.dialogs.CreatePlaylistDialog
 import code.name.monkey.retromusic.dialogs.ImportPlaylistDialog
-import code.name.monkey.retromusic.extensions.accentColor
 import code.name.monkey.retromusic.extensions.dip
 import code.name.monkey.retromusic.extensions.elevatedAccentColor
-import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.glide.RetroGlideExtension
 import code.name.monkey.retromusic.glide.RetroGlideExtension.profileBannerOptions
-import code.name.monkey.retromusic.glide.RetroGlideExtension.songCoverOptions
 import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IScrollHelper
-import code.name.monkey.retromusic.model.Song
-import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
@@ -72,16 +75,14 @@ class HomeFragment :
 
         checkForMargins()
 
-        val homeAdapter = HomeAdapter(mainActivity)
-        binding.recyclerView.apply {
-            layoutManager = LinearLayoutManager(mainActivity)
-            adapter = homeAdapter
-        }
-        libraryViewModel.getSuggestions().observe(viewLifecycleOwner) {
-            loadSuggestions(it)
-        }
-        libraryViewModel.getHome().observe(viewLifecycleOwner) {
-            homeAdapter.swapData(it)
+        // --- PANEL DE DESCARGA DIRECTO ---
+        binding.btnStartDownload.setOnClickListener {
+            val urlIntroducida = binding.etDownloadUrl.text.toString().trim()
+            if (urlIntroducida.isNotEmpty() && urlIntroducida.startsWith("http")) {
+                procesarEnlaceHome(urlIntroducida)
+            } else {
+                Toast.makeText(requireContext(), "Por favor introduce un enlace válido", Toast.LENGTH_SHORT).show()
+            }
         }
 
         loadProfile()
@@ -94,12 +95,88 @@ class HomeFragment :
         }
     }
 
+    private fun procesarEnlaceHome(urlVideo: String) {
+        Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val apiUrL = URL("https://api.cobalt.tools/api/json")
+                val conn = apiUrL.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.doOutput = true
+
+                val jsonInput = JSONObject().apply {
+                    put("url", urlVideo)
+                    put("videoQuality", "720")
+                    put("isAudioOnly", false)
+                }
+
+                conn.outputStream.use { os ->
+                    val input = jsonInput.toString().toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                if (conn.responseCode == 200) {
+                    val response = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonResponse = JSONObject(response)
+                    val urlDirecta = jsonResponse.optString("url")
+
+                    if (urlDirecta.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            // 1. Mostrar y arrancar previsualización en el VideoView
+                            binding.videoDownloadContainer.visibility = View.VISIBLE
+                            binding.videoDownloadView.setVideoPath(urlDirecta)
+                            binding.videoDownloadView.start()
+
+                            // 2. Extraer metadatos para nombrar el archivo automáticamente
+                            val cancionActual = MusicPlayerRemote.currentSong
+                            val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
+                                "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
+                            } else {
+                                "Metraje_Sincro_${System.currentTimeMillis()}"
+                            }
+                            
+                            ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Servidor ocupado. Intenta de nuevo.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error al resolver link", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
+        try {
+            val request = DownloadManager.Request(Uri.parse(url)).apply {
+                setTitle("Descargando metraje...")
+                setDescription(nombreArchivo)
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombreArchivo)
+                setMimeType("video/mp4")
+            }
+            val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(requireContext(), "Descarga añadida", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error en la descarga: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun adjustPlaylistButtons() {
         val buttons =
             listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
         buttons.maxOf { it.lineCount }.let { maxLineCount ->
             buttons.forEach { button ->
-                // Set the highest line count to every button for consistency
                 button.setLines(maxLineCount)
             }
         }
@@ -150,12 +227,6 @@ class HomeFragment :
                 )
             )
         }
-        // Reload suggestions
-        binding.suggestions.refreshButton.setOnClickListener {
-            libraryViewModel.forceReload(
-                ReloadType.Suggestions
-            )
-        }
     }
 
     private fun setupTitle() {
@@ -187,7 +258,7 @@ class HomeFragment :
 
     private fun checkForMargins() {
         if (mainActivity.isBottomNavVisible) {
-            binding.recyclerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = dip(R.dimen.bottom_nav_height)
             }
         }
@@ -224,52 +295,7 @@ class HomeFragment :
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
 
-    private fun loadSuggestions(songs: List<Song>) {
-        if (!PreferenceUtil.homeSuggestions || songs.isEmpty()) {
-            binding.suggestions.root.isVisible = false
-            return
-        }
-        val images = listOf(
-            binding.suggestions.image1,
-            binding.suggestions.image2,
-            binding.suggestions.image3,
-            binding.suggestions.image4,
-            binding.suggestions.image5,
-            binding.suggestions.image6,
-            binding.suggestions.image7,
-            binding.suggestions.image8
-        )
-        val color = accentColor()
-        binding.suggestions.message.apply {
-            setTextColor(color)
-            setOnClickListener {
-                it.isClickable = false
-                it.postDelayed({ it.isClickable = true }, 500)
-                MusicPlayerRemote.playNext(songs.subList(0, 8))
-                if (!MusicPlayerRemote.isPlaying) {
-                    MusicPlayerRemote.playNextSong()
-                }
-            }
-        }
-        binding.suggestions.card6.setCardBackgroundColor(ColorUtil.withAlpha(color, 0.12f))
-        images.forEachIndexed { index, imageView ->
-            imageView.setOnClickListener {
-                it.isClickable = false
-                it.postDelayed({ it.isClickable = true }, 500)
-                MusicPlayerRemote.playNext(songs[index])
-                if (!MusicPlayerRemote.isPlaying) {
-                    MusicPlayerRemote.playNextSong()
-                }
-            }
-            Glide.with(this)
-                .load(RetroGlideExtension.getSongModel(songs[index]))
-                .songCoverOptions(songs[index])
-                .into(imageView)
-        }
-    }
-
     companion object {
-
         const val TAG: String = "BannerHomeFragment"
 
         @JvmStatic
@@ -307,11 +333,13 @@ class HomeFragment :
     override fun onResume() {
         super.onResume()
         checkForMargins()
-        libraryViewModel.forceReload(ReloadType.HomeSections)
         exitTransition = null
     }
 
     override fun onDestroyView() {
+        if (binding.videoDownloadView.isPlaying) {
+            binding.videoDownloadView.stopPlayback()
+        }
         super.onDestroyView()
         _binding = null
     }
