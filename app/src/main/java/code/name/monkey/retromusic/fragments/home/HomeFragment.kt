@@ -96,64 +96,75 @@ class HomeFragment :
     }
 
     private fun procesarEnlaceHome(urlVideo: String) {
-        Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
+    Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val apiUrL = URL("https://api.cobalt.tools/api/json")
-                val conn = apiUrL.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Accept", "application/json")
-                conn.doOutput = true
+    lifecycleScope.launch(Dispatchers.IO) {
+        try {
+            val apiUrL = URL("https://api.cobalt.tools/api/json")
+            val conn = apiUrL.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            
+            // --- HEADERS ESENCIALES PARA EVITAR BLOQUEOS ---
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.setRequestProperty("Accept", "application/json")
+            conn.doOutput = true
 
-                val jsonInput = JSONObject().apply {
-                    put("url", urlVideo)
-                    put("videoQuality", "720")
-                    put("isAudioOnly", false)
-                }
+            // Parámetros de conversión
+            val jsonInput = JSONObject().apply {
+                put("url", urlVideo)
+                put("videoQuality", "720")
+                put("isAudioOnly", false)
+            }
 
-                conn.outputStream.use { os ->
-                    val input = jsonInput.toString().toByteArray(Charsets.UTF_8)
-                    os.write(input, 0, input.size)
-                }
+            conn.outputStream.use { os ->
+                val input = jsonInput.toString().toByteArray(Charsets.UTF_8)
+                os.write(input, 0, input.size)
+            }
 
-                if (conn.responseCode == 200) {
-                    val response = conn.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
-                    val urlDirecta = jsonResponse.optString("url")
+            val responseCode = conn.responseCode
+            if (responseCode == 200 || responseCode == 201) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val jsonResponse = JSONObject(response)
+                val urlDirecta = jsonResponse.optString("url")
 
-                    if (urlDirecta.isNotEmpty()) {
-                        withContext(Dispatchers.Main) {
-                            // 1. Mostrar y arrancar previsualización en el VideoView
-                            binding.videoDownloadContainer.visibility = View.VISIBLE
-                            binding.videoDownloadView.setVideoPath(urlDirecta)
-                            binding.videoDownloadView.start()
+                if (urlDirecta.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        // Mostrar y arrancar previsualización en el VideoView
+                        binding.videoDownloadContainer.visibility = View.VISIBLE
+                        binding.videoDownloadView.setVideoPath(urlDirecta)
+                        binding.videoDownloadView.start()
 
-                            // 2. Extraer metadatos para nombrar el archivo automáticamente
-                            val cancionActual = MusicPlayerRemote.currentSong
-                            val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
-                                "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
-                            } else {
-                                "Metraje_Sincro_${System.currentTimeMillis()}"
-                            }
-                            
-                            ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
+                        // Extraer metadatos para nombrar el archivo automáticamente
+                        val cancionActual = MusicPlayerRemote.currentSong
+                        val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
+                            "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
+                        } else {
+                            "Metraje_Sincro_${System.currentTimeMillis()}"
                         }
+                        
+                        ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Servidor ocupado. Intenta de nuevo.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "El servidor no devolvió una URL válida", Toast.LENGTH_SHORT).show()
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } else {
+                // Capturamos la respuesta de error del servidor para debuggear
+                val errorResponse = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "Sin detalles"
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Error al resolver link", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Servidor respondió con código: $responseCode", Toast.LENGTH_LONG).show()
                 }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(requireContext(), "Error de red: ${e.localizedMessage ?: "desconocido"}", Toast.LENGTH_LONG).show()
             }
         }
     }
+}
 
     private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
         try {
