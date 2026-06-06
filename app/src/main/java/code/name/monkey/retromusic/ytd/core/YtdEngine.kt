@@ -42,27 +42,48 @@ object YtdEngine {
     // =========================
     private fun resolveYouTube(url: String, mode: Mode): YtdResult {
 
-        // 🔥 AQUÍ luego conectas NewPipe Extractor
-        val baseQuality = listOf("144p", "360p", "720p", "1080p")
+    return try {
 
-        return when (mode) {
+        val streamInfo = YoutubeExtractor.extract(url)
+
+        val streams = streamInfo.videoStreams
+        val audioStreams = streamInfo.audioStreams
+
+        when (mode) {
 
             Mode.VIDEO -> {
-                YtdResult.Video(
-                    url = url, // luego será stream real extractor
-                    quality = baseQuality.last()
-                )
+
+                val bestVideo = streams.maxByOrNull { it.height } // mejor calidad
+
+                if (bestVideo != null) {
+                    YtdResult.Video(
+                        url = bestVideo.url,
+                        quality = "${bestVideo.height}p"
+                    )
+                } else {
+                    YtdResult.Error("No video streams")
+                }
             }
 
             Mode.AUDIO -> {
-                YtdResult.Audio(
-                    url = url, // luego será audio stream real
-                    mime = "audio/mp4"
-                )
+
+                val bestAudio = audioStreams.maxByOrNull { it.averageBitrate }
+
+                if (bestAudio != null) {
+                    YtdResult.Audio(
+                        url = bestAudio.url,
+                        mime = "audio/mp4"
+                    )
+                } else {
+                    YtdResult.Error("No audio streams")
+                }
             }
         }
-    }
 
+    } catch (e: Exception) {
+        YtdResult.Error("YouTube error: ${e.message}")
+    }
+}
     // =========================
     // TIKTOK (LAZY + FALLBACK)
     // =========================
