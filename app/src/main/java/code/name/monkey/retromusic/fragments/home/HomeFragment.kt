@@ -1,17 +1,3 @@
-/*
- * Copyright (c) 2020 Hemanth Savarla.
- *
- * Licensed under the GNU General Public License v3
- *
- * This is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- */
 package code.name.monkey.retromusic.fragments.home
 
 import android.app.DownloadManager
@@ -22,6 +8,7 @@ import android.os.Environment
 import android.view.*
 import android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
 import androidx.core.view.doOnLayout
@@ -61,6 +48,16 @@ class HomeFragment :
     private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
 
+    // Registro del Selector de Archivos de Video Local
+    private val selectLocalVideoLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            reproducirVideoEnPanel(it)
+            Toast.makeText(requireContext(), "Video local cargado exitosamente", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val homeBinding = FragmentHomeBinding.bind(view)
@@ -75,14 +72,25 @@ class HomeFragment :
 
         checkForMargins()
 
-        // --- PANEL DE DESCARGA DIRECTO ---
+        // --- ASIGNACIÓN DE CLICK LISTENERS ---
+        
         binding.btnStartDownload.setOnClickListener {
             val urlIntroducida = binding.etDownloadUrl.text.toString().trim()
             if (urlIntroducida.isNotEmpty() && urlIntroducida.startsWith("http")) {
                 procesarEnlaceHome(urlIntroducida)
+                binding.etDownloadUrl.setText("") // Autolimpieza limpia foco
             } else {
                 Toast.makeText(requireContext(), "Por favor introduce un enlace válido", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        binding.btnClearUrl.setOnClickListener {
+            binding.etDownloadUrl.setText("")
+        }
+
+        binding.btnLoadLocalVideo.setOnClickListener {
+            // Dispara el selector nativo filtrando por cualquier tipo de contenedor de video
+            selectLocalVideoLauncher.launch("video/*")
         }
 
         loadProfile()
@@ -95,76 +103,72 @@ class HomeFragment :
         }
     }
 
+    private fun reproducirVideoEnPanel(videoUri: Uri) {
+        binding.videoDownloadContainer.visibility = View.VISIBLE
+        binding.videoDownloadView.setVideoURI(videoUri)
+        binding.videoDownloadView.requestFocus()
+        binding.videoDownloadView.start()
+    }
+
     private fun procesarEnlaceHome(urlVideo: String) {
-    Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
 
-    lifecycleScope.launch(Dispatchers.IO) {
-        try {
-            val apiUrL = URL("https://api.cobalt.tools/api/json")
-            val conn = apiUrL.openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            
-            // --- HEADERS ESENCIALES PARA EVITAR BLOQUEOS ---
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            conn.setRequestProperty("Content-Type", "application/json")
-            conn.setRequestProperty("Accept", "application/json")
-            conn.doOutput = true
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val apiUrL = URL("https://api.cobalt.tools/api/json")
+                val conn = apiUrL.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.doOutput = true
 
-            // Parámetros de conversión
-            val jsonInput = JSONObject().apply {
-                put("url", urlVideo)
-                put("videoQuality", "720")
-                put("isAudioOnly", false)
-            }
+                val jsonInput = JSONObject().apply {
+                    put("url", urlVideo)
+                    put("videoQuality", "720")
+                    put("isAudioOnly", false)
+                }
 
-            conn.outputStream.use { os ->
-                val input = jsonInput.toString().toByteArray(Charsets.UTF_8)
-                os.write(input, 0, input.size)
-            }
+                conn.outputStream.use { os ->
+                    val input = jsonInput.toString().toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
 
-            val responseCode = conn.responseCode
-            if (responseCode == 200 || responseCode == 201) {
-                val response = conn.inputStream.bufferedReader().use { it.readText() }
-                val jsonResponse = JSONObject(response)
-                val urlDirecta = jsonResponse.optString("url")
+                val responseCode = conn.responseCode
+                if (responseCode == 200 || responseCode == 201) {
+                    val response = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonResponse = JSONObject(response)
+                    val urlDirecta = jsonResponse.optString("url")
 
-                if (urlDirecta.isNotEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        // Mostrar y arrancar previsualización en el VideoView
-                        binding.videoDownloadContainer.visibility = View.VISIBLE
-                        binding.videoDownloadView.setVideoPath(urlDirecta)
-                        binding.videoDownloadView.start()
+                    if (urlDirecta.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            // 1. Previsualización inmediata en Streaming
+                            reproducirVideoEnPanel(Uri.parse(urlDirecta))
 
-                        // Extraer metadatos para nombrar el archivo automáticamente
-                        val cancionActual = MusicPlayerRemote.currentSong
-                        val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
-                            "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
-                        } else {
-                            "Metraje_Sincro_${System.currentTimeMillis()}"
+                            // 2. Definición de nombre seguro basado en la pista activa
+                            val cancionActual = MusicPlayerRemote.currentSong
+                            val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
+                                "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
+                            } else {
+                                "Metraje_Sincro_${System.currentTimeMillis()}"
+                            }
+                            
+                            ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
                         }
-                        
-                        ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "El servidor no devolvió una URL válida", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Error de procesamiento: Código $responseCode", Toast.LENGTH_SHORT).show()
                     }
                 }
-            } else {
-                // Capturamos la respuesta de error del servidor para debuggear
-                val errorResponse = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "Sin detalles"
+            } catch (e: Exception) {
+                e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Servidor respondió con código: $responseCode", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "Fallo de conexión en red", Toast.LENGTH_SHORT).show()
                 }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            withContext(Dispatchers.Main) {
-                Toast.makeText(requireContext(), "Error de red: ${e.localizedMessage ?: "desconocido"}", Toast.LENGTH_LONG).show()
             }
         }
     }
-}
 
     private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
         try {
@@ -177,87 +181,52 @@ class HomeFragment :
             }
             val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
-            Toast.makeText(requireContext(), "Descarga añadida", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Descarga iniciada en segundo plano", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error en la descarga: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Error al volcar descarga: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun adjustPlaylistButtons() {
-        val buttons =
-            listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
+        val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
         buttons.maxOf { it.lineCount }.let { maxLineCount ->
-            buttons.forEach { button ->
-                button.setLines(maxLineCount)
-            }
+            buttons.forEach { button -> button.setLines(maxLineCount) }
         }
     }
 
     private fun setupListeners() {
         binding.bannerImage?.setOnClickListener {
-            findNavController().navigate(
-                R.id.user_info_fragment, null, null, FragmentNavigatorExtras(
-                    binding.userImage to "user_image"
-                )
-            )
+            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
             reenterTransition = null
         }
-
         binding.lastAdded.setOnClickListener {
-            findNavController().navigate(
-                R.id.detailListFragment,
-                bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)
-            )
+            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST))
             setSharedAxisYTransitions()
         }
-
         binding.topPlayed.setOnClickListener {
-            findNavController().navigate(
-                R.id.detailListFragment,
-                bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)
-            )
+            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST))
             setSharedAxisYTransitions()
         }
-
-        binding.actionShuffle.setOnClickListener {
-            libraryViewModel.shuffleSongs()
-        }
-
+        binding.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
         binding.history.setOnClickListener {
-            findNavController().navigate(
-                R.id.detailListFragment,
-                bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)
-            )
+            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
             setSharedAxisYTransitions()
         }
-
         binding.userImage.setOnClickListener {
-            findNavController().navigate(
-                R.id.user_info_fragment, null, null, FragmentNavigatorExtras(
-                    binding.userImage to "user_image"
-                )
-            )
+            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
         }
     }
 
     private fun setupTitle() {
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigate(R.id.action_search, null, navOptions)
-        }
+        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
         binding.appBarLayout.title = getString(R.string.app_name)
     }
 
     private fun loadProfile() {
         binding.bannerImage?.let {
-            Glide.with(requireContext())
-                .load(RetroGlideExtension.getBannerModel())
-                .profileBannerOptions(RetroGlideExtension.getBannerModel())
-                .into(it)
+            Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it)
         }
-        Glide.with(requireActivity())
-            .load(RetroGlideExtension.getUserModel())
-            .userProfileOptions(RetroGlideExtension.getUserModel(), requireContext())
-            .into(binding.userImage)
+        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.userImage)
     }
 
     fun colorButtons() {
@@ -269,9 +238,7 @@ class HomeFragment :
 
     private fun checkForMargins() {
         if (mainActivity.isBottomNavVisible) {
-            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = dip(R.dimen.bottom_nav_height)
-            }
+            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
         }
     }
 
@@ -281,12 +248,7 @@ class HomeFragment :
         menu.removeItem(R.id.action_layout_type)
         menu.removeItem(R.id.action_sort_order)
         menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
-        ToolbarContentTintHelper.handleOnCreateOptionsMenu(
-            requireContext(),
-            binding.toolbar,
-            menu,
-            ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar)
-        )
+        ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar))
     }
 
     override fun scrollToTop() {
@@ -294,44 +256,16 @@ class HomeFragment :
         binding.appBarLayout.setExpanded(true)
     }
 
-    fun setSharedAxisXTransitions() {
-        exitTransition =
-            MaterialSharedAxis(MaterialSharedAxis.X, true).addTarget(CoordinatorLayout::class.java)
-        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
-    }
-
     private fun setSharedAxisYTransitions() {
-        exitTransition =
-            MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
+        exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
-    }
-
-    companion object {
-        const val TAG: String = "BannerHomeFragment"
-
-        @JvmStatic
-        fun newInstance(): HomeFragment {
-            return HomeFragment()
-        }
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_settings -> findNavController().navigate(
-                R.id.settings_fragment,
-                null,
-                navOptions
-            )
-
-            R.id.action_import_playlist -> ImportPlaylistDialog().show(
-                childFragmentManager,
-                "ImportPlaylist"
-            )
-
-            R.id.action_add_to_playlist -> CreatePlaylistDialog.create(emptyList()).show(
-                childFragmentManager,
-                "ShowCreatePlaylistDialog"
-            )
+            R.id.action_settings -> findNavController().navigate(R.id.settings_fragment, null, navOptions)
+            R.id.action_import_playlist -> ImportPlaylistDialog().show(childFragmentManager, "ImportPlaylist")
+            R.id.action_add_to_playlist -> CreatePlaylistDialog.create(emptyList()).show(childFragmentManager, "ShowCreatePlaylistDialog")
         }
         return false
     }
