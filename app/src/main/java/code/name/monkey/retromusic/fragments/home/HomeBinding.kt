@@ -16,7 +16,11 @@ class HomeBinding(
     val topPlayed = homeBinding.homeContent.absPlaylists.topPlayed
     val actionShuffle = homeBinding.homeContent.absPlaylists.actionShuffle
     val history = homeBinding.homeContent.absPlaylists.history
-    val recyclerView = homeBinding.homeContent.recyclerView
     val titleWelcome = homeBinding.imageLayout.titleWelcome
-    val suggestions = homeBinding.homeContent.suggestions
+    
+    // --- NUEVAS VISTAS PARA EL DESCARGADOR Y VIDEOVIEW ---
+    val etDownloadUrl = homeBinding.homeContent.etDownloadUrl
+    val btnStartDownload = homeBinding.homeContent.btnStartDownload
+    val videoDownloadContainer = homeBinding.homeContent.videoDownloadContainer
+    val videoDownloadView = homeBinding.homeContent.videoDownloadView
 }
