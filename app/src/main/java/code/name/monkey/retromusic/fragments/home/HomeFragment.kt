@@ -117,20 +117,23 @@ class HomeFragment :
                 val apiUrL = URL("https://api.cobalt.tools/api/json")
                 val conn = apiUrL.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
+                // Cabeceras estrictas de identificación y formato
                 conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 conn.setRequestProperty("Content-Type", "application/json")
                 conn.setRequestProperty("Accept", "application/json")
                 conn.doOutput = true
 
-                // ESTRUCTURA CORREGIDA PARA PREVENIR EL ERROR 400
-                val jsonInput = JSONObject().apply {
-                    put("url", urlVideo)
-                    put("videoQuality", "720p") // Formato nativo correcto reconocido por Cobalt
-                    put("downloadMode", "video") // Indica explícitamente que procese el contenedor completo
+                // JSON plano simplificado compatible al 100% con la API v10 de Cobalt
+                val jsonInput = """
+                {
+                  "url": "$urlVideo",
+                  "videoQuality": "720p",
+                  "downloadMode": "video"
                 }
+                """.trimIndent()
 
                 conn.outputStream.use { os ->
-                    val input = jsonInput.toString().toByteArray(Charsets.UTF_8)
+                    val input = jsonInput.toByteArray(Charsets.UTF_8)
                     os.write(input, 0, input.size)
                 }
 
@@ -139,7 +142,7 @@ class HomeFragment :
                     val response = conn.inputStream.bufferedReader().use { it.readText() }
                     val jsonResponse = JSONObject(response)
                     
-                    // Cobalt responde con la clave "url" si el estado es un éxito
+                    // Extraemos la URL directa devuelta por el backend
                     val urlDirecta = jsonResponse.optString("url")
 
                     if (urlDirecta.isNotEmpty()) {
@@ -157,7 +160,7 @@ class HomeFragment :
                         }
                     } else {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(requireContext(), "La API no devolvió un enlace de video válido", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "Cobalt no devolvió un enlace reproducible", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } else {
