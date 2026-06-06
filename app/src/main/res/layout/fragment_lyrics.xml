@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout 
+<androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://tools.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="#121212"
     android:fitsSystemWindows="true">
 
@@ -15,7 +14,8 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#1A1A1A"
-        app:titleTextColor="@android:color/white" />
+        app:titleTextColor="@android:color/white"
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <LinearLayout
         android:id="@+id/llSincroControls"
@@ -26,7 +26,8 @@
         android:paddingTop="8dp"
         android:paddingRight="16dp"
         android:paddingBottom="12dp"
-        android:background="#1A1A1A">
+        android:background="#1A1A1A"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
         <TextView
             android:id="@+id/tvCurrentTime"
@@ -189,7 +190,8 @@
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:background="#000000"
-        android:visibility="gone">
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/llSincroControls">
 
         <VideoView
             android:id="@+id/videoView"
@@ -198,19 +200,29 @@
             android:layout_gravity="center" />
     </FrameLayout>
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guidelineLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.55" />
+
     <code.name.monkey.retromusic.lyrics.LrcView
         android:id="@+id/lyricsView"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="0dp"
         android:background="#1F000000"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        android:visibility="visible" />
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@id/llSincroControls"
+        app:layout_constraintBottom_toTopOf="@id/guidelineLayout" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        app:layout_constraintTop_toBottomOf="@id/guidelineLayout"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -224,9 +236,7 @@
                 android:paddingLeft="16dp"
                 android:paddingTop="12dp"
                 android:paddingRight="16dp"
-                android:paddingBottom="12dp">
-
-                <EditText
+                android:paddingBottom="70dp"> <EditText
                     android:id="@+id/etLyrics"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -272,4 +282,5 @@
             android:tint="@android:color/white"
             tools:ignore="SpeakableTextPresentCheck" />
     </FrameLayout>
-</LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
