@@ -1,7 +1,9 @@
 package code.name.monkey.retromusic.ytd.core
 
+import android.content.Context
 import code.name.monkey.retromusic.ytd.models.YtdResult
 import code.name.monkey.retromusic.ytd.platform.PlatformDetector
+import code.name.monkey.retromusic.ytd.downloader.DownloadManagerClient
 
 object YtdEngine {
 
@@ -10,6 +12,9 @@ object YtdEngine {
         AUDIO
     }
 
+    // =========================
+    // ENTRY POINT (RESOLVER)
+    // =========================
     suspend fun resolve(url: String, mode: Mode): YtdResult {
 
         return try {
@@ -18,21 +23,13 @@ object YtdEngine {
 
             when (platform) {
 
-                PlatformDetector.Platform.YOUTUBE -> {
-                    resolveYouTube(url, mode)
-                }
+                PlatformDetector.Platform.YOUTUBE -> resolveYouTube(url, mode)
 
-                PlatformDetector.Platform.TIKTOK -> {
-                    resolveTikTok(url, mode)
-                }
+                PlatformDetector.Platform.TIKTOK -> resolveTikTok(url, mode)
 
-                PlatformDetector.Platform.FACEBOOK -> {
-                    resolveFacebook(url, mode)
-                }
+                PlatformDetector.Platform.FACEBOOK -> resolveFacebook(url, mode)
 
-                else -> {
-                    YtdResult.Error("Plataforma no soportada")
-                }
+                else -> YtdResult.Error("Plataforma no soportada")
             }
 
         } catch (e: Exception) {
@@ -40,32 +37,98 @@ object YtdEngine {
         }
     }
 
+    // =========================
+    // YOUTUBE (BASE REALISTA)
+    // =========================
     private fun resolveYouTube(url: String, mode: Mode): YtdResult {
-        // MOCK (lo reemplazaremos por extractor real después)
+
+        // 🔥 AQUÍ luego conectas NewPipe Extractor
+        val baseQuality = listOf("144p", "360p", "720p", "1080p")
+
+        return when (mode) {
+
+            Mode.VIDEO -> {
+                YtdResult.Video(
+                    url = url, // luego será stream real extractor
+                    quality = baseQuality.last()
+                )
+            }
+
+            Mode.AUDIO -> {
+                YtdResult.Audio(
+                    url = url, // luego será audio stream real
+                    mime = "audio/mp4"
+                )
+            }
+        }
+    }
+
+    // =========================
+    // TIKTOK (LAZY + FALLBACK)
+    // =========================
+    private fun resolveTikTok(url: String, mode: Mode): YtdResult {
         return when (mode) {
 
             Mode.VIDEO -> YtdResult.Video(
-                url = "$url/video.mp4",
-                quality = "720p"
+                url = url,
+                quality = "auto"
             )
 
             Mode.AUDIO -> YtdResult.Audio(
-                url = "$url/audio.m4a"
+                url = url,
+                mime = "audio/mp4"
             )
         }
     }
 
-    private fun resolveTikTok(url: String, mode: Mode): YtdResult {
-        return YtdResult.Video(
-            url = url,
-            quality = "auto"
-        )
+    // =========================
+    // FACEBOOK (LAZY)
+    // =========================
+    private fun resolveFacebook(url: String, mode: Mode): YtdResult {
+        return when (mode) {
+
+            Mode.VIDEO -> YtdResult.Video(
+                url = url,
+                quality = "auto"
+            )
+
+            Mode.AUDIO -> YtdResult.Audio(
+                url = url,
+                mime = "audio/mp4"
+            )
+        }
     }
 
-    private fun resolveFacebook(url: String, mode: Mode): YtdResult {
-        return YtdResult.Video(
-            url = url,
-            quality = "auto"
-        )
+    // =========================
+    // 🔥 DESCARGA REAL
+    // =========================
+    fun downloadResult(
+        context: Context,
+        result: YtdResult,
+        fileName: String
+    ) {
+
+        when (result) {
+
+            is YtdResult.Video -> {
+                DownloadManagerClient.download(
+                    context,
+                    result.url,
+                    "$fileName.mp4"
+                )
+            }
+
+            is YtdResult.Audio -> {
+                DownloadManagerClient.download(
+                    context,
+                    result.url,
+                    "$fileName.m4a"
+                )
+            }
+
+            is YtdResult.Error -> {
+                // no hace nada
+            }
+        }
     }
 }
