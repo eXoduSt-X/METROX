@@ -35,12 +35,6 @@ import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
@@ -109,97 +103,13 @@ class HomeFragment :
         binding.videoDownloadView.start()
     }
 
-   private fun procesarEnlaceHome(urlVideo: String) {
-        Toast.makeText(requireContext(), "Analizando flujo de video...", Toast.LENGTH_SHORT).show()
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            // Lista de instancias y nodos alternativos de Cobalt que aceptan peticiones desde APKs
-            val endpoints = listOf(
-                "https://cobalt.api.0x0.st/api/json",
-                "https://api.cobalt.tools/api/json",
-                "https://co.wuk.sh/api/json"
-            )
-            
-            var exito = false
-            var codigoErrorFinal = 400
-
-            for (apiUrlStr in endpoints) {
-                try {
-                    val apiUrL = URL(apiUrlStr)
-                    val conn = apiUrL.openConnection() as HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.connectTimeout = 8000 // Evita que la app se quede colgada esperando
-                    conn.readTimeout = 8000
-                    
-                    // Enmascaramos la petición emulando un navegador web estándar completo
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    conn.setRequestProperty("Content-Type", "application/json")
-                    conn.setRequestProperty("Accept", "application/json")
-                    conn.doOutput = true
-
-                    // JSON plano con los requerimientos base de conversión
-                   val jsonInput = """
-{
-  "url": "$urlVideo"
+private fun procesarEnlaceHome(urlVideo: String) {
+    Toast.makeText(
+        requireContext(),
+        "Módulo de descarga temporalmente deshabilitado",
+        Toast.LENGTH_SHORT
+    ).show()
 }
-""".trimIndent()
-
-                    conn.outputStream.use { os ->
-                        val input = jsonInput.toByteArray(Charsets.UTF_8)
-                        os.write(input, 0, input.size)
-                    }
-
-                    val responseCode = conn.responseCode
-                    val errorBody = try {
-    conn.errorStream?.bufferedReader()?.use {
-        it.readText()
-    }
-} catch (e: Exception) {
-    "Sin detalle"
-}
-
-android.util.Log.e(
-    "COBALT",
-    "ENDPOINT=$apiUrlStr HTTP=$responseCode BODY=$errorBody"
-)
-                    if (responseCode == 200 || responseCode == 201) {
-                        val response = conn.inputStream.bufferedReader().use { it.readText() }
-                        val jsonResponse = JSONObject(response)
-                        val urlDirecta = jsonResponse.optString("url")
-
-                        if (urlDirecta.isNotEmpty()) {
-                            withContext(Dispatchers.Main) {
-                                reproducirVideoEnPanel(Uri.parse(urlDirecta))
-
-                                val cancionActual = MusicPlayerRemote.currentSong
-                                val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
-                                    "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
-                                } else {
-                                    "Metraje_Sincro_${System.currentTimeMillis()}"
-                                }
-                                
-                                ejecutarDescargaDelSistema(urlDirecta, "$nombreSeguro.mp4")
-                            }
-                            exito = true
-                            break // Salimos del bucle al procesar con éxito
-                        }
-                    } else {
-                        codigoErrorFinal = responseCode
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    // Si un nodo falla por timeout o caída, el bucle continúa con la siguiente URL
-                }
-            }
-
-            // Si ningún servidor pudo resolver la petición exitosamente
-            if (!exito) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Error de procesamiento (Código: $codigoErrorFinal). Reintenta en unos instantes.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
     private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
         try {
             val request = DownloadManager.Request(Uri.parse(url)).apply {
