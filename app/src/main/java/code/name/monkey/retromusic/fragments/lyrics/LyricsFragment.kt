@@ -272,13 +272,13 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     // Detectar si ya tenía timestamp
     val hadTimestamp =
-        fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())
+    "\\[\\d{2}:\\d{2}\\.\\d{2}\\]".toRegex()
+        .containsMatchIn(fullLine)
 
     // Eliminar cualquier timestamp existente
     val cleanLine = fullLine
-        .replace("^\\[\\d{2}:\\d{2}\\.\\d{2}\\]\\s*".toRegex(), "")
-        .trim()
-
+    .replace("\\[[^\\]]+\\]".toRegex(), "")
+    .trim()
     val timeStamp = formatTimeLrc(currentProgressMillis)
 
     val newLine = "$timeStamp $cleanLine"
