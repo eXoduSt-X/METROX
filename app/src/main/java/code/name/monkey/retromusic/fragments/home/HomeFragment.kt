@@ -48,13 +48,13 @@ class HomeFragment :
     private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
 
-    // Registro del Selector de Archivos de Video Local
+    // Registro del Selector de Archivos para cargar Videos Locales (.mp4)
     private val selectLocalVideoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             reproducirVideoEnPanel(it)
-            Toast.makeText(requireContext(), "Video local cargado exitosamente", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Video local cargado", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -72,13 +72,13 @@ class HomeFragment :
 
         checkForMargins()
 
-        // --- ASIGNACIÓN DE CLICK LISTENERS ---
+        // --- MANEJO DE EVENTOS DEL PANEL DE DESCARGAS ---
         
         binding.btnStartDownload.setOnClickListener {
             val urlIntroducida = binding.etDownloadUrl.text.toString().trim()
             if (urlIntroducida.isNotEmpty() && urlIntroducida.startsWith("http")) {
                 procesarEnlaceHome(urlIntroducida)
-                binding.etDownloadUrl.setText("") // Autolimpieza limpia foco
+                binding.etDownloadUrl.setText("") // Resetea el cuadro automáticamente
             } else {
                 Toast.makeText(requireContext(), "Por favor introduce un enlace válido", Toast.LENGTH_SHORT).show()
             }
@@ -89,7 +89,6 @@ class HomeFragment :
         }
 
         binding.btnLoadLocalVideo.setOnClickListener {
-            // Dispara el selector nativo filtrando por cualquier tipo de contenedor de video
             selectLocalVideoLauncher.launch("video/*")
         }
 
@@ -142,10 +141,8 @@ class HomeFragment :
 
                     if (urlDirecta.isNotEmpty()) {
                         withContext(Dispatchers.Main) {
-                            // 1. Previsualización inmediata en Streaming
                             reproducirVideoEnPanel(Uri.parse(urlDirecta))
 
-                            // 2. Definición de nombre seguro basado en la pista activa
                             val cancionActual = MusicPlayerRemote.currentSong
                             val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
                                 "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
@@ -158,13 +155,13 @@ class HomeFragment :
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Error de procesamiento: Código $responseCode", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Error del servidor: $responseCode", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Fallo de conexión en red", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Fallo de conexión", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -181,9 +178,9 @@ class HomeFragment :
             }
             val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
-            Toast.makeText(requireContext(), "Descarga iniciada en segundo plano", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Descarga iniciada", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error al volcar descarga: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Error de descarga: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -256,6 +253,13 @@ class HomeFragment :
         binding.appBarLayout.setExpanded(true)
     }
 
+    // --- MÉTODOS DE ANIMACIÓN REQUERIDOS POR LOS ADAPTADORES ---
+    
+    fun setSharedAxisXTransitions() {
+        exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true).addTarget(CoordinatorLayout::class.java)
+        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+    }
+
     private fun setSharedAxisYTransitions() {
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
@@ -287,5 +291,14 @@ class HomeFragment :
         }
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        const val TAG: String = "BannerHomeFragment"
+
+        @JvmStatic
+        fun newInstance(): HomeFragment {
+            return HomeFragment()
+        }
     }
 }
