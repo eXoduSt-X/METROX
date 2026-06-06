@@ -1,18 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Copyright (c) 2019 Hemanth Savarala.
-  ~
-  ~ Licensed under the GNU General Public License v3
-  ~
-  ~ This is free software: you can redistribute it and/or modify it under
-  ~ the terms of the GNU General Public License as published by
-  ~  the Free Software Foundation either version 3 of the License, or (at your option) any later version.
-  ~
-  ~ This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-  ~ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  ~ See the GNU General Public License for more details.
-  -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<?xml version="1.0" encoding="utf-8"?><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.annotation.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:descendantFocusability="blocksDescendants"
@@ -20,19 +7,16 @@
     android:focusableInTouchMode="true"
     android:orientation="vertical">
 
-    <!-- Se conservan los 4 botones superiores intactos (Historial, Aleatorio, etc.) -->
     <include
         android:id="@+id/abs_playlists"
         layout="@layout/abs_playlists" />
 
-    <!-- Panel de Sincronización y Descargas (Reemplazo de sugerencias y recyclerView viejo) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Separador Visual Fino -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -42,40 +26,76 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Descarga de Metraje en Streaming"
+            android:text="Gestión y Sincronización de Metraje"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp" />
 
-        <!-- Entrada para las URLs de video -->
-        <EditText
-            android:id="@+id/etDownloadUrl"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="55dp"
-            android:background="#131314"
-            android:hint="Pega el link de video aquí..."
-            android:textColorHint="#444446"
-            android:textColor="#FFFFFF"
-            android:paddingHorizontal="16dp"
-            android:inputType="textUri"
-            android:maxLines="1"
-            android:textSize="14sp"
-            android:layout_marginBottom="14dp" />
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
 
-        <!-- Botón de acción con estilo oscuro plano -->
-        <Button
-            android:id="@+id/btnStartDownload"
+            <EditText
+                android:id="@+id/etDownloadUrl"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#131314"
+                android:hint="Pega el link de video aquí..."
+                android:textColorHint="#444446"
+                android:textColor="#FFFFFF"
+                android:paddingHorizontal="16dp"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnClearUrl"
+                android:layout_width="55dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#1E1E20"
+                android:text="✕"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:padding="0dp"
+                style="?android:attr/borderlessButtonStyle" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:backgroundTint="#000000"
-            android:text="Procesar y Descargar MP4"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:layout_marginBottom="16dp" />
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
 
-        <!-- Contenedor del reproductor de video integrado para previsualizar al instante -->
+            <Button
+                android:id="@+id/btnStartDownload"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:backgroundTint="#000000"
+                android:text="Descargar MP4"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnLoadLocalVideo"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:backgroundTint="#1E1E20"
+                android:text="Cargar Local"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+        </LinearLayout>
+
         <FrameLayout
             android:id="@+id/videoDownloadContainer"
             android:layout_width="match_parent"
