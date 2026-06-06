@@ -18,9 +18,11 @@ class HomeBinding(
     val history = homeBinding.homeContent.absPlaylists.history
     val titleWelcome = homeBinding.imageLayout.titleWelcome
     
-    // --- NUEVAS VISTAS PARA EL DESCARGADOR Y VIDEOVIEW ---
+    // --- COMPONENTES DEL PANEL DE VIDEO Y MULTIMEDIA ---
     val etDownloadUrl = homeBinding.homeContent.etDownloadUrl
+    val btnClearUrl = homeBinding.homeContent.btnClearUrl
     val btnStartDownload = homeBinding.homeContent.btnStartDownload
+    val btnLoadLocalVideo = homeBinding.homeContent.btnLoadLocalVideo
     val videoDownloadContainer = homeBinding.homeContent.videoDownloadContainer
     val videoDownloadView = homeBinding.homeContent.videoDownloadView
 }
