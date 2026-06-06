@@ -263,30 +263,25 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     if (text.isEmpty()) return
 
-    val lineStart =
-        text.lastIndexOf("\n", pos - 1) + 1
+    val lineStart = text.lastIndexOf("\n", pos - 1) + 1
 
-    var lineEnd =
-        text.indexOf("\n", pos)
+    var lineEnd = text.indexOf("\n", pos)
+    if (lineEnd == -1) lineEnd = text.length
 
-    if (lineEnd == -1)
-        lineEnd = text.length
+    val fullLine = text.substring(lineStart, lineEnd)
 
-    val fullLine =
-        text.substring(lineStart, lineEnd)
+    // Detectar si ya tenía timestamp
+    val hadTimestamp =
+        fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())
 
-    val cleanLine =
-        if (fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())) {
-            fullLine.substring(10).trim()
-        } else {
-            fullLine.trim()
-        }
+    // Eliminar cualquier timestamp existente
+    val cleanLine = fullLine
+        .replace("^\\[\\d{2}:\\d{2}\\.\\d{2}\\]\\s*".toRegex(), "")
+        .trim()
 
-    val timeStamp =
-        formatTimeLrc(currentProgressMillis)
+    val timeStamp = formatTimeLrc(currentProgressMillis)
 
-    val newLine =
-        "$timeStamp $cleanLine"
+    val newLine = "$timeStamp $cleanLine"
 
     val updatedText =
         text.substring(0, lineStart) +
@@ -295,31 +290,34 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
     binding.etLyrics.setText(updatedText)
 
-    val nextLinePos =
-        lineStart + newLine.length + 1
+    if (hadTimestamp) {
 
-    if (nextLinePos < updatedText.length) {
+        // Modo re-sincronización:
+        // quedarse en la misma línea
+        val newCursorPos =
+            lineStart + newLine.length
 
-        var target = nextLinePos
-
-        while (
-            target < updatedText.length &&
-            updatedText[target] != '\n'
-        ) {
-            target++
-        }
-
-        if (target < updatedText.length) {
-            binding.etLyrics.setSelection(target + 1)
-        } else {
-            binding.etLyrics.setSelection(updatedText.length)
-        }
+        binding.etLyrics.setSelection(
+            min(newCursorPos, updatedText.length)
+        )
 
     } else {
 
-        binding.etLyrics.setSelection(
-            updatedText.length
-        )
+        // Línea nueva:
+        // avanzar a la siguiente línea
+
+        val nextLineStart =
+            updatedText.indexOf('\n', lineStart)
+
+        if (nextLineStart != -1) {
+            binding.etLyrics.setSelection(
+                nextLineStart + 1
+            )
+        } else {
+            binding.etLyrics.setSelection(
+                updatedText.length
+            )
+        }
     }
 }
 
