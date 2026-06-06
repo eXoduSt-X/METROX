@@ -93,19 +93,60 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun setupViews() {
-        binding.saveFab.accentColor()
-        val currentContent = if (lyricsType == LyricsType.SYNCED_LYRICS) {
-            LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song)) ?: getEmbeddedLyricsText()
+
+    binding.saveFab.accentColor()
+
+    val currentContent =
+        if (lyricsType == LyricsType.SYNCED_LYRICS) {
+            LyricUtil.getStringFromLrc(
+                LyricUtil.getSyncedLyricsFile(song)
+            ) ?: getEmbeddedLyricsText()
         } else {
             getEmbeddedLyricsText()
         }
-        binding.etLyrics.setText(currentContent)
 
-        binding.saveFab.setOnClickListener {
-            LyricUtil.writeLrc(song, binding.etLyrics.text.toString())
-            Toast.makeText(requireContext(), "LRC Guardado de forma estándar", Toast.LENGTH_SHORT).show()
+    if (binding.etLyrics.text.isNullOrEmpty()) {
+        binding.etLyrics.setText(currentContent)
+    }
+
+    binding.saveFab.setOnClickListener {
+
+        try {
+
+            val songFile = File(song.data)
+
+            val lrcFile = File(
+                songFile.parentFile,
+                songFile.nameWithoutExtension + ".lrc"
+            )
+
+            lrcFile.writeText(
+                binding.etLyrics.text.toString(),
+                Charsets.UTF_8
+            )
+
+            lyricsType = LyricsType.SYNCED_LYRICS
+
+            binding.lyricsView.loadLrc(lrcFile)
+
+            Toast.makeText(
+                requireContext(),
+                "LRC guardado:\n${lrcFile.name}",
+                Toast.LENGTH_LONG
+            ).show()
+
+        } catch (e: Exception) {
+
+            e.printStackTrace()
+
+            Toast.makeText(
+                requireContext(),
+                "Error al guardar el archivo LRC",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
+}
 
     private fun setupSincroControls() {
         val allButtons = listOf(
@@ -213,34 +254,74 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun handleMarking() {
-        val pos = binding.etLyrics.selectionStart
-        val text = binding.etLyrics.text.toString().replace("\r\n", "\n").replace("\r", "\n")
-        if (text.isEmpty()) return
 
-        val lineStart = text.lastIndexOf("\n", pos - 1) + 1
-        var lineEnd = text.indexOf("\n", pos)
-        if (lineEnd == -1) lineEnd = text.length
+    val pos = binding.etLyrics.selectionStart
 
-        val fullLine = text.substring(lineStart, lineEnd)
-        val cleanLine = if (fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())) {
+    val text = binding.etLyrics.text.toString()
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+
+    if (text.isEmpty()) return
+
+    val lineStart =
+        text.lastIndexOf("\n", pos - 1) + 1
+
+    var lineEnd =
+        text.indexOf("\n", pos)
+
+    if (lineEnd == -1)
+        lineEnd = text.length
+
+    val fullLine =
+        text.substring(lineStart, lineEnd)
+
+    val cleanLine =
+        if (fullLine.matches("^\\[\\d{2}:\\d{2}\\.\\d{2}\\].*".toRegex())) {
             fullLine.substring(10).trim()
         } else {
             fullLine.trim()
         }
 
-        val timeStamp = formatTimeLrc(currentProgressMillis)
-        val newLine = "$timeStamp $cleanLine"
+    val timeStamp =
+        formatTimeLrc(currentProgressMillis)
 
-        val updatedText = text.substring(0, lineStart) + newLine + text.substring(lineEnd)
-        binding.etLyrics.setText(updatedText)
+    val newLine =
+        "$timeStamp $cleanLine"
 
-        val nextLinePos = lineStart + newLine.length + 1
-        if (nextLinePos <= updatedText.length) {
-            binding.etLyrics.setSelection(nextLinePos)
+    val updatedText =
+        text.substring(0, lineStart) +
+        newLine +
+        text.substring(lineEnd)
+
+    binding.etLyrics.setText(updatedText)
+
+    val nextLinePos =
+        lineStart + newLine.length + 1
+
+    if (nextLinePos < updatedText.length) {
+
+        var target = nextLinePos
+
+        while (
+            target < updatedText.length &&
+            updatedText[target] != '\n'
+        ) {
+            target++
+        }
+
+        if (target < updatedText.length) {
+            binding.etLyrics.setSelection(target + 1)
         } else {
             binding.etLyrics.setSelection(updatedText.length)
         }
+
+    } else {
+
+        binding.etLyrics.setSelection(
+            updatedText.length
+        )
     }
+}
 
     private fun exportToSrtFile() {
         try {
@@ -305,7 +386,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             val clean = timestamp.replace("[", "").replace("]", "")
             val parts = clean.split(":")
             val min = parts[0].toInt()
-            val secParts = parts[1].split(".")
+            val secParts = parts[1].split('.')
             val sec = secParts[0].toInt()
             val msPart = secParts[1].toInt() * 10
             (min * 60 * 1000) + (sec * 1000) + msPart
@@ -355,17 +436,40 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun loadLyrics() {
-        val lrcFile = LyricUtil.getSyncedLyricsFile(song)
-        lyricsType = if (lrcFile != null && lrcFile.exists()) {
+
+    val lrcFile = LyricUtil.getSyncedLyricsFile(song)
+
+    when {
+
+        lrcFile != null && lrcFile.exists() -> {
+
             binding.lyricsView.loadLrc(lrcFile)
-            LyricsType.SYNCED_LYRICS
-        } else {
-            val embedded = LyricUtil.getEmbeddedSyncedLyrics(song.data)
-            if (embedded != null) binding.lyricsView.loadLrc(embedded)
-            LyricsType.SYNCED_LYRICS
+
+            try {
+                binding.etLyrics.setText(lrcFile.readText())
+            } catch (e: Exception) {
+                binding.etLyrics.setText("")
+            }
+
+            lyricsType = LyricsType.SYNCED_LYRICS
         }
-        binding.etLyrics.isVisible = true
-        binding.normalLyrics.isVisible = false
+
+        else -> {
+
+            binding.etLyrics.setText("")
+
+            lyricsType = LyricsType.NORMAL_LYRICS
+
+            Toast.makeText(
+                requireContext(),
+                "No existe archivo LRC. Puedes crear uno manualmente.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    binding.etLyrics.isVisible = true
+    binding.normalLyrics.isVisible = false
     }
 
     private fun updateTitleSong() { song = MusicPlayerRemote.currentSong }
