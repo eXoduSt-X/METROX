@@ -20,29 +20,76 @@
     android:focusableInTouchMode="true"
     android:orientation="vertical">
 
+    <!-- Se conservan los 4 botones superiores intactos (Historial, Aleatorio, etc.) -->
     <include
         android:id="@+id/abs_playlists"
         layout="@layout/abs_playlists" />
 
+    <!-- Panel de Sincronización y Descargas (Reemplazo de sugerencias y recyclerView viejo) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <include
-            android:id="@+id/suggestions"
-            layout="@layout/item_suggestions" />
+        <!-- Separador Visual Fino -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1A1A1C"
+            android:layout_marginBottom="16dp"/>
 
-        <code.name.monkey.retromusic.views.insets.InsetsRecyclerView
-            android:id="@+id/recyclerView"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false"
-            android:overScrollMode="@integer/overScrollMode"
-            android:paddingBottom="@dimen/mini_player_height"
-            tools:itemCount="10"
-            tools:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-            tools:listitem="@layout/item_album_card"
-            tools:spanCount="3" />
+            android:text="Descarga de Metraje en Streaming"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Entrada para las URLs de video -->
+        <EditText
+            android:id="@+id/etDownloadUrl"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:background="#131314"
+            android:hint="Pega el link de video aquí..."
+            android:textColorHint="#444446"
+            android:textColor="#FFFFFF"
+            android:paddingHorizontal="16dp"
+            android:inputType="textUri"
+            android:maxLines="1"
+            android:textSize="14sp"
+            android:layout_marginBottom="14dp" />
+
+        <!-- Botón de acción con estilo oscuro plano -->
+        <Button
+            android:id="@+id/btnStartDownload"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:backgroundTint="#000000"
+            android:text="Procesar y Descargar MP4"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Contenedor del reproductor de video integrado para previsualizar al instante -->
+        <FrameLayout
+            android:id="@+id/videoDownloadContainer"
+            android:layout_width="match_parent"
+            android:layout_height="210dp"
+            android:background="#000000"
+            android:visibility="gone"
+            android:layout_marginBottom="@dimen/mini_player_height">
+
+            <VideoView
+                android:id="@+id/videoDownloadView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center" />
+        </FrameLayout>
+
     </LinearLayout>
 </LinearLayout>
