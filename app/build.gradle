@@ -1,4 +1,4 @@
-apply plugin: 'com.android.application'
+Apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: "androidx.navigation.safeargs.kotlin"
 apply plugin: 'kotlin-parcelize'
@@ -141,7 +141,5 @@ dependencies {
     implementation 'me.zhanghai.android.fastscroll:library:1.2.0'
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
-    
-    // Motor JS para ejecutar de forma local la desencriptación de firmas de YouTube (JavaTube)
-    implementation 'org.mozilla:rhino:1.7.14'
-}
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.3")
+} 
