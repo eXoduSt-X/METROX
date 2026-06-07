@@ -32,10 +32,13 @@ import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IScrollHelper
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
+import code.name.monkey.retromusic.javatube.Youtube // Nuestro nuevo motor local
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
@@ -63,13 +66,8 @@ class HomeFragment :
         setupListeners()
         binding.titleWelcome.text = String.format("%s", userName)
 
-        // Inicializa el motor de NewPipe de forma segura una vez creada la vista
-                // Inicializa el motor de NewPipe de forma segura sin parámetros
-        try {
-            YoutubeDownloaderEngine.initNewPipe()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        // Rompemos la dependencia de NewPipe para que no intente buscar archivos inexistentes
+        // Dejamos este bloque limpio de inicializaciones molestas
 
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
@@ -114,18 +112,33 @@ class HomeFragment :
     }
 
     private fun procesarEnlaceHome(urlVideo: String) {
-        Toast.makeText(requireContext(), "Extrayendo información...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Extrayendo información con JavaTube...", Toast.LENGTH_SHORT).show()
 
-        // Lanzamos la tarea en segundo plano usando la corrutina de forma segura
+        // Lanzamos la tarea en segundo plano usando Dispatchers.IO para la red y el cifrado
         lifecycleScope.launch {
-            val urlDirecta = YoutubeDownloaderEngine.extraerStreamUrl(urlVideo)
+            val urlDirecta = withContext(Dispatchers.IO) {
+                try {
+                    val yt = Youtube(urlVideo)
+                    // Obtenemos los streams calculados nativamente con Rhino sin bloqueos
+                    val streamsList = yt.streamsList
+                    
+                    // Buscamos un stream progresivo (video + audio integrado) o el primero con URL válida
+                    val streamElegido = streamsList.firstOrNull { it.isProgressive } 
+                        ?: streamsList.firstOrNull { it.url.isNotEmpty() }
+                        
+                    streamElegido?.url
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
             
             if (urlDirecta != null) {
                 Toast.makeText(requireContext(), "¡Enlace extraído con éxito!", Toast.LENGTH_SHORT).show()
-                // Enviamos la URL directa obtenida al reproductor de video nativo de tu panel
+                // Enviamos la URL directa desencriptada y sin estrangulamiento al panel
                 reproducirVideoEnPanel(Uri.parse(urlDirecta))
             } else {
-                Toast.makeText(requireContext(), "Error: No se pudo extraer el enlace", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Error: JavaTube no pudo extraer el metraje", Toast.LENGTH_LONG).show()
             }
         }
     }
