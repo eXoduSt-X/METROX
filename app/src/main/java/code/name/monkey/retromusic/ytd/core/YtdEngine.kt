@@ -4,6 +4,7 @@ import android.content.Context
 import code.name.monkey.retromusic.ytd.models.YtdResult
 import code.name.monkey.retromusic.ytd.platform.PlatformDetector
 import code.name.monkey.retromusic.ytd.downloader.DownloadManagerClient
+import code.name.monkey.retromusic.ytd.extractor.YoutubeExtractor
 
 object YtdEngine {
 
@@ -12,9 +13,6 @@ object YtdEngine {
         AUDIO
     }
 
-    // =========================
-    // ENTRY POINT (RESOLVER)
-    // =========================
     suspend fun resolve(url: String, mode: Mode): YtdResult {
 
         return try {
@@ -24,9 +22,7 @@ object YtdEngine {
             when (platform) {
 
                 PlatformDetector.Platform.YOUTUBE -> resolveYouTube(url, mode)
-
                 PlatformDetector.Platform.TIKTOK -> resolveTikTok(url, mode)
-
                 PlatformDetector.Platform.FACEBOOK -> resolveFacebook(url, mode)
 
                 else -> YtdResult.Error("Plataforma no soportada")
@@ -37,92 +33,54 @@ object YtdEngine {
         }
     }
 
-    // =========================
-    // YOUTUBE (BASE REALISTA)
-    // =========================
-private fun resolveYouTube(url: String, mode: Mode): YtdResult {
+    private fun resolveYouTube(url: String, mode: Mode): YtdResult {
 
-    val extracted = YoutubeExtractor.extract(url)
+        val extracted = YoutubeExtractor.extract(url)
 
-    return when (mode) {
+        return when (mode) {
 
-        Mode.VIDEO -> YtdResult.Video(
-            url = extracted,
-            quality = "fallback-auto"
-        )
+            Mode.VIDEO -> YtdResult.Video(
+                url = extracted,
+                quality = "fallback-auto"
+            )
 
-        Mode.AUDIO -> YtdResult.Audio(
-            url = extracted,
-            mime = "audio/mp4"
-        )
+            Mode.AUDIO -> YtdResult.Audio(
+                url = extracted,
+                mime = "audio/mp4"
+            )
+        }
     }
-}
-    // =========================
-    // TIKTOK (LAZY + FALLBACK)
-    // =========================
+
     private fun resolveTikTok(url: String, mode: Mode): YtdResult {
         return when (mode) {
 
-            Mode.VIDEO -> YtdResult.Video(
-                url = url,
-                quality = "auto"
-            )
-
-            Mode.AUDIO -> YtdResult.Audio(
-                url = url,
-                mime = "audio/mp4"
-            )
+            Mode.VIDEO -> YtdResult.Video(url, "auto")
+            Mode.AUDIO -> YtdResult.Audio(url, "audio/mp4")
         }
     }
 
-    // =========================
-    // FACEBOOK (LAZY)
-    // =========================
     private fun resolveFacebook(url: String, mode: Mode): YtdResult {
         return when (mode) {
 
-            Mode.VIDEO -> YtdResult.Video(
-                url = url,
-                quality = "auto"
-            )
-
-            Mode.AUDIO -> YtdResult.Audio(
-                url = url,
-                mime = "audio/mp4"
-            )
+            Mode.VIDEO -> YtdResult.Video(url, "auto")
+            Mode.AUDIO -> YtdResult.Audio(url, "audio/mp4")
         }
     }
 
-    // =========================
-    // 🔥 DESCARGA REAL
-    // =========================
     fun downloadResult(
         context: Context,
         result: YtdResult,
         fileName: String
     ) {
-
         when (result) {
 
-            is YtdResult.Video -> {
-                DownloadManagerClient.download(
-                    context,
-                    result.url,
-                    "$fileName.mp4"
-                )
-            }
+            is YtdResult.Video ->
+                DownloadManagerClient.download(context, result.url, "$fileName.mp4")
 
-            is YtdResult.Audio -> {
-                DownloadManagerClient.download(
-                    context,
-                    result.url,
-                    "$fileName.m4a"
-                )
-            }
+            is YtdResult.Audio ->
+                DownloadManagerClient.download(context, result.url, "$fileName.m4a")
 
-            is YtdResult.Error -> {
-                // no hace nada
-            }
+            is YtdResult.Error -> Unit
         }
     }
 }
