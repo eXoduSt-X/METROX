@@ -42,46 +42,35 @@ object YtdEngine {
     // =========================
     private fun resolveYouTube(url: String, mode: Mode): YtdResult {
 
-    return try {
+    val streamInfo = YoutubeExtractor.extract(url)
+        ?: return YtdResult.Error("Extractor no disponible en CI")
 
-        val streamInfo = YoutubeExtractor.extract(url)
+    val videos = streamInfo.videoStreams ?: emptyList()
+    val audios = streamInfo.audioStreams ?: emptyList()
 
-        val streams = streamInfo.videoStreams
-        val audioStreams = streamInfo.audioStreams
+    if (videos.isEmpty() && audios.isEmpty()) {
+        return YtdResult.Error("No streams disponibles")
+    }
 
-        when (mode) {
+    return when (mode) {
 
-            Mode.VIDEO -> {
-
-                val bestVideo = streams.maxByOrNull { it.height } // mejor calidad
-
-                if (bestVideo != null) {
-                    YtdResult.Video(
-                        url = bestVideo.url,
-                        quality = "${bestVideo.height}p"
-                    )
-                } else {
-                    YtdResult.Error("No video streams")
-                }
-            }
-
-            Mode.AUDIO -> {
-
-                val bestAudio = audioStreams.maxByOrNull { it.averageBitrate }
-
-                if (bestAudio != null) {
-                    YtdResult.Audio(
-                        url = bestAudio.url,
-                        mime = "audio/mp4"
-                    )
-                } else {
-                    YtdResult.Error("No audio streams")
-                }
+        Mode.VIDEO -> {
+            val best = videos.maxByOrNull { it.height ?: 0 }
+            if (best != null) {
+                YtdResult.Video(best.url, "${best.height}p")
+            } else {
+                YtdResult.Error("No video streams")
             }
         }
 
-    } catch (e: Exception) {
-        YtdResult.Error("YouTube error: ${e.message}")
+        Mode.AUDIO -> {
+            val best = audios.maxByOrNull { it.averageBitrate ?: 0 }
+            if (best != null) {
+                YtdResult.Audio(best.url, best.averageBitrate)
+            } else {
+                YtdResult.Error("No audio streams")
+            }
+        }
     }
 }
     // =========================
