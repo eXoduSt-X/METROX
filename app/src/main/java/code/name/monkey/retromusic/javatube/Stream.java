@@ -13,6 +13,7 @@ import static java.lang.Math.min;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Build; // CORRECCIÓN: Importamos la clase Build para leer la API del sistema
 import android.provider.MediaStore;
 
 public class Stream {
@@ -137,11 +138,21 @@ public class Stream {
         ContentResolver resolver = context.getContentResolver();
         String selection = MediaStore.MediaColumns.DISPLAY_NAME + "=?";
         String[] selectionArgs = new String[]{filePath};
-        Cursor cursor = resolver.query(MediaStore.Downloads.EXTERNAL_CONTENT_URI, null, selection, selectionArgs, null);
-        if (cursor != null) {
-            int count = cursor.getCount();
-            cursor.close();
-            if (count > 0) {
+        
+        // CORRECCIÓN DEFINITIVA: Validamos en tiempo de ejecución si el teléfono corre Android 10 (API 29) o más reciente
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Cursor cursor = resolver.query(MediaStore.Downloads.EXTERNAL_CONTENT_URI, null, selection, selectionArgs, null);
+            if (cursor != null) {
+                int count = cursor.getCount();
+                cursor.close();
+                if (count > 0) {
+                    throw new IOException("Failed to delete existing output file: " + filePath);
+                }
+            }
+        } else {
+            // Soporte retrocompatible para sistemas Android antiguos (API 21 a API 28)
+            File file = new File(filePath);
+            if (file.exists()) {
                 throw new IOException("Failed to delete existing output file: " + filePath);
             }
         }
@@ -174,10 +185,10 @@ public class Stream {
 
     private void startDownload(Context context, String path, String fileName, Consumer<Long> progress) throws Exception {
         String savePath = path + safeFileName(fileName) + fileSize + "." + subType;
-        if (!isOtf) { // CORRECCIÓN 1: Se remueven los paréntesis '()' ya que es un campo Boolean directo, no un método.
+        if (!isOtf) { 
             long startSize = 0;
             long stopPos;
-            int defaultRange = 1048576; // Bloques de 1MB
+            int defaultRange = 1048576; 
             long progressPercentage;
             long lastPrintedProgress = 0;
 
@@ -201,7 +212,6 @@ public class Stream {
                     byte[] buffer = new byte[4096];
                     int bytesRead;
                     long chunkBytesRead = 0;
-                    // CORRECCIÓN 2: Se elimina el prefijo unitario erróneo '-null' y se evalúa de manera estándar con -1.
                     while ((bytesRead = is.read(buffer)) != -1) { 
                         fos.write(buffer, 0, bytesRead);
                         chunkBytesRead += bytesRead;
