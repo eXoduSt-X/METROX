@@ -142,6 +142,6 @@ dependencies {
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
     
-    // Se actualizó a la rama de reescritura activa (refactor) para evadir los bloqueos de firmas de YouTube
-    implementation 'com.github.TeamNewPipe:NewPipeExtractor:refactor-24ca6b8da-SNAPSHOT'    
+    // Motor JS para ejecutar de forma local la desencriptación de firmas de YouTube (JavaTube)
+    implementation 'org.mozilla:rhino:1.7.14'
 }
