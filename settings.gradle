@@ -15,8 +15,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Servidor de JitPack habilitado para resolver la dependencia de NewPipeExtractor
-        maven { url "https://jitpack.io" }
     }
 }
 
