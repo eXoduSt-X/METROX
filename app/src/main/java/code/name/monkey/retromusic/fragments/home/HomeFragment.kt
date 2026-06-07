@@ -104,28 +104,48 @@ class HomeFragment :
     }
 
 private fun procesarEnlaceHome(urlVideo: String) {
-    Toast.makeText(
-        requireContext(),
-        "Módulo de descarga temporalmente deshabilitado",
-        Toast.LENGTH_SHORT
-    ).show()
-}
-    private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
+    lifecycleScope.launch {
         try {
-            val request = DownloadManager.Request(Uri.parse(url)).apply {
-                setTitle("Descargando metraje...")
-                setDescription(nombreArchivo)
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombreArchivo)
-                setMimeType("video/mp4")
+
+            val result = YtdEngine.resolve(
+                urlVideo,
+                YtdEngine.Mode.VIDEO
+            )
+
+            when (result) {
+
+                is YtdResult.Video -> {
+                    ejecutarDescargaDelSistema(
+                        result.url,
+                        "video_${System.currentTimeMillis()}.mp4"
+                    )
+                }
+
+                is YtdResult.Audio -> {
+                    ejecutarDescargaDelSistema(
+                        result.url,
+                        "audio_${System.currentTimeMillis()}.m4a"
+                    )
+                }
+
+                is YtdResult.Error -> {
+                    Toast.makeText(
+                        requireContext(),
+                        result.message,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
-            val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            manager.enqueue(request)
-            Toast.makeText(requireContext(), "Descarga iniciada", Toast.LENGTH_SHORT).show()
+
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error de descarga: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                "Error: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
+}
 
     private fun adjustPlaylistButtons() {
         val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
