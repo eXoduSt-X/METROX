@@ -14,9 +14,11 @@ object YtdEngine {
     }
 
     suspend fun resolve(url: String, mode: Mode): YtdResult {
-
         return try {
-
+            // ADICIÓN CRÍTICA: Inicializa los componentes de red de NewPipe de manera segura
+            if (PlatformDetector.detect(url) == PlatformDetector.Platform.YOUTUBE) {
+                YoutubeExtractor.initNewPipe()
+            }
             val platform = PlatformDetector.detect(url)
 
             when (platform) {
