@@ -35,6 +35,7 @@ import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
+import kotlinx.coroutines.launch
 
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
@@ -54,12 +55,20 @@ class HomeFragment :
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
         val homeBinding = FragmentHomeBinding.bind(view)
         _binding = HomeBinding(homeBinding)
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
         setupListeners()
         binding.titleWelcome.text = String.format("%s", userName)
+
+        // Inicializa el motor de NewPipe de forma segura una vez creada la vista
+        try {
+            YoutubeDownloaderEngine.initNewPipe(org.schabi.newpipe.extractor.downloader.Downloader.getInstance())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
@@ -103,13 +112,23 @@ class HomeFragment :
         binding.videoDownloadView.start()
     }
 
-private fun procesarEnlaceHome(urlVideo: String) {
-    Toast.makeText(
-        requireContext(),
-        "Módulo de descarga temporalmente deshabilitado",
-        Toast.LENGTH_SHORT
-    ).show()
-}
+    private fun procesarEnlaceHome(urlVideo: String) {
+        Toast.makeText(requireContext(), "Extrayendo información...", Toast.LENGTH_SHORT).show()
+
+        // Lanzamos la tarea en segundo plano usando la corrutina de forma segura
+        lifecycleScope.launch {
+            val urlDirecta = YoutubeDownloaderEngine.extraerStreamUrl(urlVideo)
+            
+            if (urlDirecta != null) {
+                Toast.makeText(requireContext(), "¡Enlace extraído con éxito!", Toast.LENGTH_SHORT).show()
+                // Enviamos la URL directa obtenida al reproductor de video nativo de tu panel
+                reproducirVideoEnPanel(Uri.parse(urlDirecta))
+            } else {
+                Toast.makeText(requireContext(), "Error: No se pudo extraer el enlace", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
         try {
             val request = DownloadManager.Request(Uri.parse(url)).apply {
@@ -196,8 +215,6 @@ private fun procesarEnlaceHome(urlVideo: String) {
         binding.appBarLayout.setExpanded(true)
     }
 
-    // --- MÉTODOS DE ANIMACIÓN REQUERIDOS POR LOS ADAPTADORES ---
-    
     fun setSharedAxisXTransitions() {
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
