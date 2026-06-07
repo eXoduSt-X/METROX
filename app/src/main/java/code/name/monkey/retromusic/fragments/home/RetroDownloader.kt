@@ -1,8 +1,8 @@
 package code.name.monkey.retromusic.fragments.home
 
 import org.schabi.newpipe.extractor.downloader.Downloader
-import org.schabi.newpipe.extractor.downloader.request.Request
-import org.schabi.newpipe.extractor.downloader.request.Response
+import org.schabi.newpipe.extractor.downloader.Request
+import org.schabi.newpipe.extractor.downloader.Response
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
