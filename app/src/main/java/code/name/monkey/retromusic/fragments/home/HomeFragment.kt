@@ -32,18 +32,19 @@ import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IScrollHelper
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
+import code.name.monkey.retromusic.ytd.core.YtdEngine
+import code.name.monkey.retromusic.ytd.models.YtdResult
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
-import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import code.name.monkey.retromusic.ytd.core.YtdEngine
-import code.name.monkey.retromusic.ytd.models.YtdResult
+import kotlinx.coroutines.withContext
 
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
-    private var _binding: HomeBinding? = null
+    private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
     // Registro del Selector de Archivos para cargar Videos Locales (.mp4)
@@ -59,7 +60,7 @@ class HomeFragment :
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val homeBinding = FragmentHomeBinding.bind(view)
-        _binding = HomeBinding(homeBinding)
+        _binding = homeBinding
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
         setupListeners()
@@ -107,49 +108,67 @@ class HomeFragment :
         binding.videoDownloadView.start()
     }
 
-private fun procesarEnlaceHome(urlVideo: String) {
-    lifecycleScope.launch {
-        try {
+    private fun procesarEnlaceHome(urlVideo: String) {
+        Toast.makeText(requireContext(), "Analizando flujo con motor nativo...", Toast.LENGTH_SHORT).show()
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val result = YtdEngine.resolve(urlVideo, YtdEngine.Mode.VIDEO)
 
-            val result = YtdEngine.resolve(
-                urlVideo,
-                YtdEngine.Mode.VIDEO
-            )
+                withContext(Dispatchers.Main) {
+                    when (result) {
+                        is YtdResult.Video -> {
+                            // Cargar la vista previa en el panel de UI
+                            reproducirVideoEnPanel(Uri.parse(result.url))
+                            
+                            val cancionActual = MusicPlayerRemote.currentSong
+                            val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
+                                "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
+                            } else {
+                                "Metraje_Sincro_${System.currentTimeMillis()}"
+                            }
+                            ejecutarDescargaDelSistema(result.url, "$nombreSeguro.mp4")
+                        }
 
-            when (result) {
+                        is YtdResult.Audio -> {
+                            val cancionActual = MusicPlayerRemote.currentSong
+                            val nombreSeguro = if (!cancionActual.title.isNullOrEmpty()) {
+                                "${cancionActual.title} - ${cancionActual.artistName}".replace("[\\\\/:*?\"<>|]".toRegex(), "_")
+                            } else {
+                                "Metraje_Sincro_${System.currentTimeMillis()}"
+                            }
+                            ejecutarDescargaDelSistema(result.url, "$nombreSeguro.m4a")
+                        }
 
-                is YtdResult.Video -> {
-                    ejecutarDescargaDelSistema(
-                        result.url,
-                        "video_${System.currentTimeMillis()}.mp4"
-                    )
+                        is YtdResult.Error -> {
+                            Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
-
-                is YtdResult.Audio -> {
-                    ejecutarDescargaDelSistema(
-                        result.url,
-                        "audio_${System.currentTimeMillis()}.m4a"
-                    )
-                }
-
-                is YtdResult.Error -> {
-                    Toast.makeText(
-                        requireContext(),
-                        result.message,
-                        Toast.LENGTH_SHORT
-                    ).show()
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
-
-        } catch (e: Exception) {
-            Toast.makeText(
-                requireContext(),
-                "Error: ${e.message}",
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
-}
+
+    private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
+        try {
+            val request = DownloadManager.Request(Uri.parse(url)).apply {
+                setTitle("Descargando metraje...")
+                setDescription(nombreArchivo)
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombreArchivo)
+                setMimeType(if (nombreArchivo.endsWith(".mp4")) "video/mp4" else "audio/mp4")
+            }
+            val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(requireContext(), "Descarga iniciada", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error de descarga: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private fun adjustPlaylistButtons() {
         val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
@@ -219,8 +238,6 @@ private fun procesarEnlaceHome(urlVideo: String) {
         binding.container.scrollTo(0, 0)
         binding.appBarLayout.setExpanded(true)
     }
-
-    // --- MÉTODOS DE ANIMACIÓN REQUERIDOS POR LOS ADAPTADORES ---
     
     fun setSharedAxisXTransitions() {
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true).addTarget(CoordinatorLayout::class.java)
