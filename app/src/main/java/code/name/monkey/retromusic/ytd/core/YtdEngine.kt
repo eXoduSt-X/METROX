@@ -40,30 +40,22 @@ object YtdEngine {
     // =========================
     // YOUTUBE (BASE REALISTA)
     // =========================
-    private fun resolveYouTube(url: String, mode: Mode): YtdResult {
+private fun resolveYouTube(url: String, mode: Mode): YtdResult {
 
-    // 🔥 CI SAFE MODE (evita crash de build)
-    val extractorResult = YoutubeExtractor.extract(url)
+    val extracted = YoutubeExtractor.extract(url)
 
-    if (extractorResult == null) {
+    return when (mode) {
 
-        // Fallback inteligente (NO rompe build)
-        return when (mode) {
+        Mode.VIDEO -> YtdResult.Video(
+            url = extracted,
+            quality = "fallback-auto"
+        )
 
-            Mode.VIDEO -> YtdResult.Video(
-                url = url,
-                quality = "fallback-auto"
-            )
-
-            Mode.AUDIO -> YtdResult.Audio(
-                url = url,
-                mime = "audio/mp4"
-            )
-        }
+        Mode.AUDIO -> YtdResult.Audio(
+            url = extracted,
+            mime = "audio/mp4"
+        )
     }
-
-    // nunca llega aquí en CI todavía
-    return YtdResult.Error("Extractor no implementado aún")
 }
     // =========================
     // TIKTOK (LAZY + FALLBACK)
