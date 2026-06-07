@@ -2,9 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, Mainok ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, Mainok ]
   workflow_dispatch:
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Lint Android
-        run: ./gradlew lint
+        run: ./gradlew lint --no-configuration-cache
 
   build:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Build
-        run: ./gradlew app:assemble
+        run: ./gradlew app:assemble --no-configuration-cache
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -47,3 +47,4 @@ jobs:
           name: METROX-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          
