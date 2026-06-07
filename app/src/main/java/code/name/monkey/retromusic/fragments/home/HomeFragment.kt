@@ -64,8 +64,9 @@ class HomeFragment :
         binding.titleWelcome.text = String.format("%s", userName)
 
         // Inicializa el motor de NewPipe de forma segura una vez creada la vista
+                // Inicializa el motor de NewPipe de forma segura sin parámetros
         try {
-            YoutubeDownloaderEngine.initNewPipe(org.schabi.newpipe.extractor.downloader.Downloader.getInstance())
+            YoutubeDownloaderEngine.initNewPipe()
         } catch (e: Exception) {
             e.printStackTrace()
         }
