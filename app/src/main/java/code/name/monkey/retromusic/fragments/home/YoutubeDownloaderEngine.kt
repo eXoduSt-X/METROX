@@ -7,20 +7,27 @@ import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.StreamingService
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.ServiceList
-import org.schabi.newpipe.extractor.downloader.Downloader
 
 object YoutubeDownloaderEngine {
 
     private var isInitialized = false
 
-    // Inicialización usando el downloader interno por defecto de NewPipe
-    fun initNewPipe(downloaderImpl: Downloader) {
+    // Inicialización interna simplificada sin parámetros externos
+    fun initNewPipe() {
         if (!isInitialized) {
             try {
-                NewPipe.init(downloaderImpl)
+                // Usamos el inicializador por defecto de NewPipe para su cliente de red nativo
+                org.schabi.newpipe.extractor.NewPipe.init(org.schabi.newpipe.extractor.downloader.Downloader.Factory.getDownloader())
                 isInitialized = true
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (e1: Exception) {
+                try {
+                    // Alternativa de respaldo si la fábrica cambia de nombre en esta versión
+                    val defaultDownloader = Class.forName("org.schabi.newpipe.extractor.downloader.Downloader").getDeclaredConstructor().newInstance()
+                    NewPipe.init(defaultDownloader as org.schabi.newpipe.extractor.downloader.Downloader)
+                    isInitialized = true
+                } catch (e2: Exception) {
+                    e2.printStackTrace()
+                }
             }
         }
     }
@@ -30,13 +37,9 @@ object YoutubeDownloaderEngine {
      */
     suspend fun extraerStreamUrl(videoUrl: String): String? = withContext(Dispatchers.IO) {
         try {
-            // 1. Obtener el servicio de YouTube de forma explícita
             val service: StreamingService = ServiceList.YouTube
-
-            // 2. Extraer la información completa del stream
             val streamInfo = StreamInfo.getInfo(service, videoUrl)
 
-            // 3. Obtener los streams de video disponibles
             val videoStreams = streamInfo.videoStreams
             val audioStreams = streamInfo.audioStreams
 
