@@ -35,6 +35,10 @@ import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import code.name.monkey.retromusic.ytd.core.YtdEngine
+import code.name.monkey.retromusic.ytd.models.YtdResult
 
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
