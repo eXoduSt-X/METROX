@@ -31,9 +31,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # Forzamos la compilación exclusiva de la variante de desarrollo ignorando el linter
+      # Comando ultra-limpio: Compila directo la variante debug sin evaluar subproyectos problemáticos
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug -x lint -x test --stacktrace
+        run: ./gradlew assembleDebug -x lint -x test --stacktrace
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
