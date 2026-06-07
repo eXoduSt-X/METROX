@@ -142,6 +142,6 @@ dependencies {
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
     
-    // CORRECCIÓN: Se remueve NewPipeExtractor obsoleto y se añade el motor JS Rhino para JavaTube nativo
-    implementation 'org.mozilla:rhino:1.7.14'
+    // SOLUCIÓN: Restauramos la librería de NewPipe para solucionar las referencias rotas en tus archivos Kotlin
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:0.25.0")
 }
