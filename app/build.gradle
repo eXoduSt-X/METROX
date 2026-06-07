@@ -142,6 +142,6 @@ dependencies {
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
     
-    // SOLUCIÓN: Restauramos la librería de NewPipe para solucionar las referencias rotas en tus archivos Kotlin
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:0.25.0")
+    // CORRECCIÓN DEFINITIVA: Formato público de JitPack para descargar NewPipe sin requerir tokens de GitHub
+    implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.25.0'
 }
