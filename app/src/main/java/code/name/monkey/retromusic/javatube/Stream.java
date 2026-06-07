@@ -172,13 +172,12 @@ public class Stream {
         startDownload(context, path, fileName, progress);
     }
 
-    // Adaptación nativa del método de descarga por bloques (chunks) HTTP GET
     private void startDownload(Context context, String path, String fileName, Consumer<Long> progress) throws Exception {
         String savePath = path + safeFileName(fileName) + fileSize + "." + subType;
-        if(!isOtf()){
+        if (!isOtf) { // CORRECCIÓN 1: Se remueven los paréntesis '()' ya que es un campo Boolean directo, no un método.
             long startSize = 0;
             long stopPos;
-            int defaultRange = 1048576; // 1MB chunks
+            int defaultRange = 1048576; // Bloques de 1MB
             long progressPercentage;
             long lastPrintedProgress = 0;
 
@@ -192,7 +191,6 @@ public class Stream {
                 }
                 String chunkUrlStr = url + "&range=" + startSize + "-" + stopPos;
                 
-                // Ejecución nativa de la descarga del fragmento
                 URL chunkUrl = new URL(chunkUrlStr);
                 HttpURLConnection conn = (HttpURLConnection) chunkUrl.openConnection();
                 conn.setRequestMethod("GET");
@@ -203,7 +201,8 @@ public class Stream {
                     byte[] buffer = new byte[4096];
                     int bytesRead;
                     long chunkBytesRead = 0;
-                    while ((bytesRead = is.read(buffer)) != -null && bytesRead != -1) {
+                    // CORRECCIÓN 2: Se elimina el prefijo unitario erróneo '-null' y se evalúa de manera estándar con -1.
+                    while ((bytesRead = is.read(buffer)) != -1) { 
                         fos.write(buffer, 0, bytesRead);
                         chunkBytesRead += bytesRead;
                     }
@@ -223,7 +222,6 @@ public class Stream {
         }
     }
 
-    // Adaptación nativa del método de descarga para Streams tipo OTF via HTTP POST
     private void downloadOtf(Context context, String savePath, Consumer<Long> progress) throws Exception {
         int countChunk = 0;
         int lastChunk = 0;
@@ -274,7 +272,8 @@ public class Stream {
 
     private Map<String, String> getFormatProfile(){
         Map<Integer, ArrayList<String>> itags = new HashMap<>();
-        // progressive video
+        
+        // Progressive streams
         itags.put(5, new ArrayList<>(Arrays.asList("240p", "64kbps")));
         itags.put(6, new ArrayList<>(Arrays.asList("270p", "64kbps")));
         itags.put(13, new ArrayList<>(Arrays.asList("144p", null)));
@@ -290,10 +289,101 @@ public class Stream {
         itags.put(44, new ArrayList<>(Arrays.asList("480p", "128kbps")));
         itags.put(45, new ArrayList<>(Arrays.asList("720p", "192kbps")));
         itags.put(46, new ArrayList<>(Arrays.asList("1080p", "192kbps")));
+        itags.put(59, new ArrayList<>(Arrays.asList("480p", "128kbps")));
+        itags.put(78, new ArrayList<>(Arrays.asList("480p", "128kbps")));
+        itags.put(82, new ArrayList<>(Arrays.asList("360p", "128kbps")));
+        itags.put(83, new ArrayList<>(Arrays.asList("480p", "128kbps")));
+        itags.put(84, new ArrayList<>(Arrays.asList("720p", "192kbps")));
+        itags.put(85, new ArrayList<>(Arrays.asList("1080p", "192kbps")));
+        itags.put(91, new ArrayList<>(Arrays.asList("144p", "48kbps")));
+        itags.put(92, new ArrayList<>(Arrays.asList("240p", "48kbps")));
+        itags.put(93, new ArrayList<>(Arrays.asList("360p", "128kbps")));
+        itags.put(94, new ArrayList<>(Arrays.asList("480p", "128kbps")));
+        itags.put(95, new ArrayList<>(Arrays.asList("720p", "256kbps")));
+        itags.put(96, new ArrayList<>(Arrays.asList("1080p", "256kbps")));
+        itags.put(100, new ArrayList<>(Arrays.asList("360p", "128kbps")));
+        itags.put(101, new ArrayList<>(Arrays.asList("480p", "192kbps")));
+        itags.put(102, new ArrayList<>(Arrays.asList("720p", "192kbps")));
+        itags.put(132, new ArrayList<>(Arrays.asList("240p", "48kbps")));
+        itags.put(151, new ArrayList<>(Arrays.asList("720p", "24kbps")));
+        itags.put(300, new ArrayList<>(Arrays.asList("720p", "128kbps")));
+        itags.put(301, new ArrayList<>(Arrays.asList("1080p", "128kbps")));
+
+        // DASH video streams
+        itags.put(133, new ArrayList<>(Arrays.asList("240p", null)));
+        itags.put(134, new ArrayList<>(Arrays.asList("360p", null)));
+        itags.put(135, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(136, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(137, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(138, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(160, new ArrayList<>(Arrays.asList("144p", null)));
+        itags.put(167, new ArrayList<>(Arrays.asList("360p", null)));
+        itags.put(168, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(169, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(170, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(212, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(218, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(219, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(242, new ArrayList<>(Arrays.asList("240p", null)));
+        itags.put(243, new ArrayList<>(Arrays.asList("360p", null)));
+        itags.put(244, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(245, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(246, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(247, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(248, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(264, new ArrayList<>(Arrays.asList("1440p", null)));
+        itags.put(266, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(271, new ArrayList<>(Arrays.asList("1440p", null)));
+        itags.put(272, new ArrayList<>(Arrays.asList("4320p", null)));
+        itags.put(278, new ArrayList<>(Arrays.asList("144p", null)));
+        itags.put(298, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(299, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(302, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(303, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(308, new ArrayList<>(Arrays.asList("1440p", null)));
+        itags.put(313, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(315, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(330, new ArrayList<>(Arrays.asList("144p", null)));
+        itags.put(331, new ArrayList<>(Arrays.asList("240p", null)));
+        itags.put(332, new ArrayList<>(Arrays.asList("360p", null)));
+        itags.put(333, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(334, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(335, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(336, new ArrayList<>(Arrays.asList("1440p", null)));
+        itags.put(337, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(394, new ArrayList<>(Arrays.asList("144p", null)));
+        itags.put(395, new ArrayList<>(Arrays.asList("240p", null)));
+        itags.put(396, new ArrayList<>(Arrays.asList("360p", null)));
+        itags.put(397, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(398, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(399, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(400, new ArrayList<>(Arrays.asList("1440p", null)));
+        itags.put(401, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(402, new ArrayList<>(Arrays.asList("4320p", null)));
+        itags.put(571, new ArrayList<>(Arrays.asList("4320p", null)));
+        itags.put(694, new ArrayList<>(Arrays.asList("144p", null)));
+        itags.put(695, new ArrayList<>(Arrays.asList("240p", null)));
+        itags.put(696, new ArrayList<>(Arrays.asList("360p", null)));
+        itags.put(697, new ArrayList<>(Arrays.asList("480p", null)));
+        itags.put(698, new ArrayList<>(Arrays.asList("720p", null)));
+        itags.put(699, new ArrayList<>(Arrays.asList("1080p", null)));
+        itags.put(700, new ArrayList<>(Arrays.asList("1440p", null)));
+        itags.put(701, new ArrayList<>(Arrays.asList("2160p", null)));
+        itags.put(702, new ArrayList<>(Arrays.asList("4320p", null)));
+
+        // DASH audio streams
         itags.put(139, new ArrayList<>(Arrays.asList(null, "48kbps")));
         itags.put(140, new ArrayList<>(Arrays.asList(null, "128kbps")));
         itags.put(141, new ArrayList<>(Arrays.asList(null, "256kbps")));
+        itags.put(171, new ArrayList<>(Arrays.asList(null, "128kbps")));
+        itags.put(172, new ArrayList<>(Arrays.asList(null, "256kbps")));
+        itags.put(249, new ArrayList<>(Arrays.asList(null, "50kbps")));
+        itags.put(250, new ArrayList<>(Arrays.asList(null, "70kbps")));
         itags.put(251, new ArrayList<>(Arrays.asList(null, "160kbps")));
+        itags.put(256, new ArrayList<>(Arrays.asList(null, "192kbps")));
+        itags.put(258, new ArrayList<>(Arrays.asList(null, "384kbps")));
+        itags.put(325, new ArrayList<>(Arrays.asList(null, null)));
+        itags.put(328, new ArrayList<>(Arrays.asList(null, null)));
 
         String res, bitrate;
         if(itags.containsKey(itag)){
