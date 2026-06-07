@@ -141,5 +141,7 @@ dependencies {
     implementation 'me.zhanghai.android.fastscroll:library:1.2.0'
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.3")
+    
+    // Se actualizó a la rama de reescritura activa (refactor) para evadir los bloqueos de firmas de YouTube
+    implementation 'com.github.TeamNewPipe.NewPipeExtractor:extractor:refactor-SNAPSHOT'
 }
