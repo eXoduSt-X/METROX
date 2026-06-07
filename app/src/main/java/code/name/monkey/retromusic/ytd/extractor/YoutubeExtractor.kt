@@ -21,14 +21,22 @@ object YoutubeExtractor {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    // Implementación con la firma exacta de NewPipe v0.24.3
+    // Implementación robusta y compatible con NewPipe v0.24.3
     private val appDownloader = object : Downloader() {
         @Throws(IOException::class, ReCaptchaException::class)
         override fun execute(request: Request): Response {
             val url = request.url()
-            val method = request.httpMethod() // FIRMA CORREGIDA
-            val headers = request.headers()    // FIRMA CORREGIDA
-            val body = request.body()          // FIRMA CORREGIDA
+            val method = request.httpMethod()
+            val headers = request.headers()
+            
+            // CORRECCIÓN CRÍTICA: Desempaquetado inteligente del body para evitar choques de tipos
+            val bodyData = request.body()
+            val bodyBytes = when (bodyData) {
+                null -> ByteArray(0)
+                is ByteArray -> bodyData
+                is String -> bodyData.toByteArray(Charsets.UTF_8)
+                else -> bodyData.toString().toByteArray(Charsets.UTF_8)
+            }
 
             val builder = okhttp3.Request.Builder().url(url)
             
@@ -43,7 +51,6 @@ object YoutubeExtractor {
 
             val okHttpRequest = when {
                 method.equals("POST", ignoreCase = true) -> {
-                    val bodyBytes = body ?: ByteArray(0)
                     val mediaType = okhttp3.MediaType.parse("application/json; charset=utf-8")
                     builder.post(okhttp3.RequestBody.create(mediaType, bodyBytes)).build()
                 }
