@@ -1,6 +1,5 @@
 package code.name.monkey.retromusic.fragments.home
 
-import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.NewPipe
@@ -12,22 +11,14 @@ object YoutubeDownloaderEngine {
 
     private var isInitialized = false
 
-    // Inicialización interna simplificada sin parámetros externos
     fun initNewPipe() {
         if (!isInitialized) {
             try {
-                // Usamos el inicializador por defecto de NewPipe para su cliente de red nativo
-                org.schabi.newpipe.extractor.NewPipe.init(org.schabi.newpipe.extractor.downloader.Downloader.Factory.getDownloader())
+                // Forzamos la inicialización con nuestro propio puente de red inmune a actualizaciones
+                NewPipe.init(RetroDownloader())
                 isInitialized = true
-            } catch (e1: Exception) {
-                try {
-                    // Alternativa de respaldo si la fábrica cambia de nombre en esta versión
-                    val defaultDownloader = Class.forName("org.schabi.newpipe.extractor.downloader.Downloader").getDeclaredConstructor().newInstance()
-                    NewPipe.init(defaultDownloader as org.schabi.newpipe.extractor.downloader.Downloader)
-                    isInitialized = true
-                } catch (e2: Exception) {
-                    e2.printStackTrace()
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
