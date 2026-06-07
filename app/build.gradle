@@ -1,4 +1,4 @@
-Apply plugin: 'com.android.application'
+apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: "androidx.navigation.safeargs.kotlin"
 apply plugin: 'kotlin-parcelize'
@@ -142,4 +142,4 @@ dependencies {
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
     implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.3")
-} 
+}
