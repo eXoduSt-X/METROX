@@ -44,7 +44,8 @@ import kotlinx.coroutines.withContext
 class HomeFragment :
     AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
-    private var _binding: FragmentHomeBinding? = null
+    // Cambiado para usar tu wrapper intermedio plano HomeBinding
+    private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
 
     // Registro del Selector de Archivos para cargar Videos Locales (.mp4)
@@ -59,12 +60,15 @@ class HomeFragment :
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        // Inicialización correcta usando tu envoltorio personalizado
         val homeBinding = FragmentHomeBinding.bind(view)
-        _binding = homeBinding
+        _binding = HomeBinding(homeBinding)
+        
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
         setupListeners()
-        binding.titleWelcome.text = String.format("%s", userName)
+        binding.titleWelcome.text = userName
 
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
