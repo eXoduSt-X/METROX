@@ -134,14 +134,18 @@ public class Youtube {
         ArrayList<Stream> fmtStream = new ArrayList<>();
         String title = getTitle();
         Stream video;
-        Cipher cipher = new Cipher(getJs(), getYtPlayerJs());
+        
+        // CORRECCIÓN: El constructor de Cipher solo requiere el JS de YouTube según la especificación de Rhino
+        Cipher cipher = new Cipher(getJs());
         
         for (int i = 0; streamManifest.length() > i; i++) {
             JSONObject streamObj = streamManifest.getJSONObject(i);
             if(streamObj.has("signatureCipher")){
                 String oldUrl = decodeURL(streamObj.getString("url"));
                 streamObj.remove("url");
-                streamObj.put("url", oldUrl + "&sig=" + cipher.getSignature(decodeURL(streamObj.getString("s")).split("(?!^)")));
+                
+                // CORRECCIÓN: Se usa String.join para empaquetar el String[] generado por .split de vuelta a un String simple
+                streamObj.put("url", oldUrl + "&sig=" + cipher.getSignature(String.join("", decodeURL(streamObj.getString("s")).split("(?!^)" ))));
             }
 
             String oldUrl = streamObj.getString("url");
@@ -238,4 +242,3 @@ public class Youtube {
         return fmtStreams();
     }
 }
-
