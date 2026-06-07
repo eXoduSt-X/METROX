@@ -42,6 +42,8 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
+        // CORRECCIÓN PARA EL ERROR D8: Evita que el dexer examine los recursos internos de Rhino y tumbe el APK
+        exclude 'META-INF/services/org.mozilla.javascript.ContextFactory'
     }
 
     lint {
@@ -102,7 +104,6 @@ dependencies {
 
     implementation "androidx.core:core-splashscreen:1.0.0"
 
-    // CORRECCIÓN: Eliminada la línea basura 'component =' que rompía la evaluación
     implementation "com.google.android.material:material:$mdc_version"
 
     def retrofit_version = '2.9.0'
@@ -141,13 +142,12 @@ dependencies {
     implementation 'com.github.dhaval2404:imagepicker:2.1'
     implementation 'me.zhanghai.android.fastscroll:library:1.2.0'
     
-    // CORRECCIÓN: Eliminada la línea basura 'component =' que rompía la evaluación
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
     
-    // CORRECCIÓN DEFINITIVA: Formato público de JitPack para descargar NewPipe sin requerir tokens de GitHub
     implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.25.0'
 
-    // NUEVA ADICIÓN: Motor JavaScript de Mozilla requerido para compilar el extractor de firmas de YouTube
+    // Motor JavaScript de Mozilla para compilar el extractor de firmas
     implementation 'org.mozilla:rhino:1.7.14'
 }
+
