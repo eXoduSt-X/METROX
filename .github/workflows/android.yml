@@ -27,7 +27,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Lint Android
-        run: ./gradlew lint --no-configuration-cache
+        run: ./gradlew lint --no-configuration-cache --info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
@@ -46,7 +46,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Build
-        run: ./gradlew app:assemble --no-configuration-cache
+        run: ./gradlew app:assemble --no-configuration-cache --info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
@@ -57,4 +57,3 @@ jobs:
           name: METROX-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          
