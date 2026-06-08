@@ -26,7 +26,7 @@ public class Cipher {
     }
 
     private static String getSigFunctionName(String js) throws Exception {
-        // CORRECCIÓN API 21: Mantenemos la estructura pero contamos los índices posicionales de los paréntesis ( )
+        // CORRECCIÓN QUIRÚRGICA DE GRUPOS (API 21):
         // Patrón 0: grupo 1 = sig, grupo 2 = arg
         // Patrón 1: grupo 1 = var, grupo 2 = sig, grupo 3 = param
         // Patrón 2: grupo 1 = sig
@@ -40,25 +40,26 @@ public class Cipher {
             Pattern regex = Pattern.compile(functionPattern[i]);
             Matcher matcher = regex.matcher(js);
             if (matcher.find()) {
-                signatureParam = 0; // Reset por seguridad
+                signatureParam = 0; // Limpieza preventiva antes de asignar
                 
                 try {
                     if (i == 0) {
-                        return matcher.group(1); // Patrón 0: 'sig' es el grupo 1
+                        return matcher.group(1); // Patrón 0: El nombre de la función es el grupo 1
                     } else if (i == 1) {
-                        // Patrón 1: 'sig' es el grupo 3, 'param' es el grupo 4
-                        if (matcher.groupCount() >= 4) {
-                            String paramStr = matcher.group(4);
+                        // CONTEO CORREGIDO:
+                        // grupo 1 -> var | grupo 2 -> sig | grupo 3 -> param
+                        if (matcher.groupCount() >= 3) {
+                            String paramStr = matcher.group(3);
                             if (paramStr != null && !paramStr.isEmpty()) {
                                 signatureParam = Integer.parseInt(paramStr);
                             }
                         }
-                        return matcher.group(3); 
+                        return matcher.group(2); // Retornamos el grupo 2 (nombre real de la función)
                     } else if (i == 2) {
-                        return matcher.group(1); // Patrón 2: 'sig' es el grupo 1
+                        return matcher.group(1); // Patrón 2: El nombre es el grupo 1
                     }
                 } catch (Exception e) {
-                    signatureParam = 0;
+                    signatureParam = 0; // Resguardo si falla el parseo
                 }
             }
         }
@@ -66,24 +67,24 @@ public class Cipher {
     }
 
     private String getNsigFunctionName(String js) throws Exception {
-        // CORRECCIÓN API 21: Eliminamos el tag (?<funcname>...) y usamos el grupo indexado 1
+        // Manteniendo compatibilidad total con API 21 usando indexación limpia
         String pattern = "var\\s*[a-zA-Z0-9$_]{3}\\s*=\\s*\\[([a-zA-Z0-9$_]{3})\\]";
         Pattern regex = Pattern.compile(pattern);
         Matcher matcher = regex.matcher(js);
         if (matcher.find()) {
-            return matcher.group(1); // Grupo 1 directo
+            return matcher.group(1); 
         }
         throw new Exception("getNsigFunctionName: Could not find function name in playerJs: " + playerJs);
     }
 
     public String getSignature(String cipherSignature) throws Exception {
         Context context = Context.enter();
-        context.setOptimizationLevel(-1);
+        context.setOptimizationLevel(-1); // Evitamos la generación dinámica de bytecode en ART/Dalvik
         try {
             Scriptable scope = context.initStandardObjects();
             context.evaluateString(scope, js, "<youtube_base_js>", 1, null);
             
-            // Si capturamos un parámetro numérico (Patrón 1), se lo inyectamos a la función
+            // Inyección dinámica inteligente del parámetro de control numérico detectado
             String script = (signatureParam != 0) 
                 ? "var result = " + signatureFunctionName + "(" + signatureParam + ", '" + cipherSignature + "');"
                 : "var result = " + signatureFunctionName + "('" + cipherSignature + "');";
@@ -91,7 +92,7 @@ public class Cipher {
             context.evaluateString(scope, script, "<execute_sig>", 1, null);
             return scope.get("result", scope).toString();
         } catch (Exception e) {
-            // Fallback secundario si falla la ejecución por sobrecarga de argumentos
+            // Plan de contingencia secundario si el motor JS de Google realiza cambios estructurales en caliente
             try {
                 Scriptable scope = context.initStandardObjects();
                 context.evaluateString(scope, js, "<youtube_base_js>", 1, null);
@@ -99,10 +100,10 @@ public class Cipher {
                 context.evaluateString(scope, script, "<execute_sig_fallback>", 1, null);
                 return scope.get("result", scope).toString();
             } catch (Exception ex) {
-                throw new Exception("Fallo en descifrado Signature: " + ex.getMessage());
+                throw new Exception("Fallo crítico en descifrado Signature: " + ex.getMessage());
             }
         } finally {
-            Context.exit();
+            Context.exit(); // Cierre mandatorio del contexto para impedir fugas de memoria en la app
         }
     }
 
@@ -119,7 +120,7 @@ public class Cipher {
             return scope.get("result", scope).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return n; 
+            return n; // Devolución segura para blindar la app contra crasheos reactivos
         } finally {
             Context.exit();
         }
