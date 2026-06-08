@@ -2,6 +2,9 @@
 
 buildscript {
     ext {
+        // CORRECCIÓN MÁSTER: Definición global de la versión de Kotlin para sanar el app/build.gradle
+        kotlin_version = '1.8.10'
+        
         lifecycle_version = '2.6.1'
         navigation_version = '2.5.3'
         mdc_version = '1.9.0-beta01'
@@ -16,12 +19,14 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.4.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10"
+        // Sincronizado para usar la variable global unificada
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navigation_version"
     }
 }
 plugins {
     id "com.github.ben-manes.versions" version "0.46.0"
+    // Manteniendo la consistencia estricta con el compilador de Kotlin
     id 'com.google.devtools.ksp' version '1.8.10-1.0.9' apply false
 }
 
