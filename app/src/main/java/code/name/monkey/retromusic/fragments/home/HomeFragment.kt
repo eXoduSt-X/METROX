@@ -218,10 +218,14 @@ private fun setupVideoListeners() {
 }
 override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
+        
         menu.removeItem(R.id.action_grid_size)
         menu.removeItem(R.id.action_layout_type)
         menu.removeItem(R.id.action_sort_order)
-        menu.findItem(R.id.action_settings)?.setShowAsAction(1)
+        
+        menu.findItem(R.id.action_settings)?.let {
+            it.setShowAsAction(1)
+        }
         
         val toolbar = binding.homeContent.toolbar
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(
@@ -231,7 +235,8 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
             ATHToolbarActivity.getToolbarBackgroundColor(toolbar)
         )
     }
-override fun scrollToTop() {
+
+    override fun scrollToTop() {
         binding.homeContent.container.scrollTo(0, 0)
         binding.homeContent.appBarLayout.setExpanded(true)
     }
@@ -275,7 +280,7 @@ override fun scrollToTop() {
         exitTransition = null
     }
 
- override fun onDestroyView() {
+    override fun onDestroyView() {
         handler.removeCallbacks(updateSubtitleTask)
         binding.homeContent.videoPlayer.stopPlayback()
         _binding = null
