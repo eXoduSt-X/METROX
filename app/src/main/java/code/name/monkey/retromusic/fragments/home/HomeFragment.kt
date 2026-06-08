@@ -99,15 +99,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        _binding = FragmentHomeBinding.bind(view)
+  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
+    _binding = FragmentHomeBinding.bind(view)
 
-        binding.tvSubtitleOverlay.setShadowLayer(
-        3f,    // radius
-        2f,    // dx
-        2f,    // dy
-        android.graphics.Color.BLACK // color
+    // Configura la sombra a través del binding del include
+    binding.homeContent.tvSubtitleOverlay.setShadowLayer(
+        3f, 2f, 2f, android.graphics.Color.BLACK
     )
 
         // Iniciar el motor de sincronización
