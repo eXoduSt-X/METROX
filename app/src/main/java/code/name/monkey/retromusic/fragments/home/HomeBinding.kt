@@ -5,7 +5,13 @@ import code.name.monkey.retromusic.databinding.FragmentHomeBinding
 class HomeBinding(val binding: FragmentHomeBinding) {
     // Exponemos el binding original para que el Fragment pueda acceder a todo
     val root = binding.root
+    
+    // --- ACCESO A ESTRUCTURA DE CABECERA ---
+    // EXPONEMOS APP BAR PARA PODER HACER .setExpanded(true)
+    val appBarLayout = binding.appBarLayout 
+    // EXPONEMOS TOOLBAR PARA EL TÍTULO
     val toolbar = binding.appBarLayout.toolbar
+    
     val contentContainer = binding.contentContainer
     val container = binding.container
     val titleWelcome = binding.imageLayout.titleWelcome
