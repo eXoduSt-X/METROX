@@ -2,6 +2,8 @@ package code.name.monkey.retromusic.fragments.home
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.*
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,25 +32,64 @@ import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
 
+// 1. Modelo de datos para los subtítulos
+data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
+
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
     
-    private var subtitleUri: Uri? = null
-    private val subtitlePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-    uri?.let {
-        subtitleUri = it
-        Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
-        // Aquí podrías llamar a una función para procesar el archivo .srt
-    }
-}
+    private val subtitleList = mutableListOf<Subtitle>()
+    private val handler = Handler(Looper.getMainLooper())
     
+    // Motor de sincronización
+    private val updateSubtitleTask = object : Runnable {
+        override fun run() {
+            if (binding.videoPlayer.isPlaying) {
+                val currentPos = binding.videoPlayer.currentPosition.toLong()
+                val currentSub = subtitleList.find { currentPos in it.startTime..it.endTime }
+                binding.tvSubtitleOverlay.text = currentSub?.text ?: ""
+            }
+            handler.postDelayed(this, 500)
+        }
+    }
+
+    private val subtitlePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            try {
+                requireContext().contentResolver.openInputStream(it)?.use { stream ->
+                    parseSrt(stream)
+                    Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun parseSrt(inputStream: java.io.InputStream) {
+        subtitleList.clear()
+        val lines = inputStream.bufferedReader().readLines()
+        for (i in lines.indices) {
+            if (lines[i].contains("-->")) {
+                val times = lines[i].split(" --> ")
+                val start = parseTimeToMillis(times[0].trim())
+                val end = parseTimeToMillis(times[1].trim())
+                if (i + 1 < lines.size) subtitleList.add(Subtitle(start, end, lines[i + 1]))
+            }
+        }
+    }
+
+    private fun parseTimeToMillis(time: String): Long {
+        val parts = time.replace(",", ":").split(":")
+        return (parts[0].toLong() * 3600000) + (parts[1].toLong() * 60000) + (parts[2].toLong() * 1000) + parts[3].toLong()
+    }
+
     // Playlist en memoria
     private val videoPlaylist = mutableListOf<Uri>()
     private var currentIndex = 0
 
-    // Lanzador para seleccionar múltiples videos
     private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             videoPlaylist.clear()
@@ -62,10 +103,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
 
-        mainActivity.setSupportActionBar(binding.toolbar)
-        mainActivity.supportActionBar?.title = null
+        // Iniciar el motor de sincronización
+        handler.post(updateSubtitleTask)
 
-        // Inicializar ambos mundos
         setupListeners()
         setupVideoListeners()
         
@@ -84,12 +124,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         view.doOnLayout { adjustPlaylistButtons() }
     }
 
-    private fun setupVideoListeners() {
+private fun setupVideoListeners() {
         binding.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
-
-        binding.btnLoadSubtitles.setOnClickListener {
-        Toast.makeText(requireContext(), "Lógica de carga de subtítulos pendiente", Toast.LENGTH_SHORT).show()
-        }
+        binding.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
+        
         binding.btnPlayPause.setOnClickListener {
             if (binding.videoPlayer.isPlaying) {
                 binding.videoPlayer.pause()
@@ -208,7 +246,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         exitTransition = null
     }
 
-    override fun onDestroyView() {
+override fun onDestroyView() {
+        handler.removeCallbacks(updateSubtitleTask)
         binding.videoPlayer.stopPlayback()
         _binding = null
         super.onDestroyView()
