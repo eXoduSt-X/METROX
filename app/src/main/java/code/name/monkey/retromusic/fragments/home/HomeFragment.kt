@@ -66,7 +66,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        / Inicialización correcta
+        // Inicialización correcta
     val homeBinding = FragmentHomeBinding.bind(view)
     _binding = HomeBinding(homeBinding) // Esto ahora es válido con la nueva clase HomeBinding
     
