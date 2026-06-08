@@ -230,12 +230,12 @@ private fun setupVideoListeners() {
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
 
-    companion object {
+companion object {
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
 
-  override fun onMenuItemSelected(item: MenuItem): Boolean {
+    override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_settings -> {
                 findNavController().navigate(R.id.settings_fragment, null, navOptions)
@@ -270,4 +270,4 @@ private fun setupVideoListeners() {
         _binding = null
         super.onDestroyView()
     }
-}
+} // Esta es la llave que cierra la clase HomeFragment
