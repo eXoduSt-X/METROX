@@ -3,30 +3,38 @@ package code.name.monkey.retromusic.fragments.home
 import code.name.monkey.retromusic.databinding.FragmentHomeBinding
 
 class HomeBinding(
-    homeBinding: FragmentHomeBinding
+    private val binding: FragmentHomeBinding
 ) {
-    val root = homeBinding.root
-    val container = homeBinding.container
-    val contentContainer = homeBinding.contentContainer
-    val appBarLayout = homeBinding.appBarLayout
-    val toolbar = homeBinding.appBarLayout.toolbar
-    val bannerImage = homeBinding.imageLayout.bannerImage
-    val userImage = homeBinding.imageLayout.userImage
-    val lastAdded = homeBinding.homeContent.absPlaylists.lastAdded
-    val topPlayed = homeBinding.homeContent.absPlaylists.topPlayed
-    val actionShuffle = homeBinding.homeContent.absPlaylists.actionShuffle
-    val history = homeBinding.homeContent.absPlaylists.history
-    val titleWelcome = homeBinding.imageLayout.titleWelcome
+    val root = binding.root
+    val container = binding.container
+    val contentContainer = binding.contentContainer
+    val appBarLayout = binding.appBarLayout
+    val toolbar = binding.appBarLayout.toolbar
     
-    // --- COMPONENTES DEL PANEL DE VIDEO Y MULTIMEDIA ---
-    val etDownloadUrl = homeBinding.homeContent.etDownloadUrl
-    val btnClearUrl = homeBinding.homeContent.btnClearUrl
-    val btnStartDownload = homeBinding.homeContent.btnStartDownload
-    val btnLoadLocalVideo = homeBinding.homeContent.btnLoadLocalVideo
-    val videoDownloadContainer = homeBinding.homeContent.videoDownloadContainer
-    val videoDownloadView = homeBinding.homeContent.videoDownloadView
+    // Referencia directa al layout incluido 'home_content'
+    private val homeContent = binding.homeContent
 
-    // --- AGREGADOS PARA EL NAVEGADOR EMBEBIDO (YOUTUBE) ---
-    val youtubeWebView = homeBinding.homeContent.youtubeWebView
-    val btnDownloadFloating = homeBinding.homeContent.btnDownloadFloating
+    val bannerImage = binding.imageLayout.bannerImage
+    val userImage = binding.imageLayout.userImage
+    val titleWelcome = binding.imageLayout.titleWelcome
+    
+    // Acceso simplificado a los elementos dentro del include 'abs_playlists'
+    val lastAdded = homeContent.absPlaylists.lastAdded
+    val topPlayed = homeContent.absPlaylists.topPlayed
+    val actionShuffle = homeContent.absPlaylists.actionShuffle
+    val history = homeContent.absPlaylists.history
+    
+    // --- COMPONENTES DEL PANEL DE VIDEO (Dentro de homeContent) ---
+    // NOTA: Si en home_content.xml definiste los botones dentro de un layout, 
+    // el binding los expone directamente a través de 'homeContent'.
+    val etDownloadUrl = homeContent.etDownloadUrl
+    val btnClearUrl = homeContent.btnClearUrl
+    val btnStartDownload = homeContent.btnStartDownload
+    val btnLoadLocalVideo = homeContent.btnLoadLocalVideo
+    val videoDownloadContainer = homeContent.videoDownloadContainer
+    val videoDownloadView = homeContent.videoDownloadView
+
+    // --- NAVEGADOR YOUTUBE ---
+    val youtubeWebView = homeContent.youtubeWebView
+    val btnDownloadFloating = homeContent.btnDownloadFloating
 }
