@@ -221,7 +221,7 @@ private fun setupVideoListeners() {
         binding.homeContent.appBarLayout.setExpanded(true)
     }
 
-    private fun setSharedAxisYTransitions() {
+    fun setSharedAxisYTransitions() {
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
