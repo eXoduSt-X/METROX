@@ -5,15 +5,34 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
-import code.name.monkey.retromusic.R
+import androidx.core.view.doOnLayout
+import androidx.core.view.doOnPreDraw
+import androidx.core.view.updateLayoutParams
+import androidx.navigation.fragment.FragmentNavigatorExtras
+import androidx.navigation.fragment.findNavController
+import code.name.monkey.appthemehelper.common.ATHToolbarActivity
+import code.name.monkey.appthemehelper.util.ToolbarContentTintHelper
+import code.name.monkey.retromusic.*
 import code.name.monkey.retromusic.databinding.FragmentHomeBinding
+import code.name.monkey.retromusic.dialogs.CreatePlaylistDialog
+import code.name.monkey.retromusic.dialogs.ImportPlaylistDialog
+import code.name.monkey.retromusic.extensions.dip
+import code.name.monkey.retromusic.extensions.elevatedAccentColor
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
+import code.name.monkey.retromusic.glide.RetroGlideExtension
+import code.name.monkey.retromusic.glide.RetroGlideExtension.profileBannerOptions
+import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.interfaces.IScrollHelper
+import code.name.monkey.retromusic.util.PreferenceUtil.userName
+import com.bumptech.glide.Glide
+import com.google.android.material.transition.MaterialFadeThrough
+import com.google.android.material.transition.MaterialSharedAxis
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
-    private var _binding: FragmentHomeBinding? = null // Asumimos que usas ViewBinding
+    private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
     // Playlist en memoria
@@ -34,16 +53,31 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
 
+        mainActivity.setSupportActionBar(binding.toolbar)
+        mainActivity.supportActionBar?.title = null
+
+        // Inicializar ambos mundos
+        setupListeners()
         setupVideoListeners()
+        
+        binding.titleWelcome.text = String.format("%s", userName)
+
+        enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
+        reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
+
+        checkForMargins()
+        loadProfile()
+        setupTitle()
+        colorButtons()
+        
+        postponeEnterTransition()
+        view.doOnPreDraw { startPostponedEnterTransition() }
+        view.doOnLayout { adjustPlaylistButtons() }
     }
 
     private fun setupVideoListeners() {
-        // Botón para cargar playlist
-        binding.btnOpenFile.setOnClickListener {
-            videoPickerLauncher.launch("video/*")
-        }
+        binding.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
 
-        // Play / Pause
         binding.btnPlayPause.setOnClickListener {
             if (binding.videoPlayer.isPlaying) {
                 binding.videoPlayer.pause()
@@ -54,7 +88,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
 
-        // Siguiente video
         binding.btnForward.setOnClickListener {
             if (currentIndex < videoPlaylist.size - 1) {
                 currentIndex++
@@ -64,7 +97,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
 
-        // Video anterior
         binding.btnRewind.setOnClickListener {
             if (currentIndex > 0) {
                 currentIndex--
@@ -81,32 +113,22 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
+    // --- MÉTODOS ORIGINALES MANTENIDOS ---
+    private fun adjustPlaylistButtons() {
+        val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
+        buttons.maxOf { it.lineCount }.let { maxLineCount -> buttons.forEach { it.setLines(maxLineCount) } }
+    }
+
     private fun setupListeners() {
         binding.bannerImage?.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
             reenterTransition = null
         }
-
-        binding.lastAdded.setOnClickListener {
-            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST))
-            setSharedAxisYTransitions()
-        }
-
-        binding.topPlayed.setOnClickListener {
-            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST))
-            setSharedAxisYTransitions()
-        }
-
+        binding.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
         binding.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
-
-        binding.history.setOnClickListener {
-            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
-            setSharedAxisYTransitions()
-        }
-
-        binding.userImage.setOnClickListener {
-            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
-        }
+        binding.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image")) }
     }
 
     private fun setupTitle() {
@@ -115,16 +137,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private fun loadProfile() {
-        binding.bannerImage?.let {
-            Glide.with(requireContext())
-                .load(RetroGlideExtension.getBannerModel())
-                .profileBannerOptions(RetroGlideExtension.getBannerModel())
-                .into(it)
-        }
-        Glide.with(requireActivity())
-            .load(RetroGlideExtension.getUserModel())
-            .userProfileOptions(RetroGlideExtension.getUserModel(), requireContext())
-            .into(binding.userImage)
+        binding.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
+        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.userImage)
     }
 
     fun colorButtons() {
@@ -136,17 +150,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private fun checkForMargins() {
         if (mainActivity.isBottomNavVisible) {
-            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = dip(R.dimen.bottom_nav_height)
-            }
+            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
         }
     }
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
-        menu.removeItem(R.id.action_grid_size)
-        menu.removeItem(R.id.action_layout_type)
-        menu.removeItem(R.id.action_sort_order)
+        menu.removeItem(R.id.action_grid_size); menu.removeItem(R.id.action_layout_type); menu.removeItem(R.id.action_sort_order)
         menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar))
     }
@@ -186,7 +196,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         exitTransition = null
     }
 
-override fun onDestroyView() {
+    override fun onDestroyView() {
         binding.videoPlayer.stopPlayback()
         _binding = null
         super.onDestroyView()
