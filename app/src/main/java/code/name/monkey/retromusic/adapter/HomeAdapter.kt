@@ -62,64 +62,35 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         }
     }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val home = list[position]
-        when (getItemViewType(position)) {
-            RECENT_ALBUMS -> {
-                val viewHolder = holder as AlbumViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to RECENT_ALBUMS)
-                    )
-                }
-            }
-            TOP_ALBUMS -> {
-                val viewHolder = holder as AlbumViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to TOP_ALBUMS)
-                    )
-                }
-            }
-            RECENT_ARTISTS -> {
-                val viewHolder = holder as ArtistViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to RECENT_ARTISTS)
-                    )
-                }
-            }
-            TOP_ARTISTS -> {
-                val viewHolder = holder as ArtistViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to TOP_ARTISTS)
-                    )
-                }
-            }
-            FAVOURITES -> {
-                val viewHolder = holder as PlaylistViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to FAVOURITES)
-                    )
-                }
-            }
+override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+    val home = list[position]
+    val type = getItemViewType(position)
+    
+    // Configuramos el ViewHolder según el tipo
+    when (type) {
+        RECENT_ALBUMS, TOP_ALBUMS -> (holder as AlbumViewHolder).bindView(home)
+        RECENT_ARTISTS, TOP_ARTISTS -> (holder as ArtistViewHolder).bindView(home)
+        FAVOURITES -> (holder as PlaylistViewHolder).bindView(home)
+    }
+
+    // Obtenemos el clickableArea del ViewHolder actual (es común a todos los AbsHomeViewItem)
+    val clickableArea = (holder as AbsHomeViewItem).clickableArea
+    
+    clickableArea.setOnClickListener { view ->
+        // 1. Intento seguro de activar la transición
+        try {
+            view.findFragment<HomeFragment>().setSharedAxisXTransitions()
+        } catch (e: Exception) {
+            // Si no estamos en HomeFragment, no hacemos nada (evita crash)
+        }
+
+        // 2. Navegación
+        activity.findNavController(R.id.fragment_container).navigate(
+            R.id.detailListFragment,
+            bundleOf("type" to type)
+        )
+    }
+}
         }
     }
 
