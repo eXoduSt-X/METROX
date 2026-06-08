@@ -80,11 +80,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             binding.btnPlayPause.text = "Pause"
         }
     }
-override fun onDestroyView() {
-        binding.videoPlayer.stopPlayback()
-        _binding = null
-        super.onDestroyView()
-    }
+
     private fun setupListeners() {
         binding.bannerImage?.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
@@ -190,8 +186,9 @@ override fun onDestroyView() {
         exitTransition = null
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+override fun onDestroyView() {
+        binding.videoPlayer.stopPlayback()
         _binding = null
+        super.onDestroyView()
     }
 }
