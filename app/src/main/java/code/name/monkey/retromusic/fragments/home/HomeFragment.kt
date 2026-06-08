@@ -236,8 +236,8 @@ private fun setupVideoListeners() {
             R.id.action_settings -> findNavController().navigate(R.id.settings_fragment, null, navOptions)
             R.id.action_import_playlist -> ImportPlaylistDialog().show(childFragmentManager, "ImportPlaylist")
             R.id.action_add_to_playlist -> CreatePlaylistDialog.create(emptyList()).show(childFragmentManager, "ShowCreatePlaylistDialog")
-        }
-        return false
+
+                return false
     }
 
     override fun onPrepareMenu(menu: Menu) {
