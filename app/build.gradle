@@ -69,14 +69,24 @@ android {
 }
 
 configurations.all {
-
     resolutionStrategy {
         force 'com.google.code.findbugs:jsr305:3.0.2'
         // CORRECCIÓN DE CONFLICTO TRANSITIVO: Intercepta a NewPipe y lo obliga a usar Rhino 1.7.14 en lugar de la versión 1.8.1 corrupta
         force 'org.mozilla:rhino:1.7.14'
+        
+        // ESTRATEGIA DE ALINEACIÓN DE KOTLIN: Resuelve de raíz los errores genéricos de compilación y clases duplicadas
+        force "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+        force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+        force "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
+        force "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+        
+        // Forzamos también la consistencia en el motor de corrutinas para que no choquen hilos del WebView y del Extractor
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
+        force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     }
 
     exclude group: 'com.github.spotbugs', module: 'spotbugs-annotations'
+    exclude group: 'org.jetbrains', module: 'annotations'
 }
 
 dependencies {
