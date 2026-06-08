@@ -77,8 +77,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
         checkForMargins()
 
-        // --- INICIALIZACIÓN DEL NAVEGADOR WEB Y EXTRACCIÓN (ESTILO SNAPTUBE) ---
-        setupYoutubeNavigation(homeBinding)
+        // --- INICIALIZACIÓN PASANDO TU WRAPPER HOMEBINDING YA CONFIGURADO ---
+        setupYoutubeNavigation(binding)
 
         binding.btnLoadLocalVideo.setOnClickListener {
             selectLocalVideoLauncher.launch("video/*")
@@ -95,8 +95,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun setupYoutubeNavigation(homeBinding: FragmentHomeBinding) {
-        // Vinculamos las vistas extraídas de forma segura desde el ViewBinding inflado
+    private fun setupYoutubeNavigation(homeBinding: HomeBinding) {
+        // Vinculamos de forma segura usando las nuevas propiedades del wrapper HomeBinding
         youtubeWebView = homeBinding.youtubeWebView
 
         youtubeWebView?.let { webView ->
@@ -114,7 +114,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 fun onDataExtracted(jsonString: String?) {
                     if (!jsonString.isNullOrEmpty() && jsonString != "null") {
                         extractedJsonData = jsonString
-                        // Pasamos al hilo de la interfaz de usuario de Android usando el binding global de la clase
+                        // Pasamos al hilo de la interfaz de usuario de Android usando la propiedad global del wrapper
                         activity?.runOnUiThread {
                             binding.btnDownloadFloating.visibility = View.VISIBLE
                         }
@@ -126,7 +126,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url.toString()
-                    // Si el usuario sale de una pantalla de reproducción, alteramos el binding global seguro
+                    // Si el usuario sale de una pantalla de reproducción, alteramos la UI mediante el wrapper global
                     if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
                         binding.btnDownloadFloating.visibility = View.GONE
                         extractedJsonData = null
@@ -147,7 +147,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.loadUrl("https://m.youtube.com")
         }
 
-        // Configuración táctil sobre el botón flotante nativo de descargas apuntando al binding global
+        // Configuración táctil sobre el botón flotante nativo de descargas apuntando al wrapper global
         binding.btnDownloadFloating.setOnClickListener {
             if (!extractedJsonData.isNullOrEmpty()) {
                 procesarFlujoDeDescarga(extractedJsonData!!)
