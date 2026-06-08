@@ -41,35 +41,33 @@ public class Youtube {
     }
 
     /**
-     * BYPASS PO-TOKEN: En lugar de scrapear la página web de escritorio (que exige poToken),
-     * atacamos directamente el endpoint de InnerTube camuflándonos como un cliente de Android legítimo.
+     * BYPASS MWEB: Atacamos la API de InnerTube camuflándonos como un navegador móvil.
+     * Al usar el cliente MWEB, Google anula la exigencia del PoToken de la app nativa.
      */
     private String fetchPlayerResponseFromApi() throws Exception {
-        URL url = new URL("https://www.youtube.com/api/stats/ads?v=" + videoId()); // Endpoint auxiliar para recuperar el playerJs dinámico si fuera necesario o simular sesión
-        
-        // Petición POST directa a la API de InnerTube
         URL innerTubeUrl = new URL("https://youtubei.googleapis.com/v1/player?key=");
         HttpURLConnection conn = (HttpURLConnection) innerTubeUrl.openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
-        // User agent simulando la aplicación oficial de YouTube para Android
-        conn.setRequestProperty("User-Agent", "com.google.android.youtube/19.07.32 (Linux; U; Android 14; es_US) gzip");
+        // User-Agent simulando el navegador del dispositivo móvil
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Redmi Note 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36");
         conn.setDoOutput(true);
 
-        // Construimos el payload de InnerTube forzando el cliente ANDROID
+        // Mutación a Payload Mobile Web
         JSONObject clientObj = new JSONObject();
-        clientObj.put("clientName", "ANDROID");
-        clientObj.put("clientVersion", "19.07.32");
+        clientObj.put("clientName", "MWEB");
+        clientObj.put("clientVersion", "2.20240308.00.00");
         clientObj.put("hl", "es");
         clientObj.put("gl", "US");
 
         JSONObject payload = new JSONObject();
         payload.put("videoId", videoId());
+        
         JSONObject contextObj = new JSONObject();
         contextObj.put("client", clientObj);
         payload.put("context", contextObj);
 
-        // Enviamos el flujo de datos
+        // Transmisión del JSON por el canal OutputStream
         try (OutputStream os = conn.getOutputStream()) {
             byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
             os.write(input, 0, input.length);
@@ -126,7 +124,7 @@ public class Youtube {
                         formatObj.put("s", decodeURL(part.substring(2)));
                     }
                 }
-            } else if (formatObj.has("cipher")) { // Fallback estructural por si viene bajo la clave clásica "cipher"
+            } else if (formatObj.has("cipher")) {
                 String rawSig = formatObj.getString("cipher");
                 String[] parts = rawSig.split("&");
                 for (String part : parts) {
@@ -143,10 +141,10 @@ public class Youtube {
 
     private JSONObject setVidInfo() throws Exception {
         try {
-            // Intentamos la extracción directa por API limpia de Android
+            // Intentamos la extracción directa por la API de la Web Móvil
             return new JSONObject(fetchPlayerResponseFromApi());
         } catch (Exception e) {
-            // Fallback de contingencia si la API directa de Google capara la firma JSON por IP
+            // Fallback en caliente mediante Scraper móvil si la API sufre de Throttling temporal
             String htmlData = getHtmlFallback();
             String pattern = "ytInitialPlayerResponse\\s=\\s(\\{\"responseContext\":.*?\\});(?:var|</script>)";
             Pattern regex = Pattern.compile(pattern);
@@ -154,7 +152,7 @@ public class Youtube {
             if (matcher.find()) {
                 return new JSONObject(matcher.group(1));
             }
-            throw new Exception("RegexMatcherError: Impossible to extract player response layout via API or Scraper.");
+            throw new Exception("Error crítico: No se pudo obtener respuesta válida de los servidores de YouTube.");
         }
     }
 
@@ -192,7 +190,6 @@ public class Youtube {
         String videoTitle = getTitle();
         Stream video;
         
-        // CORRECCIÓN CONSTRUCTOR: Pasamos tanto el código JS como la URL base para inicializar de forma segura
         Cipher cipher = new Cipher(getJs(), getYtPlayerJs());
         Pattern nSigPattern = Pattern.compile("&n=(.*?)&");
         
@@ -222,13 +219,12 @@ public class Youtube {
     }
 
     private String setYtPlayerJs() throws Exception {
-        // Obtenemos el JS dinámico de la página móvil por seguridad
         Pattern pattern = Pattern.compile("(/s/player/[\\w\\d]+/[\\w\\d_/.\\-]+/base\\.js)");
         Matcher matcher = pattern.matcher(getHtmlFallback());
         if (matcher.find()) {
             return "https://youtube.com" + matcher.group(1);
         } else {
-            // Si el scraper falla, inyectamos una URL genérica estable de producción para que no rompa el Cipher
+            // URL inyectada de respaldo por si el scraper sufriera bloqueos de DOM
             return "https://youtube.com/s/player/218080ff/player_ias.vflset/es_US/base.js";
         }
     }
