@@ -14,28 +14,4 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent"/>
 
-    <Button
-        android:id="@+id/btnStartDownload"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/abs_playlists"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnLoadLocalVideo"
-        android:text="Descargar" />
-
-    <Button
-        android:id="@+id/btnLoadLocalVideo"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/abs_playlists"
-        app:layout_constraintStart_toEndOf="@+id/btnStartDownload"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:text="Cargar Local" />
-
-    <WebView
-        android:id="@+id/youtubeWebView"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        app:layout_constraintTop_toBottomOf="@id/btnLoadLocalVideo" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>
