@@ -1,25 +1,36 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+
 android {
-    compileSdk 33
+    // ACTUALIZADO: A 34 para coincidir con el módulo 'app'
+    compileSdk 34
     namespace "code.name.monkey.appthemehelper"
 
     defaultConfig {
         minSdk 21
-        targetSdk 33
+        targetSdk 34 // ACTUALIZADO
     }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     lint {
         abortOnError false
     }
+
+    // ACTUALIZADO: A VERSION_17 para coincidir con el resto del proyecto
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // ACTUALIZADO: A "17" para que Kotlin coincida con el compilador de Java
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
