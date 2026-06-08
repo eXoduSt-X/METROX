@@ -41,11 +41,12 @@ android {
     packagingOptions {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
+            
+            // CORRECCIÓN DEFINITIVA D8: Bloquea todos los archivos de servicios internos de Mozilla que provocan el NullPointerException
+            excludes += 'META-INF/services/org.mozilla.javascript.ContextFactory'
+            excludes += 'META-INF/services/org.mozilla.javascript.ScriptableObject'
+            excludes += 'META-INF/services/org.mozilla.javascript.internal.*'
         }
-        // CORRECCIÓN DEFINITIVA D8: Bloquea todos los archivos de servicios internos de Mozilla que provocan el NullPointerException
-        exclude 'META-INF/services/org.mozilla.javascript.ContextFactory'
-        exclude 'META-INF/services/org.mozilla.javascript.ScriptableObject'
-        exclude 'META-INF/services/org.mozilla.javascript.internal.*'
     }
 
     lint {
