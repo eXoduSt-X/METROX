@@ -232,12 +232,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private fun adjustPlaylistButtons() {
-        val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
-        buttons.maxOf { it.lineCount }.let { maxLineCount ->
-            buttons.forEach { button -> button.setLines(maxLineCount) }
-        }
+    val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
+    
+    // Forma segura de obtener el máximo
+    val maxLineCount = buttons.map { it.lineCount }.maxOrNull() ?: 1
+    
+    buttons.forEach { button -> 
+        button.setLines(maxLineCount) 
     }
-
+}
     private fun setupListeners() {
         binding.bannerImage?.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
