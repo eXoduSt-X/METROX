@@ -21,6 +21,7 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.os.bundleOf
+import androidx.core.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM
 import androidx.fragment.app.findFragment
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
@@ -125,7 +126,7 @@ class HomeAdapter(private val activity: AppCompatActivity) :
     }
 
     @Suppress("UNCHECKED_CAST")
-    private inner class PlaylistViewHolder(view: View) : AbsHomeAdapter.AbsHomeViewItem(view) {
+    private inner class PlaylistViewHolder(view: View) : AbsHomeViewItem(view) {
         fun bindView(home: Home) {
             title.setText(home.titleRes)
             recyclerView.apply {
