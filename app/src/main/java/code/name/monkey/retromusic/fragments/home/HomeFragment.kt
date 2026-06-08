@@ -175,32 +175,32 @@ private fun setupVideoListeners() {
     }
 
     private fun setupListeners() {
-        binding.homeContent.bannerImage?.setOnClickListener {
-            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image"))
+    binding.imageLayout.bannerImage?.setOnClickListener {
+    findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image"))
             reenterTransition = null
         }
-        binding.homeContent.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.homeContent.absPlaylists.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
         binding.homeContent.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
         binding.homeContent.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
-        binding.homeContent.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.homeContent.absPlaylists.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
         binding.homeContent.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image")) }
     }
 
     private fun setupTitle() {
-        binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.homeContent.appBarLayout.title = getString(R.string.app_name)
+        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+        binding.appBarLayout.title = getString(R.string.app_name)
     }
 
     private fun loadProfile() {
-        binding.homeContent.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
-        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.homeContent.userImage)
+        binding.imageLayout.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
+        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.imageLayout.userImage)
     }
 
     fun colorButtons() {
-        binding.homeContent.history.elevatedAccentColor()
-        binding.homeContent.lastAdded.elevatedAccentColor()
-        binding.homeContent.topPlayed.elevatedAccentColor()
-        binding.homeContent.actionShuffle.elevatedAccentColor()
+        binding.homeContent.absPlaylists.history.elevatedAccentColor()
+        binding.homeContent.absPlaylists.lastAdded.elevatedAccentColor()
+        binding.homeContent.absPlaylists.topPlayed.elevatedAccentColor()
+        binding.homeContent.absPlaylists.actionShuffle.elevatedAccentColor()
     }
 
     private fun checkForMargins() {
