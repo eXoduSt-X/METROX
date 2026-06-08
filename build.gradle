@@ -2,8 +2,8 @@
 
 buildscript {
     ext {
-        // DEFINICIÓN GLOBAL: Resuelve la variable ausente en el módulo app
-        kotlin_version = '1.8.10'
+        // ACTUALIZADO: Kotlin 1.9.20 para compatibilidad con KSP y Glide
+        kotlin_version = '1.9.20'
         
         lifecycle_version = '2.6.1'
         navigation_version = '2.5.3'
@@ -18,14 +18,17 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.0'
+        // ACTUALIZADO: Gradle 8.1.0 para soportar las nuevas versiones de Kotlin
+        classpath 'com.android.tools.build:gradle:8.1.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navigation_version"
     }
 }
+
 plugins {
     id "com.github.ben-manes.versions" version "0.46.0"
-    id 'com.google.devtools.ksp' version '1.8.10-1.0.9' apply false
+    // ACTUALIZADO: Versión de KSP que corresponde exactamente a Kotlin 1.9.20
+    id 'com.google.devtools.ksp' version '1.9.20-1.0.13' apply false
 }
 
 tasks.register('clean', Delete) {
