@@ -3,17 +3,15 @@ package code.name.monkey.retromusic.fragments.home
 import code.name.monkey.retromusic.databinding.FragmentHomeBinding
 
 class HomeBinding(val binding: FragmentHomeBinding) {
-    // Exponemos el binding original para que el Fragment pueda acceder a todo
     val root = binding.root
     
-    // --- ACCESO A ESTRUCTURA DE CABECERA ---
-    // EXPONEMOS APP BAR PARA PODER HACER .setExpanded(true)
-    val appBarLayout = binding.appBarLayout 
-    // EXPONEMOS TOOLBAR PARA EL TÍTULO
+    // Acceso a la estructura principal
+    val appBarLayout = binding.appBarLayout
     val toolbar = binding.appBarLayout.toolbar
-    
     val contentContainer = binding.contentContainer
     val container = binding.container
+    
+    // Acceso a componentes de cabecera
     val titleWelcome = binding.imageLayout.titleWelcome
     val bannerImage = binding.imageLayout.bannerImage
     val userImage = binding.imageLayout.userImage
@@ -26,13 +24,16 @@ class HomeBinding(val binding: FragmentHomeBinding) {
     val actionShuffle = homeContent.absPlaylists.actionShuffle
     val history = homeContent.absPlaylists.history
     
-    // Componentes de video y webview
-    val etDownloadUrl = homeContent.etDownloadUrl
-    val btnClearUrl = homeContent.btnClearUrl
-    val btnStartDownload = homeContent.btnStartDownload
-    val btnLoadLocalVideo = homeContent.btnLoadLocalVideo
+    // Componentes de video y webview (Se garantiza acceso a través de homeContent)
     val videoDownloadContainer = homeContent.videoDownloadContainer
     val videoDownloadView = homeContent.videoDownloadView
     val youtubeWebView = homeContent.youtubeWebView
     val btnDownloadFloating = homeContent.btnDownloadFloating
+    val btnLoadLocalVideo = homeContent.btnLoadLocalVideo
+    
+    // Opcionales: Si estos no existen en tu XML, el compilador fallará. 
+    // Si tienes errores de "Unresolved reference", comenta estas dos líneas:
+    val etDownloadUrl = homeContent.etDownloadUrl
+    val btnClearUrl = homeContent.btnClearUrl
+    val btnStartDownload = homeContent.btnStartDownload
 }
