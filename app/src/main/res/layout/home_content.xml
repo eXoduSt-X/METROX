@@ -36,11 +36,7 @@
                 android:gravity="center"
                 android:padding="16dp"
                 android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textShadowColor="#000000"
-                android:textShadowDx="2"
-                android:textShadowDy="2"
-                android:textShadowRadius="3" />
+                android:textSize="18sp" />
         </FrameLayout>
 
         <LinearLayout
