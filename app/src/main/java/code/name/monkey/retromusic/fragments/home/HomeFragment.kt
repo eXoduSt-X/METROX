@@ -46,10 +46,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     // Motor de sincronización
     private val updateSubtitleTask = object : Runnable {
         override fun run() {
-            if (binding.videoPlayer.isPlaying) {
-                val currentPos = binding.videoPlayer.currentPosition.toLong()
+            if (binding.homeContent.videoPlayer.isPlaying) {
+                val currentPos = binding.homeContent.videoPlayer.currentPosition.toLong()
                 val currentSub = subtitleList.find { currentPos in it.startTime..it.endTime }
-                binding.tvSubtitleOverlay.text = currentSub?.text ?: ""
+                binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
             }
             handler.postDelayed(this, 500)
         }
@@ -114,7 +114,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         setupListeners()
         setupVideoListeners()
         
-        binding.titleWelcome.text = String.format("%s", userName)
+        binding.imageLayout.titleWelcome.text = String.format("%s", userName)
 
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
@@ -170,13 +170,13 @@ private fun setupVideoListeners() {
 
     // --- MÉTODOS ORIGINALES MANTENIDOS ---
     private fun adjustPlaylistButtons() {
-        val buttons = listOf(binding.homeContent.history, binding.homeContent.lastAdded, binding.homeContent.topPlayed, binding.homeContent.actionShuffle)
+        val buttons = listOf(binding.homeContent.absPlaylists.history, binding.homeContent.absPlaylists.lastAdded, binding.homeContent.absPlaylists.topPlayed, binding.homeContent.absPlaylists.actionShuffle)
         buttons.maxOf { it.lineCount }.let { maxLineCount -> buttons.forEach { it.setLines(maxLineCount) } }
     }
 
     private fun setupListeners() {
     binding.imageLayout.bannerImage?.setOnClickListener {
-    findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image"))
+    findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
             reenterTransition = null
         }
         binding.homeContent.absPlaylists.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
@@ -187,7 +187,7 @@ private fun setupVideoListeners() {
     }
 
     private fun setupTitle() {
-        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+        binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
         binding.appBarLayout.title = getString(R.string.app_name)
     }
 
