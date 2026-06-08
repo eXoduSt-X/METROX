@@ -1,5 +1,6 @@
 package code.name.monkey.retromusic.fragments.home
 
+import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
@@ -7,6 +8,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.view.*
 import android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM
+import android.webkit.*
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -14,6 +16,7 @@ import androidx.core.os.bundleOf
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.updateLayoutParams
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
@@ -32,18 +35,22 @@ import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IScrollHelper
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
-import code.name.monkey.retromusic.javatube.Youtube // Nuestro motor híbrido con Rhino
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
     private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
+
+    // Referencia directa al WebView y al botón flotante nativo
+    private var youtubeWebView: WebView? = null
+    private var extractedJsonData: String? = null
 
     private val selectLocalVideoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -61,6 +68,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         _binding = HomeBinding(homeBinding)
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
+        
         setupListeners()
         binding.titleWelcome.text = String.format("%s", userName)
 
@@ -69,20 +77,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
         checkForMargins()
 
-        // --- MANEJO DE EVENTOS DEL PANEL DE DESCARGAS ---
-        binding.btnStartDownload.setOnClickListener {
-            val urlIntroducida = binding.etDownloadUrl.text.toString().trim()
-            if (urlIntroducida.isNotEmpty() && urlIntroducida.startsWith("http")) {
-                procesarEnlaceHome(urlIntroducida)
-                binding.etDownloadUrl.setText("") 
-            } else {
-                Toast.makeText(requireContext(), "Por favor introduce un enlace válido", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        binding.btnClearUrl.setOnClickListener {
-            binding.etDownloadUrl.setText("")
-        }
+        // --- INICIALIZACIÓN DEL NAVEGADOR WEB Y EXTRACCIÓN (ESTILO SNAPTUBE) ---
+        setupYoutubeNavigation(homeBinding)
 
         binding.btnLoadLocalVideo.setOnClickListener {
             selectLocalVideoLauncher.launch("video/*")
@@ -98,6 +94,134 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun setupYoutubeNavigation(homeBinding: FragmentHomeBinding) {
+        // Vinculamos las vistas mapeadas del XML modificado
+        youtubeWebView = homeBinding.youtubeWebView
+        val btnDownloadFloating = homeBinding.btnDownloadFloating
+
+        youtubeWebView?.let { webView ->
+            val settings = webView.settings
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.databaseEnabled = true
+            
+            // Forzamos un User-Agent móvil de Chrome moderno para que cargue la interfaz ligera de m.youtube.com
+            settings.userAgentString = "Mozilla/5.0 (Linux; Android 14; Redmi Note 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+
+            // Creamos la interfaz puente entre JavaScript y Kotlin
+            webView.addJavascriptInterface(object : Any() {
+                @JavascriptInterface
+                fun onDataExtracted(jsonString: String?) {
+                    if (!jsonString.isNullOrEmpty() && jsonString != "null") {
+                        extractedJsonData = jsonString
+                        // Volvemos al hilo principal para renderizar la UI de Android de forma segura
+                        activity?.runOnUiThread {
+                            btnDownloadFloating?.visibility = View.VISIBLE
+                        }
+                    }
+                }
+            }, "MetroExtractor")
+
+            // Control de navegación interna
+            webView.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url.toString()
+                    // Si el usuario sale de un reproductor de video, ocultamos el botón preventivamente
+                    if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
+                        btnDownloadFloating?.visibility = View.GONE
+                        extractedJsonData = null
+                    }
+                    return false // Permite que el WebView cargue el enlace internamente
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    // Si la URL que terminó de cargar es un metraje válido, inyectamos el anzuelo
+                    if (url != null && (url.contains("youtube.com/watch?v=") || url.contains("youtu.be/"))) {
+                        injectScriptExtractor()
+                    }
+                }
+            }
+
+            // Cargamos la interfaz móvil por defecto al iniciar el Fragment
+            webView.loadUrl("https://m.youtube.com")
+        }
+
+        // Configuración del click sobre tu botón flotante nativo
+        btnDownloadFloating?.setOnClickListener {
+            if (!extractedJsonData.isNullOrEmpty()) {
+                procesarFlujoDeDescarga(extractedJsonData!!)
+            } else {
+                Toast.makeText(requireContext(), "Analizando firmas del reproductor... Espera un segundo.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun injectScriptExtractor() {
+        youtubeWebView?.evaluateJavascript(
+            """
+            (function() {
+                if (window.ytInitialPlayerResponse) {
+                    MetroExtractor.onDataExtracted(JSON.stringify(window.ytInitialPlayerResponse));
+                } else {
+                    // Espera reactiva de 1.5 segundos si el DOM móvil de Google sufre retraso
+                    setTimeout(function() {
+                        if (window.ytInitialPlayerResponse) {
+                            MetroExtractor.onDataExtracted(JSON.stringify(window.ytInitialPlayerResponse));
+                        }
+                    }, 1500);
+                }
+            })();
+            """.trimIndent(), null
+        )
+    }
+
+    private fun procesarFlujoDeDescarga(jsonData: String) {
+        try {
+            val playerResponse = JSONObject(jsonData)
+            val streamingData = playerResponse.getJSONObject("streamingData")
+            val videoDetails = playerResponse.getJSONObject("videoDetails")
+            val tituloVideo = videoDetails.optString("title", "video_metro").replace(" ", "_") + ".mp4"
+
+            // Extraemos los bloques de flujos progresivos (Video + Audio combinados listos para descargar)
+            var urlDescarga: String? = null
+            if (streamingData.has("formats")) {
+                val formats = streamingData.getJSONArray("formats")
+                if (formats.length() > 0) {
+                    // Priorizamos el primer flujo progresivo disponible procesado de forma nativa por Chrome
+                    urlDescarga = formats.getJSONObject(0).optString("url", "")
+                }
+            }
+
+            // Fallback secundario si los streams vienen multiplexados en adaptiveFormats
+            if (urlDescarga.isNullOrEmpty() && streamingData.has("adaptiveFormats")) {
+                val adaptiveFormats = streamingData.getJSONArray("adaptiveFormats")
+                for (i in 0 until adaptiveFormats.length()) {
+                    val format = adaptiveFormats.getJSONObject(i)
+                    if (format.optString("mimeType", "").contains("video/mp4")) {
+                        urlDescarga = format.optString("url", "")
+                        break
+                    }
+                }
+            }
+
+            if (!urlDescarga.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), "¡Enlace capturado de forma legítima!", Toast.LENGTH_SHORT).show()
+                
+                // Acción dual: Iniciamos la reproducción directa en tu panel de video local e iniciamos la descarga en segundo plano
+                reproducirVideoEnPanel(Uri.parse(urlDescarga))
+                ejecutarDescargaDelSistema(urlDescarga, tituloVideo)
+            } else {
+                Toast.makeText(requireContext(), "Error: Este flujo multimedia requiere descifrado local complejo.", Toast.LENGTH_LONG).show()
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(requireContext(), "Error de extracción en el WebView: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun reproducirVideoEnPanel(videoUri: Uri) {
         binding.videoDownloadContainer.visibility = View.VISIBLE
         binding.videoDownloadView.setVideoURI(videoUri)
@@ -105,43 +229,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.videoDownloadView.start()
     }
 
-    private fun procesarEnlaceHome(urlVideo: String) {
-        Toast.makeText(requireContext(), "Extrayendo información con JavaTube...", Toast.LENGTH_SHORT).show()
-
-        lifecycleScope.launch {
-            val urlDirecta = withContext(Dispatchers.IO) {
-                try {
-                    // CORRECCIÓN: El constructor híbrido local procesa la configuración de red internamente,
-                    // por lo que solo requiere el string de la URL base del video para inicializarse.
-                    val yt = Youtube(urlVideo)
-                    
-                    // CORRECCIÓN: Llamada explícita al método de lista nativa para asegurar interoperabilidad fluida
-                    val streamsList = yt.streamsList
-                    
-                    // Filtramos los flujos progresivos (Muxed: Video + Audio) con URL válida calculada por tu Cipher
-                    val streamElegido = streamsList.firstOrNull { it.isProgressive } 
-                        ?: streamsList.firstOrNull { it.url != null && it.url.isNotEmpty() }
-                        
-                    streamElegido?.url
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
-            }
-            
-            if (urlDirecta != null) {
-                Toast.makeText(requireContext(), "¡Enlace extraído con éxito!", Toast.LENGTH_SHORT).show()
-                reproducirVideoEnPanel(Uri.parse(urlDirecta))
-            } else {
-                Toast.makeText(requireContext(), "Error: JavaTube no pudo validar las firmas de streaming", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
     private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
         try {
             val request = DownloadManager.Request(Uri.parse(url)).apply {
-                setTitle("Descargando metraje...")
+                setTitle("Descargando de Metro...")
                 setDescription(nombreArchivo)
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombreArchivo)
@@ -149,7 +240,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
             val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
-            Toast.makeText(requireContext(), "Descarga iniciada", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Descarga mandada a la cola pública", View.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Error de descarga: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -258,6 +349,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         if (binding.videoDownloadView.isPlaying) {
             binding.videoDownloadView.stopPlayback()
         }
+        // Destrucción preventiva del WebView para evitar fugas de memoria del motor Chromium
+        youtubeWebView?.let {
+            it.removeJavascriptInterface("MetroExtractor")
+            it.removeAllViews()
+            it.destroy()
+        }
+        youtubeWebView = null
         super.onDestroyView()
         _binding = null
     }
