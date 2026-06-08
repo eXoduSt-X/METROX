@@ -103,6 +103,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
 
+        binding.tvSubtitleOverlay.setShadowLayer(
+        3f,    // radius
+        2f,    // dx
+        2f,    // dy
+        android.graphics.Color.BLACK // color
+    )
+
         // Iniciar el motor de sincronización
         handler.post(updateSubtitleTask)
 
