@@ -1,7 +1,7 @@
 package code.name.monkey.retromusic.fragments.home
 
 import android.os.Bundle
-import android.view.* // Importante para View
+import android.view.*
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.navigation.fragment.findNavController
 import code.name.monkey.retromusic.*
@@ -12,28 +12,29 @@ import com.google.android.material.transition.MaterialSharedAxis
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
-    private var _binding: HomeBinding? = null
+    // Cambiamos a FragmentHomeBinding directamente
+    private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        _binding = HomeBinding(FragmentHomeBinding.bind(view))
+        // Inicialización correcta usando ViewBinding
+        _binding = FragmentHomeBinding.bind(view)
+        
         setupListeners()
         loadProfile()
         adjustPlaylistButtons()
     }
 
     private fun setupListeners() {
-        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+        // Asegúrate de que toolbar existe en fragment_home.xml
+        binding.toolbar.setNavigationOnClickListener { 
+            findNavController().navigate(R.id.action_search, null, navOptions) 
+        }
     }
 
-    private fun loadProfile() {
-        // Implementación pendiente
-    }
-
-    private fun adjustPlaylistButtons() {
-        // Implementación pendiente
-    }
+    private fun loadProfile() { }
+    private fun adjustPlaylistButtons() { }
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
