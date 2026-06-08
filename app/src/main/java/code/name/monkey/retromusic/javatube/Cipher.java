@@ -1,151 +1,123 @@
 package code.name.monkey.retromusic.javatube;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.json.JSONObject;
 
-// CORRECCIÓN: Quitamos javax.script e importamos el motor compatible con Android (Rhino)
+// Usamos Rhino nativo para Android, eliminando NodeRunner
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 
 public class Cipher {
 
+    private static String playerJs;
+    private static String signatureFunctionName;
+    private static int signatureParam = 0; // Guardará el entero dinámico requerido hoy
+    private static String nsigFunctionName;
     private final String js;
-    private String transformPlan = null;
-    private String transformObj = null;
-    private String throttlingPlan = null;
-    private String throttlingFunctionName = null;
-    private String throttlingRawCode = null;
 
-    public Cipher(String jsCode) {
-        js = jsCode;
+    // Constructor compatible con el nuevo Youtube.java (recibe ambos parámetros)
+    public Cipher(String jsCode, String ytPlayerJs) throws Exception {
+        this.js = jsCode;
+        playerJs = ytPlayerJs;
+        signatureFunctionName = getSigFunctionName(jsCode);
+        nsigFunctionName = getNsigFunctionName(jsCode);
     }
 
-    private String getSignatureCode() throws Exception {
-        Pattern pattern = Pattern.compile("function\\(\\w+\\)\\{\\w+=\\w+\\.split\\(\"\"\\);(.*)\\.join\\(\"\"\\)\\}");
-        Matcher matcher = pattern.matcher(js);
+    // Constructor alternativo por si tu código viejo aún lo invoca con un solo argumento
+    public Cipher(String jsCode) throws Exception {
+        this(jsCode, "https://youtube.com/s/player/default/base.js");
+    }
+
+    private static String getSigFunctionName(String js) throws Exception {
+        String[] functionPattern = {
+                "(?<sig>[a-zA-Z0-9_$]+)\\s*=\\s*function\\(\\s*(?<arg>[a-zA-Z0-9_$]+)\\s*\\)\\s*\\{\\s*(\\k<arg>)\\s*=\\s*(\\k<arg>)\\.split\\(\\s*[a-zA-Z0-9_\\$\\\"\\[\\]]+\\s*\\)\\s*;\\s*[^}]+;\\s*return\\s+(\\k<arg>)\\.join\\(\\s*[a-zA-Z0-9_\\$\\\"\\[\\]]+\\s*\\)",
+                "\\b(?<var>[a-zA-Z0-9_$]+)&&\\((\\k<var>)=(?<sig>[a-zA-Z0-9_$]{2,})\\((?:(?<param>\\d+),decodeURIComponent)\\((\\k<var>)\\)\\)",
+                "(?:\\b|[^a-zA-Z0-9_$])(?<sig>[a-zA-Z0-9_$]{2,})\\s*=\\s*function\\(\\s*a\\s*\\)\\s*\\{\\s*a\\s*=\\s*a\\.split\\(\\s*\\\"\\\"\\s*\\)(?:;[a-zA-Z0-9_$]{2}\\.[a-zA-Z0-9_$]{2}\\(a,\\d+\\))?"
+        };
+        for(String pattern : functionPattern){
+            Pattern regex = Pattern.compile(pattern);
+            Matcher matcher = regex.matcher(js);
+            if (matcher.find()) {
+                // Captura el parámetro numérico si la Regex moderna lo encuentra
+                try {
+                    signatureParam = Integer.parseInt(matcher.group("param"));
+                } catch (Exception e) {
+                    signatureParam = 0; // Fallback si usa un patrón clásico
+                }
+                return matcher.group("sig");
+            }
+        }
+        throw new Exception("getSigFunctionName: Could not find function name in playerJs: " + playerJs);
+    }
+
+    private String getNsigFunctionName(String js) throws Exception {
+        String pattern = "var\\s*[a-zA-Z0-9$_]{3}\\s*=\\s*\\[(?<funcname>[a-zA-Z0-9$_]{3})\\]";
+        Pattern regex = Pattern.compile(pattern);
+        Matcher matcher = regex.matcher(js);
         if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            throw new Exception("RegexMatcherError (SignatureCode)");
+            return matcher.group("funcname");
         }
+        throw new Exception("getNsigFunctionName: Could not find function name in playerJs: " + playerJs);
     }
 
-    private String getThrottlingPlan() throws Exception {
-        if (throttlingPlan == null) {
-            Pattern pattern = Pattern.compile("String\\.prototype\\.split\\.call\\(\\w+,(\"\"|'')\\);(.*);return \\w+\\.join\\((\"\"|'')\\)");
-            Matcher matcher = pattern.matcher(js);
-            if (matcher.find()) {
-                throttlingPlan = matcher.group(2);
-                return throttlingPlan;
-            } else {
-                throw new Exception("RegexMatcherError (ThrottlingPlan)");
-            }
-        }
-        return throttlingPlan;
-    }
+    // ==========================================
+    // EJECUCIÓN MATEMÁTICA CON RHINO (Bypass Node.js)
+    // ==========================================
 
-    public String getThrottlingFunctionName() throws Exception {
-        if (throttlingFunctionName == null) {
-            Pattern pattern = Pattern.compile("(\\w+)=String\\.prototype\\.split\\.call\\(\\w+,(\"\"|'')\\)");
-            Matcher matcher = pattern.matcher(getThrottlingPlan());
-            if (matcher.find()) {
-                throttlingFunctionName = matcher.group(1);
-                return throttlingFunctionName;
-            } else {
-                throw new Exception("RegexMatcherError (ThrottlingFunctionName)");
-            }
-        }
-        return throttlingFunctionName;
-    }
-
-    public String getThrottlingRawCode() throws Exception {
-        if (throttlingRawCode == null) {
-            String functionName = getThrottlingFunctionName();
-            Pattern pattern = Pattern.compile("(?s)(" + functionName + "=function\\(\\w+\\)\\{.*?\\};)");
-            Matcher matcher = pattern.matcher(js);
-            if (matcher.find()) {
-                throttlingRawCode = matcher.group(1);
-                return throttlingRawCode;
-            } else {
-                throw new Exception("RegexMatcherError (ThrottlingRawCode)");
-            }
-        }
-        return throttlingRawCode;
-    }
-
-    // CORRECCIÓN: Ejecución del descifrado del parámetro N usando Rhino nativo en Android
-    public String calculateN(String n) throws Exception {
-        String functionName = getThrottlingFunctionName();
-        String rawCode = getThrottlingRawCode();
-
-        // Inicializamos el contexto de Rhino de forma segura para Android
+    public String getSignature(String cipherSignature) throws Exception {
         Context context = Context.enter();
-        context.setOptimizationLevel(-1); // Desactiva generación de bytecode en tiempo de ejecución para evitar fallos de memoria en Android
+        context.setOptimizationLevel(-1); // Crucial para evitar fugas de memoria en Android
         try {
             Scriptable scope = context.initStandardObjects();
             
-            // Evaluamos la función de descifrado extraída de YouTube
-            context.evaluateString(scope, rawCode, "<cmd>", 1, null);
+            // Cargamos el base.js completo en el entorno aislado de Rhino
+            context.evaluateString(scope, js, "<youtube_base_js>", 1, null);
             
-            // Ejecutamos la función pasando el parámetro 'n' empaquetado
-            context.evaluateString(scope, "var b = " + functionName + "('" + n + "')", "<cmd>", 1, null);
+            // Invocamos la función pasando tanto el entero de control como el token string
+            String script = "var result = " + signatureFunctionName + "(" + signatureParam + ", '" + cipherSignature + "');";
+            context.evaluateString(scope, script, "<execute_sig>", 1, null);
             
-            // Extraemos el resultado limpio de la variable de retorno 'b'
-            Object result = scope.get("b", scope);
+            Object result = scope.get("result", scope);
             return result.toString();
         } catch (Exception e) {
-            e.printStackTrace();
-            return n; // Fallback seguro por si cambia el algoritmo dinámico
+            // Si la función de YouTube requiere un solo parámetro en lugar de dos (fallback estructural)
+            try {
+                Scriptable scope = context.initStandardObjects();
+                context.evaluateString(scope, js, "<youtube_base_js>", 1, null);
+                String script = "var result = " + signatureFunctionName + "('" + cipherSignature + "');";
+                context.evaluateString(scope, script, "<execute_sig_fallback>", 1, null);
+                return scope.get("result", scope).toString();
+            } catch (Exception ex) {
+                throw new Exception("Fallo catastrófico en descifrado Signature: " + ex.getMessage());
+            }
         } finally {
-            Context.exit(); // Obligatorio cerrar el contexto para evitar Memory Leaks
+            Context.exit();
         }
     }
 
-    private String getTransformPlan() throws Exception {
-        if (transformPlan == null) {
-            transformPlan = getSignatureCode().split(";")[0];
-        }
-        return transformPlan;
-    }
-
-    public String getTransformObj() throws Exception {
-        if (transformObj == null) {
-            String plan = getTransformPlan();
-            transformObj = Arrays.asList(plan.split("\\.")).get(0);
-        }
-        return transformObj;
-    }
-
-    public String getInitCode() throws Exception {
-        String obj = getTransformObj();
-        Pattern pattern = Pattern.compile("(?s)(var " + obj + "=\\{.*?\\};)");
-        Matcher matcher = pattern.matcher(js);
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            throw new Exception("RegexMatcherError (InitCode)");
-        }
-    }
-
-    public String getFullSignatureCode() throws Exception {
-        return getInitCode() + "function descramble(a){a=a.split(\"\");" + getSignatureCode() + ";return a.join(\"\");}";
-    }
-
-    public String getSignature(String cipher) throws Exception {
+    public String getNSig(String n) throws Exception {
         Context context = Context.enter();
         context.setOptimizationLevel(-1);
         try {
             Scriptable scope = context.initStandardObjects();
-            context.evaluateString(scope, getFullSignatureCode(), "<cmd>", 1, null);
-            context.evaluateString(scope, "var sig = descramble('" + cipher + "')", "<cmd>", 1, null);
-            Object result = scope.get("sig", scope);
+            context.evaluateString(scope, js, "<youtube_base_js>", 1, null);
+            
+            String script = "var result = " + nsigFunctionName + "('" + n + "');";
+            context.evaluateString(scope, script, "<execute_nsig>", 1, null);
+            
+            Object result = scope.get("result", scope);
             return result.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return n; // Fallback seguro para evitar que la app crasheé en caliente
         } finally {
             Context.exit();
         }
+    }
+
+    // Mantenemos el puente con tu Youtube.java viejo por si acaso
+    public String calculateN(String n) throws Exception {
+        return getNSig(n);
     }
 }
