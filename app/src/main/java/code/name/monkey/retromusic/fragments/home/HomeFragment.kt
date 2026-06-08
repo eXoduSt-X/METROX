@@ -1,72 +1,90 @@
-/*
- * Copyright (c) 2020 Hemanth Savarala.
- */
 package code.name.monkey.retromusic.fragments.home
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.*
-import android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM
-import androidx.coordinatorlayout.widget.CoordinatorLayout
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
-import androidx.core.view.doOnLayout
-import androidx.core.view.doOnPreDraw
-import androidx.core.view.updateLayoutParams
-import androidx.navigation.fragment.FragmentNavigatorExtras
-import androidx.navigation.fragment.findNavController
-import code.name.monkey.appthemehelper.common.ATHToolbarActivity
-import code.name.monkey.appthemehelper.util.ToolbarContentTintHelper
-import code.name.monkey.retromusic.*
+import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentHomeBinding
-import code.name.monkey.retromusic.dialogs.CreatePlaylistDialog
-import code.name.monkey.retromusic.dialogs.ImportPlaylistDialog
-import code.name.monkey.retromusic.extensions.dip
-import code.name.monkey.retromusic.extensions.elevatedAccentColor
 import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
-import code.name.monkey.retromusic.glide.RetroGlideExtension
-import code.name.monkey.retromusic.glide.RetroGlideExtension.profileBannerOptions
-import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.interfaces.IScrollHelper
-import code.name.monkey.retromusic.util.PreferenceUtil.userName
-import com.bumptech.glide.Glide
-import com.google.android.material.transition.MaterialFadeThrough
-import com.google.android.material.transition.MaterialSharedAxis
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
-    private var _binding: HomeBinding? = null
+    private var _binding: FragmentHomeBinding? = null // Asumimos que usas ViewBinding
     private val binding get() = _binding!!
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        val homeBinding = FragmentHomeBinding.bind(view)
-        _binding = HomeBinding(homeBinding)
-        
-        mainActivity.setSupportActionBar(binding.toolbar)
-        mainActivity.supportActionBar?.title = null
-        
-        setupListeners()
-        binding.titleWelcome.text = String.format("%s", userName)
+    // Playlist en memoria
+    private val videoPlaylist = mutableListOf<Uri>()
+    private var currentIndex = 0
 
-        enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
-        reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
-
-        checkForMargins()
-        loadProfile()
-        setupTitle()
-        colorButtons()
-        
-        postponeEnterTransition()
-        view.doOnPreDraw { startPostponedEnterTransition() }
-        view.doOnLayout { adjustPlaylistButtons() }
-    }
-
-    private fun adjustPlaylistButtons() {
-        val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
-        buttons.maxOf { it.lineCount }.let { maxLineCount ->
-            buttons.forEach { it.setLines(maxLineCount) }
+    // Lanzador para seleccionar múltiples videos
+    private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            videoPlaylist.clear()
+            videoPlaylist.addAll(uris)
+            currentIndex = 0
+            reproducirVideoActual()
         }
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentHomeBinding.bind(view)
+
+        setupVideoListeners()
+    }
+
+    private fun setupVideoListeners() {
+        // Botón para cargar playlist
+        binding.btnOpenFile.setOnClickListener {
+            videoPickerLauncher.launch("video/*")
+        }
+
+        // Play / Pause
+        binding.btnPlayPause.setOnClickListener {
+            if (binding.videoPlayer.isPlaying) {
+                binding.videoPlayer.pause()
+                binding.btnPlayPause.text = "Play"
+            } else {
+                binding.videoPlayer.start()
+                binding.btnPlayPause.text = "Pause"
+            }
+        }
+
+        // Siguiente video
+        binding.btnForward.setOnClickListener {
+            if (currentIndex < videoPlaylist.size - 1) {
+                currentIndex++
+                reproducirVideoActual()
+            } else {
+                Toast.makeText(requireContext(), "Fin de la lista", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Video anterior
+        binding.btnRewind.setOnClickListener {
+            if (currentIndex > 0) {
+                currentIndex--
+                reproducirVideoActual()
+            }
+        }
+    }
+
+    private fun reproducirVideoActual() {
+        if (videoPlaylist.isNotEmpty()) {
+            binding.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
+            binding.videoPlayer.start()
+            binding.btnPlayPause.text = "Pause"
+        }
+    }
+override fun onDestroyView() {
+        binding.videoPlayer.stopPlayback()
+        _binding = null
+        super.onDestroyView()
+    }
     private fun setupListeners() {
         binding.bannerImage?.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
