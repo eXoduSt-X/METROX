@@ -34,7 +34,16 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-
+    
+    private var subtitleUri: Uri? = null
+    private val subtitlePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    uri?.let {
+        subtitleUri = it
+        Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
+        // Aquí podrías llamar a una función para procesar el archivo .srt
+    }
+}
+    
     // Playlist en memoria
     private val videoPlaylist = mutableListOf<Uri>()
     private var currentIndex = 0
@@ -78,6 +87,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private fun setupVideoListeners() {
         binding.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
 
+       binding.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
+        
         binding.btnPlayPause.setOnClickListener {
             if (binding.videoPlayer.isPlaying) {
                 binding.videoPlayer.pause()
