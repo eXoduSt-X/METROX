@@ -42,8 +42,10 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
-        // CORRECCIÓN PARA EL ERROR D8: Evita que el dexer examine los recursos internos de Rhino y tumbe el APK
+        // CORRECCIÓN DEFINITIVA D8: Bloquea todos los archivos de servicios internos de Mozilla que provocan el NullPointerException
         exclude 'META-INF/services/org.mozilla.javascript.ContextFactory'
+        exclude 'META-INF/services/org.mozilla.javascript.ScriptableObject'
+        exclude 'META-INF/services/org.mozilla.javascript.internal.*'
     }
 
     lint {
@@ -150,4 +152,3 @@ dependencies {
     // Motor JavaScript de Mozilla para compilar el extractor de firmas
     implementation 'org.mozilla:rhino:1.7.14'
 }
-
