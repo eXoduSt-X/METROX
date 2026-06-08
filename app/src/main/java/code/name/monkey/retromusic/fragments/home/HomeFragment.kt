@@ -32,7 +32,7 @@ import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IScrollHelper
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
-import code.name.monkey.retromusic.javatube.Youtube // Nuestro nuevo motor local
+import code.name.monkey.retromusic.javatube.Youtube // Nuestro motor híbrido con Rhino
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
@@ -40,13 +40,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class HomeFragment :
-    AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
+class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
     private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
 
-    // Registro del Selector de Archivos para cargar Videos Locales (.mp4)
     private val selectLocalVideoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -66,21 +64,17 @@ class HomeFragment :
         setupListeners()
         binding.titleWelcome.text = String.format("%s", userName)
 
-        // Rompemos la dependencia de NewPipe para que no intente buscar archivos inexistentes
-        // Dejamos este bloque limpio de inicializaciones molestas
-
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
 
         checkForMargins()
 
         // --- MANEJO DE EVENTOS DEL PANEL DE DESCARGAS ---
-        
         binding.btnStartDownload.setOnClickListener {
             val urlIntroducida = binding.etDownloadUrl.text.toString().trim()
             if (urlIntroducida.isNotEmpty() && urlIntroducida.startsWith("http")) {
                 procesarEnlaceHome(urlIntroducida)
-                binding.etDownloadUrl.setText("") // Resetea el cuadro automáticamente
+                binding.etDownloadUrl.setText("") 
             } else {
                 Toast.makeText(requireContext(), "Por favor introduce un enlace válido", Toast.LENGTH_SHORT).show()
             }
@@ -114,18 +108,19 @@ class HomeFragment :
     private fun procesarEnlaceHome(urlVideo: String) {
         Toast.makeText(requireContext(), "Extrayendo información con JavaTube...", Toast.LENGTH_SHORT).show()
 
-        // Lanzamos la tarea en segundo plano usando Dispatchers.IO para la red y el cifrado
         lifecycleScope.launch {
             val urlDirecta = withContext(Dispatchers.IO) {
                 try {
-                    // CORRECCIÓN: Se añade el parámetro de cliente "WEB" para forzar la generación de firmas y saltar el PoToken
-                    val yt = Youtube(urlVideo, "WEB")
-                    // Obtenemos los streams calculados nativamente con Rhino sin bloqueos
+                    // CORRECCIÓN: El constructor híbrido local procesa la configuración de red internamente,
+                    // por lo que solo requiere el string de la URL base del video para inicializarse.
+                    val yt = Youtube(urlVideo)
+                    
+                    // CORRECCIÓN: Llamada explícita al método de lista nativa para asegurar interoperabilidad fluida
                     val streamsList = yt.streamsList
                     
-                    // Buscamos un stream progresivo (video + audio integrado) o el primero con URL válida
+                    // Filtramos los flujos progresivos (Muxed: Video + Audio) con URL válida calculada por tu Cipher
                     val streamElegido = streamsList.firstOrNull { it.isProgressive } 
-                        ?: streamsList.firstOrNull { it.url.isNotEmpty() }
+                        ?: streamsList.firstOrNull { it.url != null && it.url.isNotEmpty() }
                         
                     streamElegido?.url
                 } catch (e: Exception) {
@@ -136,10 +131,9 @@ class HomeFragment :
             
             if (urlDirecta != null) {
                 Toast.makeText(requireContext(), "¡Enlace extraído con éxito!", Toast.LENGTH_SHORT).show()
-                // Enviamos la URL directa desencriptada y sin estrangulamiento al panel
                 reproducirVideoEnPanel(Uri.parse(urlDirecta))
             } else {
-                Toast.makeText(requireContext(), "Error: JavaTube no pudo extraer el metraje", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Error: JavaTube no pudo validar las firmas de streaming", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -276,5 +270,4 @@ class HomeFragment :
             return HomeFragment()
         }
     }
-    }
-    
+}
