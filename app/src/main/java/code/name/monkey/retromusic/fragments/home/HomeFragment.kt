@@ -268,9 +268,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private fun setupTitle() {
         binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.appBarLayout.title = getString(R.string.app_name)
+        
+        // CORRECCIÓN: El título va en el toolbar, NO en el appBarLayout
+        binding.toolbar.title = getString(R.string.app_name)
     }
-
+    
     private fun loadProfile() {
         binding.bannerImage?.let {
             Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it)
@@ -302,6 +304,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     override fun scrollToTop() {
         binding.container.scrollTo(0, 0)
+        
+        // CORRECCIÓN: Asegúrate de que appBarLayout esté expuesto en HomeBinding
+        // Si sigue fallando, es posible que debas usar binding.binding.appBarLayout
         binding.appBarLayout.setExpanded(true)
     }
 
