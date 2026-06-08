@@ -62,35 +62,33 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         }
     }
 
-override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-    val home = list[position]
-    val type = getItemViewType(position)
-    
-    // Configuramos el ViewHolder según el tipo
-    when (type) {
-        RECENT_ALBUMS, TOP_ALBUMS -> (holder as AlbumViewHolder).bindView(home)
-        RECENT_ARTISTS, TOP_ARTISTS -> (holder as ArtistViewHolder).bindView(home)
-        FAVOURITES -> (holder as PlaylistViewHolder).bindView(home)
-    }
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        val home = list[position]
+        val type = getItemViewType(position)
 
-    // Obtenemos el clickableArea del ViewHolder actual (es común a todos los AbsHomeViewItem)
-    val clickableArea = (holder as AbsHomeViewItem).clickableArea
-    
-    clickableArea.setOnClickListener { view ->
-        // 1. Intento seguro de activar la transición
-        try {
-            view.findFragment<HomeFragment>().setSharedAxisXTransitions()
-        } catch (e: Exception) {
-            // Si no estamos en HomeFragment, no hacemos nada (evita crash)
+        // Configuramos el ViewHolder según el tipo
+        when (type) {
+            RECENT_ALBUMS, TOP_ALBUMS -> (holder as AlbumViewHolder).bindView(home)
+            RECENT_ARTISTS, TOP_ARTISTS -> (holder as ArtistViewHolder).bindView(home)
+            FAVOURITES -> (holder as PlaylistViewHolder).bindView(home)
         }
 
-        // 2. Navegación
-        activity.findNavController(R.id.fragment_container).navigate(
-            R.id.detailListFragment,
-            bundleOf("type" to type)
-        )
-    }
-}
+        // Obtenemos el clickableArea del ViewHolder actual
+        val clickableArea = (holder as AbsHomeViewItem).clickableArea
+
+        clickableArea.setOnClickListener { view ->
+            // 1. Intento seguro de activar la transición
+            try {
+                view.findFragment<HomeFragment>().setSharedAxisYTransitions()
+            } catch (e: Exception) {
+                // Si no estamos en HomeFragment, no hacemos nada
+            }
+
+            // 2. Navegación
+            activity.findNavController(R.id.fragment_container).navigate(
+                R.id.detailListFragment,
+                bundleOf("type" to type)
+            )
         }
     }
 
@@ -127,7 +125,7 @@ override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private inner class PlaylistViewHolder(view: View) : AbsHomeViewItem(view) {
+    private inner class PlaylistViewHolder(view: View) : AbsHomeAdapter.AbsHomeViewItem(view) {
         fun bindView(home: Home) {
             title.setText(home.titleRes)
             recyclerView.apply {
