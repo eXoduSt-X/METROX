@@ -231,13 +231,22 @@ private fun setupVideoListeners() {
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
 
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
+  override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_settings -> findNavController().navigate(R.id.settings_fragment, null, navOptions)
-            R.id.action_import_playlist -> ImportPlaylistDialog().show(childFragmentManager, "ImportPlaylist")
-            R.id.action_add_to_playlist -> CreatePlaylistDialog.create(emptyList()).show(childFragmentManager, "ShowCreatePlaylistDialog")
-
-                return false
+            R.id.action_settings -> {
+                findNavController().navigate(R.id.settings_fragment, null, navOptions)
+                return true
+            }
+            R.id.action_import_playlist -> {
+                ImportPlaylistDialog().show(childFragmentManager, "ImportPlaylist")
+                return true
+            }
+            R.id.action_add_to_playlist -> {
+                CreatePlaylistDialog.create(emptyList()).show(childFragmentManager, "ShowCreatePlaylistDialog")
+                return true
+            }
+        }
+        return false
     }
 
     override fun onPrepareMenu(menu: Menu) {
@@ -251,7 +260,7 @@ private fun setupVideoListeners() {
         exitTransition = null
     }
 
-override fun onDestroyView() {
+    override fun onDestroyView() {
         handler.removeCallbacks(updateSubtitleTask)
         binding.homeContent.videoPlayer.stopPlayback()
         _binding = null
