@@ -1,4 +1,4 @@
-name: Android CI
+Name: Android CI
 
 on:
   push:
@@ -45,8 +45,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+      
+      # CORRECCIÓN DE CACHÉ: Añadido 'clean' y '--no-build-cache' para destruir el estado fallido del D8 dexer
       - name: Build
-        run: ./gradlew app:assemble --no-configuration-cache --info
+        run: ./gradlew clean app:assemble --no-configuration-cache --no-build-cache --info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
@@ -57,3 +59,4 @@ jobs:
           name: METROX-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          
