@@ -181,15 +181,15 @@ private fun setupVideoListeners() {
             reenterTransition = null
         }
         binding.homeContent.absPlaylists.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.homeContent.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.homeContent.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
+        binding.homeContent.absPlaylists.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.homeContent.absPlaylists.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
         binding.homeContent.absPlaylists.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
         binding.homeContent.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image")) }
     }
 
     private fun setupTitle() {
         binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.appBarLayout.title = getString(R.string.app_name)
+        binding.homeContent.appBarLayout.title = getString(R.string.app_name)
     }
 
     private fun loadProfile() {
@@ -206,7 +206,9 @@ private fun setupVideoListeners() {
 
     private fun checkForMargins() {
         if (mainActivity.isBottomNavVisible) {
-            binding.homeContent.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
+            binding.homeContent.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { 
+                bottomMargin = dip(R.dimen.bottom_nav_height) 
+            }
         }
     }
 
