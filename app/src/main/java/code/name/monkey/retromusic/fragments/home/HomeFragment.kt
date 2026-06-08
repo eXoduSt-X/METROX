@@ -117,8 +117,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }, "MetroExtractor")
 
             webView.webViewClient = object : WebViewClient() {
+                // SEGURIDAD NULA INTEGRADA AQUÍ
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                    val url = request?.url.toString()
+                    val url = request?.url?.toString() ?: ""
                     if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
                         floatingButton.visibility = View.GONE
                         extractedJsonData = null
@@ -138,7 +139,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
         floatingButton.setOnClickListener {
             if (!extractedJsonData.isNullOrEmpty()) {
-                // ESPACIO CORREGIDO: ahora es una llamada válida a la función
                 procesarFlujoDeDescarga(extractedJsonData!!)
             } else {
                 Toast.makeText(requireContext(), "Analizando firmas del reproductor... Espera un segundo.", Toast.LENGTH_SHORT).show()
