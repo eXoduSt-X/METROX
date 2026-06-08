@@ -50,6 +50,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var youtubeWebView: WebView? = null
     private var extractedJsonData: String? = null
+    
+    // --- PROPIEDAD A NIVEL DE CLASE PARA ACCESO GLOBAL ---
+    private var floatingButton: View? = null
 
     private val selectLocalVideoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -95,7 +98,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupYoutubeNavigation(homeBinding: HomeBinding) {
         youtubeWebView = homeBinding.youtubeWebView
-        val floatingButton = homeBinding.btnDownloadFloating 
+        floatingButton = homeBinding.btnDownloadFloating // Asignación a propiedad de clase
 
         youtubeWebView?.let { webView ->
             val settings = webView.settings
@@ -110,18 +113,17 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                     if (!jsonString.isNullOrEmpty() && jsonString != "null") {
                         extractedJsonData = jsonString
                         activity?.runOnUiThread {
-                            floatingButton.visibility = View.VISIBLE
+                            floatingButton?.visibility = View.VISIBLE
                         }
                     }
                 }
             }, "MetroExtractor")
 
             webView.webViewClient = object : WebViewClient() {
-                // SEGURIDAD NULA INTEGRADA AQUÍ
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url?.toString() ?: ""
                     if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
-                        floatingButton.visibility = View.GONE
+                        floatingButton?.visibility = View.GONE
                         extractedJsonData = null
                     }
                     return false
@@ -137,7 +139,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.loadUrl("https://m.youtube.com")
         }
 
-        floatingButton.setOnClickListener {
+        floatingButton?.setOnClickListener {
             if (!extractedJsonData.isNullOrEmpty()) {
                 procesarFlujoDeDescarga(extractedJsonData!!)
             } else {
