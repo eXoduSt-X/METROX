@@ -87,8 +87,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private fun setupVideoListeners() {
         binding.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
 
-       binding.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
-        
+        binding.btnLoadSubtitles.setOnClickListener {
+        Toast.makeText(requireContext(), "Lógica de carga de subtítulos pendiente", Toast.LENGTH_SHORT).show()
+        }
         binding.btnPlayPause.setOnClickListener {
             if (binding.videoPlayer.isPlaying) {
                 binding.videoPlayer.pause()
