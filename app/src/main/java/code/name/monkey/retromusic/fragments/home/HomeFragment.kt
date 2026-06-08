@@ -217,12 +217,20 @@ private fun setupVideoListeners() {
     }
 }
 
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
+  override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
-        menu.removeItem(R.id.action_grid_size); menu.removeItem(R.id.action_layout_type); menu.removeItem(R.id.action_sort_order)
-        menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
-        ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.homeContent.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.homeContent.toolbar))
+        menu.removeItem(R.id.action_grid_size)
+        menu.removeItem(R.id.action_layout_type)
+        menu.removeItem(R.id.action_sort_order)
+        menu.findItem(R.id.action_settings)?.setShowAsAction(1)
+        ToolbarContentTintHelper.handleOnCreateOptionsMenu(
+            requireContext(), 
+            binding.homeContent.toolbar, 
+            menu, 
+            ATHToolbarActivity.getToolbarBackgroundColor(binding.homeContent.toolbar)
+        )
     }
+
     override fun scrollToTop() {
         binding.homeContent.container.scrollTo(0, 0)
         binding.homeContent.appBarLayout.setExpanded(true)
@@ -233,27 +241,27 @@ private fun setupVideoListeners() {
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
 
-companion object {
+    companion object {
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
+        return when (item.itemId) {
             R.id.action_settings -> {
-                findNavController().navigate(R.id.settings_fragment, null, navOptions)
-                return true
+                findNavController().navigate(R.id.settings_fragment, null, null)
+                true
             }
             R.id.action_import_playlist -> {
                 ImportPlaylistDialog().show(childFragmentManager, "ImportPlaylist")
-                return true
+                true
             }
             R.id.action_add_to_playlist -> {
                 CreatePlaylistDialog.create(emptyList()).show(childFragmentManager, "ShowCreatePlaylistDialog")
-                return true
+                true
             }
+            else -> false
         }
-        return false
     }
 
     override fun onPrepareMenu(menu: Menu) {
@@ -273,4 +281,4 @@ companion object {
         _binding = null
         super.onDestroyView()
     }
-} // Esta es la llave que cierra la clase HomeFragment
+}
