@@ -98,7 +98,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private fun setupYoutubeNavigation(homeBinding: FragmentHomeBinding) {
         // Vinculamos las vistas extraídas de forma segura desde el ViewBinding inflado
         youtubeWebView = homeBinding.youtubeWebView
-        val btnDownloadFloating = homeBinding.btnDownloadFloating
 
         youtubeWebView?.let { webView ->
             val settings = webView.settings
@@ -115,9 +114,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 fun onDataExtracted(jsonString: String?) {
                     if (!jsonString.isNullOrEmpty() && jsonString != "null") {
                         extractedJsonData = jsonString
-                        // Pasamos al hilo de la interfaz de usuario de Android de forma segura
+                        // Pasamos al hilo de la interfaz de usuario de Android usando el binding global de la clase
                         activity?.runOnUiThread {
-                            btnDownloadFloating.visibility = View.VISIBLE
+                            binding.btnDownloadFloating.visibility = View.VISIBLE
                         }
                     }
                 }
@@ -127,9 +126,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url.toString()
-                    // Si el usuario sale de una pantalla de reproducción, reseteamos la UI de descarga
+                    // Si el usuario sale de una pantalla de reproducción, alteramos el binding global seguro
                     if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
-                        btnDownloadFloating.visibility = View.GONE
+                        binding.btnDownloadFloating.visibility = View.GONE
                         extractedJsonData = null
                     }
                     return false // Delega la carga interna de la URL en el propio WebView
@@ -148,8 +147,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.loadUrl("https://m.youtube.com")
         }
 
-        // Configuración táctil sobre el botón flotante nativo de descargas
-        btnDownloadFloating.setOnClickListener {
+        // Configuración táctil sobre el botón flotante nativo de descargas apuntando al binding global
+        binding.btnDownloadFloating.setOnClickListener {
             if (!extractedJsonData.isNullOrEmpty()) {
                 procesarFlujoDeDescarga(extractedJsonData!!)
             } else {
