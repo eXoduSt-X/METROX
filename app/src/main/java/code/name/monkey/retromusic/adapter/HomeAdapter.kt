@@ -21,7 +21,6 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.os.bundleOf
-import androidx.core.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM
 import androidx.fragment.app.findFragment
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
@@ -57,9 +56,7 @@ class HomeAdapter(private val activity: AppCompatActivity) :
             RECENT_ARTISTS, TOP_ARTISTS -> ArtistViewHolder(layout)
             FAVOURITES -> PlaylistViewHolder(layout)
             TOP_ALBUMS, RECENT_ALBUMS -> AlbumViewHolder(layout)
-            else -> {
-                ArtistViewHolder(layout)
-            }
+            else -> ArtistViewHolder(layout)
         }
     }
 
@@ -67,25 +64,20 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         val home = list[position]
         val type = getItemViewType(position)
 
-        // Configuramos el ViewHolder según el tipo
         when (type) {
             RECENT_ALBUMS, TOP_ALBUMS -> (holder as AlbumViewHolder).bindView(home)
             RECENT_ARTISTS, TOP_ARTISTS -> (holder as ArtistViewHolder).bindView(home)
             FAVOURITES -> (holder as PlaylistViewHolder).bindView(home)
         }
 
-        // Obtenemos el clickableArea del ViewHolder actual
         val clickableArea = (holder as AbsHomeViewItem).clickableArea
-
         clickableArea.setOnClickListener { view ->
-            // 1. Intento seguro de activar la transición
             try {
                 view.findFragment<HomeFragment>().setSharedAxisYTransitions()
             } catch (e: Exception) {
-                // Si no estamos en HomeFragment, no hacemos nada
+                // Silencioso por seguridad
             }
 
-            // 2. Navegación
             activity.findNavController(R.id.fragment_container).navigate(
                 R.id.detailListFragment,
                 bundleOf("type" to type)
@@ -93,9 +85,7 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         }
     }
 
-    override fun getItemCount(): Int {
-        return list.size
-    }
+    override fun getItemCount(): Int = list.size
 
     @SuppressLint("NotifyDataSetChanged")
     fun swapData(sections: List<Home>) {
@@ -164,9 +154,7 @@ class HomeAdapter(private val activity: AppCompatActivity) :
             R.id.artistDetailsFragment,
             bundleOf(EXTRA_ARTIST_ID to artistId),
             null,
-            FragmentNavigatorExtras(
-                view to artistId.toString()
-            )
+            FragmentNavigatorExtras(view to artistId.toString())
         )
     }
 
@@ -175,9 +163,7 @@ class HomeAdapter(private val activity: AppCompatActivity) :
             R.id.albumDetailsFragment,
             bundleOf(EXTRA_ALBUM_ID to albumId),
             null,
-            FragmentNavigatorExtras(
-                view to albumId.toString()
-            )
+            FragmentNavigatorExtras(view to albumId.toString())
         )
     }
 }
