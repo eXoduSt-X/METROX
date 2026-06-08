@@ -48,7 +48,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
 
-    // Referencia directa al WebView y almacenamiento temporal del JSON extraído
     private var youtubeWebView: WebView? = null
     private var extractedJsonData: String? = null
 
@@ -77,7 +76,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
         checkForMargins()
 
-        // --- INICIALIZACIÓN PASANDO TU WRAPPER HOMEBINDING YA CONFIGURADO ---
         setupYoutubeNavigation(binding)
 
         binding.btnLoadLocalVideo.setOnClickListener {
@@ -96,26 +94,21 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupYoutubeNavigation(homeBinding: HomeBinding) {
-        // Vinculamos usando estrictamente las propiedades del objeto local que entra como parámetro
         youtubeWebView = homeBinding.youtubeWebView
-        val floatingButton = homeBinding.btnDownloadFloating // Cacheamos la vista localmente en una constante inmutable
+        val floatingButton = homeBinding.btnDownloadFloating 
 
         youtubeWebView?.let { webView ->
             val settings = webView.settings
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
-            
-            // Camuflaje de navegador móvil para forzar la carga ligera de m.youtube.com
             settings.userAgentString = "Mozilla/5.0 (Linux; Android 14; Redmi Note 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
 
-            // Interfaz de puente Javascript -> Kotlin nativo
             webView.addJavascriptInterface(object : Any() {
                 @JavascriptInterface
                 fun onDataExtracted(jsonString: String?) {
                     if (!jsonString.isNullOrEmpty() && jsonString != "null") {
                         extractedJsonData = jsonString
-                        // Pasamos al hilo UI usando la referencia local aislada de las lambdas de forma segura
                         activity?.runOnUiThread {
                             floatingButton.visibility = View.VISIBLE
                         }
@@ -123,35 +116,30 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 }
             }, "MetroExtractor")
 
-            // Listener de eventos del cliente de navegación web
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url.toString()
-                    // Si el usuario sale de una pantalla de reproducción, alteramos la UI mediante la constante local
                     if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
                         floatingButton.visibility = View.GONE
                         extractedJsonData = null
                     }
-                    return false // Delega la carga interna de la URL en el propio WebView
+                    return false
                 }
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
-                    // Si el renderizado en pantalla corresponde a un metraje, inyectamos el anzuelo
                     if (url != null && (url.contains("youtube.com/watch?v=") || url.contains("youtu.be/"))) {
                         injectScriptExtractor()
                     }
                 }
             }
-
-            // Carga inicial del ecosistema web móvil de YouTube
             webView.loadUrl("https://m.youtube.com")
         }
 
-        // Configuración táctil sobre el botón flotante nativo de descargas apuntando al caché seguro
         floatingButton.setOnClickListener {
             if (!extractedJsonData.isNullOrEmpty()) {
-                procesarFlujo DeDescarga(extractedJsonData!!)
+                // ESPACIO CORREGIDO: ahora es una llamada válida a la función
+                procesarFlujoDeDescarga(extractedJsonData!!)
             } else {
                 Toast.makeText(requireContext(), "Analizando firmas del reproductor... Espera un segundo.", Toast.LENGTH_SHORT).show()
             }
@@ -165,7 +153,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 if (window.ytInitialPlayerResponse) {
                     MetroExtractor.onDataExtracted(JSON.stringify(window.ytInitialPlayerResponse));
                 } else {
-                    // Re-intento sutil si la sincronización del subproceso DOM de Google se demora
                     setTimeout(function() {
                         if (window.ytInitialPlayerResponse) {
                             MetroExtractor.onDataExtracted(JSON.stringify(window.ytInitialPlayerResponse));
@@ -186,7 +173,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
             var urlDescarga: String? = null
             
-            // Estrategia 1: Muxed Streams (Flujos progresivos combinados que procesa Chrome directamente)
             if (streamingData.has("formats")) {
                 val formats = streamingData.getJSONArray("formats")
                 if (formats.length() > 0) {
@@ -194,7 +180,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 }
             }
 
-            // Estrategia 2: Fallback por bloques adaptativos multiplexados si el servidor capara los directos
             if (urlDescarga.isNullOrEmpty() && streamingData.has("adaptiveFormats")) {
                 val adaptiveFormats = streamingData.getJSONArray("adaptiveFormats")
                 for (i in 0 until adaptiveFormats.length()) {
@@ -208,8 +193,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
             if (!urlDescarga.isNullOrEmpty()) {
                 Toast.makeText(requireContext(), "¡Enlace capturado de forma legítima!", Toast.LENGTH_SHORT).show()
-                
-                // Acción dual: Reproducción en vista previa local + descarga en background del sistema
                 reproducirVideoEnPanel(Uri.parse(urlDescarga))
                 ejecutarDescargaDelSistema(urlDescarga, tituloVideo)
             } else {
@@ -349,7 +332,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         if (binding.videoDownloadView.isPlaying) {
             binding.videoDownloadView.stopPlayback()
         }
-        // Destrucción preventiva total para evitar fugas de memoria del motor Chromium nativo
         youtubeWebView?.let {
             it.removeJavascriptInterface("MetroExtractor")
             it.removeAllViews()
