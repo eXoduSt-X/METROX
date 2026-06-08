@@ -25,4 +25,8 @@ class HomeBinding(
     val btnLoadLocalVideo = homeBinding.homeContent.btnLoadLocalVideo
     val videoDownloadContainer = homeBinding.homeContent.videoDownloadContainer
     val videoDownloadView = homeBinding.homeContent.videoDownloadView
+
+    // --- AGREGADOS PARA EL NAVEGADOR EMBEBIDO (YOUTUBE) ---
+    val youtubeWebView = homeBinding.homeContent.youtubeWebView
+    val btnDownloadFloating = homeBinding.homeContent.btnDownloadFloating
 }
