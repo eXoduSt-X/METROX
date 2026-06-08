@@ -40,6 +40,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+
+    private val navOptions = androidx.navigation.NavOptions.Builder().build()
+    private val libraryViewModel by androidx.fragment.app.viewModels<code.name.monkey.retromusic.fragments.library.LibraryViewModel>()
     
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
