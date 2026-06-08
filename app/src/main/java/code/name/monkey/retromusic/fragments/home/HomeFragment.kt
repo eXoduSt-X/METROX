@@ -16,7 +16,6 @@ import androidx.core.os.bundleOf
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.updateLayoutParams
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import code.name.monkey.appthemehelper.common.ATHToolbarActivity
@@ -42,42 +41,26 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var _binding: HomeBinding? = null
     private val binding get() = _binding!!
-
     private var youtubeWebView: WebView? = null
     private var extractedJsonData: String? = null
     private var floatingButton: View? = null
 
-    private val selectLocalVideoLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            reproducirVideoEnPanel(it)
-            Toast.makeText(requireContext(), "Video local cargado", Toast.LENGTH_SHORT).show()
-        }
+    private val selectLocalVideoLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { reproducirVideoEnPanel(it) }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
-        val homeBinding = FragmentHomeBinding.bind(view)
-        _binding = HomeBinding(homeBinding)
-        
+        _binding = HomeBinding(FragmentHomeBinding.bind(view))
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
-        
         setupListeners()
         binding.titleWelcome.text = userName
-
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
-
         checkForMargins()
         setupYoutubeNavigation(binding)
-
-        binding.btnLoadLocalVideo.setOnClickListener {
-            selectLocalVideoLauncher.launch("video/*")
-        }
-
+        binding.btnLoadLocalVideo.setOnClickListener { selectLocalVideoLauncher.launch("video/*") }
         loadProfile()
         setupTitle()
         colorButtons()
@@ -85,8 +68,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         view.doOnPreDraw { startPostponedEnterTransition() }
         view.doOnLayout { adjustPlaylistButtons() }
     }
-
-    // --- REPRODUCCIÓN Y DESCARGA ---
 
     private fun reproducirVideoEnPanel(videoUri: Uri) {
         binding.videoDownloadContainer.visibility = View.VISIBLE
@@ -108,14 +89,16 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     override fun scrollToTop() {
         binding.container.scrollTo(0, 0)
-        // Usamos el appBarLayout expuesto en HomeBinding
         binding.appBarLayout.setExpanded(true)
     }
 
+    fun setSharedAxisXTransitions() {
+        exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true).addTarget(CoordinatorLayout::class.java)
+        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+    }
+
     override fun onDestroyView() {
-        if (binding.videoDownloadView.isPlaying) {
-            binding.videoDownloadView.stopPlayback()
-        }
+        if (binding.videoDownloadView.isPlaying) binding.videoDownloadView.stopPlayback()
         youtubeWebView?.let {
             it.removeJavascriptInterface("MetroExtractor")
             it.removeAllViews()
@@ -128,10 +111,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     companion object {
         const val TAG: String = "BannerHomeFragment"
-
-        @JvmStatic
-        fun newInstance(): HomeFragment {
-            return HomeFragment()
-        }
+        @JvmStatic fun newInstance() = HomeFragment()
     }
 }
