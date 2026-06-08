@@ -66,8 +66,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        val homeBinding = FragmentHomeBinding.bind(view)
-        _binding = HomeBinding(homeBinding)
+        / Inicialización correcta
+    val homeBinding = FragmentHomeBinding.bind(view)
+    _binding = HomeBinding(homeBinding) // Esto ahora es válido con la nueva clase HomeBinding
+    
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
         
