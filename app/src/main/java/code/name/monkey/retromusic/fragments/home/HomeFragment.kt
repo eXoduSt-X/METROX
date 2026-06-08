@@ -118,7 +118,8 @@ class HomeFragment :
         lifecycleScope.launch {
             val urlDirecta = withContext(Dispatchers.IO) {
                 try {
-                    val yt = Youtube(urlVideo)
+                    // CORRECCIÓN: Se añade el parámetro de cliente "WEB" para forzar la generación de firmas y saltar el PoToken
+                    val yt = Youtube(urlVideo, "WEB")
                     // Obtenemos los streams calculados nativamente con Rhino sin bloqueos
                     val streamsList = yt.streamsList
                     
@@ -275,4 +276,5 @@ class HomeFragment :
             return HomeFragment()
         }
     }
-}
+    }
+    
