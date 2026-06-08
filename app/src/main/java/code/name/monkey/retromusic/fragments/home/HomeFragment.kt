@@ -96,9 +96,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupYoutubeNavigation(homeBinding: HomeBinding) {
-        // Vinculamos de forma segura usando las nuevas propiedades del wrapper HomeBinding
+        // Vinculamos de forma segura usando las propiedades locales de la instancia que llega por parámetro
         youtubeWebView = homeBinding.youtubeWebView
-        val floatingButton = homeBinding.btnDownloadFloating // Cacheamos localmente para evitar conflictos de contexto en las lambdas
+        val floatingButton = homeBinding.btnDownloadFloating // Guardamos la vista en una constante local inmutable
 
         youtubeWebView?.let { webView ->
             val settings = webView.settings
@@ -115,7 +115,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 fun onDataExtracted(jsonString: String?) {
                     if (!jsonString.isNullOrEmpty() && jsonString != "null") {
                         extractedJsonData = jsonString
-                        // Pasamos al hilo de la interfaz de usuario de Android usando el setter puro para D8
+                        // Pasamos al hilo de la interfaz de usuario usando estrictamente la vista local inmutable
                         activity?.runOnUiThread {
                             floatingButton.setVisibility(View.VISIBLE)
                         }
@@ -127,7 +127,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url.toString()
-                    // Si el usuario sale de una pantalla de reproducción, alteramos la UI mediante el setter puro
+                    // Si el usuario sale de una pantalla de reproducción, alteramos la UI usando la constante local
                     if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
                         floatingButton.setVisibility(View.GONE)
                         extractedJsonData = null
@@ -148,7 +148,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             webView.loadUrl("https://m.youtube.com")
         }
 
-        // Configuración táctil sobre el botón flotante nativo de descargas apuntando al caché local
+        // Configuración táctil sobre el botón flotante nativo de descargas apuntando al caché seguro
         floatingButton.setOnClickListener {
             if (!extractedJsonData.isNullOrEmpty()) {
                 procesarFlujoDeDescarga(extractedJsonData!!)
