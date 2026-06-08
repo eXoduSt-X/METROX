@@ -132,20 +132,20 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
 private fun setupVideoListeners() {
-        binding.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
-        binding.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
+        binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
+        binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
         
-        binding.btnPlayPause.setOnClickListener {
-            if (binding.videoPlayer.isPlaying) {
-                binding.videoPlayer.pause()
-                binding.btnPlayPause.text = "Play"
+        binding.homeContent.btnPlayPause.setOnClickListener {
+            if (binding.homeContent.videoPlayer.isPlaying) {
+                binding.homeContent.videoPlayer.pause()
+                binding.homeContent.btnPlayPause.text = "Play"
             } else {
-                binding.videoPlayer.start()
-                binding.btnPlayPause.text = "Pause"
+                binding.homeContent.videoPlayer.start()
+                binding.homeContent.btnPlayPause.text = "Pause"
             }
         }
 
-        binding.btnForward.setOnClickListener {
+        binding.homeContent.btnForward.setOnClickListener {
             if (currentIndex < videoPlaylist.size - 1) {
                 currentIndex++
                 reproducirVideoActual()
@@ -154,7 +154,7 @@ private fun setupVideoListeners() {
             }
         }
 
-        binding.btnRewind.setOnClickListener {
+        binding.homeContent.btnRewind.setOnClickListener {
             if (currentIndex > 0) {
                 currentIndex--
                 reproducirVideoActual()
@@ -164,50 +164,50 @@ private fun setupVideoListeners() {
 
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
-            binding.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
-            binding.videoPlayer.start()
-            binding.btnPlayPause.text = "Pause"
+            binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
+            binding.homeContent.videoPlayer.start()
+            binding.homeContent.btnPlayPause.text = "Pause"
         }
     }
 
     // --- MÉTODOS ORIGINALES MANTENIDOS ---
     private fun adjustPlaylistButtons() {
-        val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
+        val buttons = listOf(binding.homeContent.history, binding.homeContent.lastAdded, binding.homeContent.topPlayed, binding.homeContent.actionShuffle)
         buttons.maxOf { it.lineCount }.let { maxLineCount -> buttons.forEach { it.setLines(maxLineCount) } }
     }
 
     private fun setupListeners() {
-        binding.bannerImage?.setOnClickListener {
-            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
+        binding.homeContent.bannerImage?.setOnClickListener {
+            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image"))
             reenterTransition = null
         }
-        binding.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
-        binding.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image")) }
+        binding.homeContent.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.homeContent.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.homeContent.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
+        binding.homeContent.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.homeContent.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image")) }
     }
 
     private fun setupTitle() {
-        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.appBarLayout.title = getString(R.string.app_name)
+        binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+        binding.homeContent.appBarLayout.title = getString(R.string.app_name)
     }
 
     private fun loadProfile() {
-        binding.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
-        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.userImage)
+        binding.homeContent.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
+        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.homeContent.userImage)
     }
 
     fun colorButtons() {
-        binding.history.elevatedAccentColor()
-        binding.lastAdded.elevatedAccentColor()
-        binding.topPlayed.elevatedAccentColor()
-        binding.actionShuffle.elevatedAccentColor()
+        binding.homeContent.history.elevatedAccentColor()
+        binding.homeContent.lastAdded.elevatedAccentColor()
+        binding.homeContent.topPlayed.elevatedAccentColor()
+        binding.homeContent.actionShuffle.elevatedAccentColor()
     }
 
     private fun checkForMargins() {
         if (mainActivity.isBottomNavVisible) {
-            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
+            binding.homeContent.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
         }
     }
 
@@ -215,12 +215,12 @@ private fun setupVideoListeners() {
         inflater.inflate(R.menu.menu_main, menu)
         menu.removeItem(R.id.action_grid_size); menu.removeItem(R.id.action_layout_type); menu.removeItem(R.id.action_sort_order)
         menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
-        ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar))
+        ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.homeContent.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.homeContent.toolbar))
     }
 
     override fun scrollToTop() {
-        binding.container.scrollTo(0, 0)
-        binding.appBarLayout.setExpanded(true)
+        binding.homeContent.container.scrollTo(0, 0)
+        binding.homeContent.appBarLayout.setExpanded(true)
     }
 
     private fun setSharedAxisYTransitions() {
@@ -244,7 +244,7 @@ private fun setupVideoListeners() {
 
     override fun onPrepareMenu(menu: Menu) {
         super.onPrepareMenu(menu)
-        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.toolbar)
+        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.homeContent.toolbar)
     }
 
     override fun onResume() {
@@ -255,7 +255,7 @@ private fun setupVideoListeners() {
 
 override fun onDestroyView() {
         handler.removeCallbacks(updateSubtitleTask)
-        binding.videoPlayer.stopPlayback()
+        binding.homeContent.videoPlayer.stopPlayback()
         _binding = null
         super.onDestroyView()
     }
