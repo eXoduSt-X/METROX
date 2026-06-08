@@ -16,7 +16,6 @@ import androidx.core.os.bundleOf
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.updateLayoutParams
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
@@ -32,15 +31,11 @@ import code.name.monkey.retromusic.fragments.base.AbsMainActivityFragment
 import code.name.monkey.retromusic.glide.RetroGlideExtension
 import code.name.monkey.retromusic.glide.RetroGlideExtension.profileBannerOptions
 import code.name.monkey.retromusic.glide.RetroGlideExtension.userProfileOptions
-import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.interfaces.IScrollHelper
 import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
@@ -50,8 +45,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var youtubeWebView: WebView? = null
     private var extractedJsonData: String? = null
-    
-    // --- PROPIEDAD A NIVEL DE CLASE PARA ACCESO GLOBAL ---
     private var floatingButton: View? = null
 
     private val selectLocalVideoLauncher = registerForActivityResult(
@@ -66,21 +59,19 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Inicialización correcta
-    val homeBinding = FragmentHomeBinding.bind(view)
-    _binding = HomeBinding(homeBinding) // Esto ahora es válido con la nueva clase HomeBinding
-    
+        val homeBinding = FragmentHomeBinding.bind(view)
+        _binding = HomeBinding(homeBinding)
+        
         mainActivity.setSupportActionBar(binding.toolbar)
         mainActivity.supportActionBar?.title = null
         
         setupListeners()
-        binding.titleWelcome.text = String.format("%s", userName)
+        binding.titleWelcome.text = userName
 
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
 
         checkForMargins()
-
         setupYoutubeNavigation(binding)
 
         binding.btnLoadLocalVideo.setOnClickListener {
@@ -92,122 +83,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         colorButtons()
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
-        view.doOnLayout {
-            adjustPlaylistButtons()
-        }
+        view.doOnLayout { adjustPlaylistButtons() }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun setupYoutubeNavigation(homeBinding: HomeBinding) {
-        youtubeWebView = homeBinding.youtubeWebView
-        floatingButton = homeBinding.btnDownloadFloating // Asignación a propiedad de clase
-
-        youtubeWebView?.let { webView ->
-            val settings = webView.settings
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.databaseEnabled = true
-            settings.userAgentString = "Mozilla/5.0 (Linux; Android 14; Redmi Note 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
-
-            webView.addJavascriptInterface(object : Any() {
-                @JavascriptInterface
-                fun onDataExtracted(jsonString: String?) {
-                    if (!jsonString.isNullOrEmpty() && jsonString != "null") {
-                        extractedJsonData = jsonString
-                        activity?.runOnUiThread {
-                            floatingButton?.visibility = View.VISIBLE
-                        }
-                    }
-                }
-            }, "MetroExtractor")
-
-            webView.webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                    val url = request?.url?.toString() ?: ""
-                    if (!url.contains("youtube.com/watch?v=") && !url.contains("youtu.be/")) {
-                        floatingButton?.visibility = View.GONE
-                        extractedJsonData = null
-                    }
-                    return false
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    if (url != null && (url.contains("youtube.com/watch?v=") || url.contains("youtu.be/"))) {
-                        injectScriptExtractor()
-                    }
-                }
-            }
-            webView.loadUrl("https://m.youtube.com")
-        }
-
-        floatingButton?.setOnClickListener {
-            if (!extractedJsonData.isNullOrEmpty()) {
-                procesarFlujoDeDescarga(extractedJsonData!!)
-            } else {
-                Toast.makeText(requireContext(), "Analizando firmas del reproductor... Espera un segundo.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun injectScriptExtractor() {
-        youtubeWebView?.evaluateJavascript(
-            """
-            (function() {
-                if (window.ytInitialPlayerResponse) {
-                    MetroExtractor.onDataExtracted(JSON.stringify(window.ytInitialPlayerResponse));
-                } else {
-                    setTimeout(function() {
-                        if (window.ytInitialPlayerResponse) {
-                            MetroExtractor.onDataExtracted(JSON.stringify(window.ytInitialPlayerResponse));
-                        }
-                    }, 1500);
-                }
-            })();
-            """.trimIndent(), null
-        )
-    }
-
-    private fun procesarFlujoDeDescarga(jsonData: String) {
-        try {
-            val playerResponse = JSONObject(jsonData)
-            val streamingData = playerResponse.getJSONObject("streamingData")
-            val videoDetails = playerResponse.getJSONObject("videoDetails")
-            val tituloVideo = videoDetails.optString("title", "video_metro").replace(" ", "_") + ".mp4"
-
-            var urlDescarga: String? = null
-            
-            if (streamingData.has("formats")) {
-                val formats = streamingData.getJSONArray("formats")
-                if (formats.length() > 0) {
-                    urlDescarga = formats.getJSONObject(0).optString("url", "")
-                }
-            }
-
-            if (urlDescarga.isNullOrEmpty() && streamingData.has("adaptiveFormats")) {
-                val adaptiveFormats = streamingData.getJSONArray("adaptiveFormats")
-                for (i in 0 until adaptiveFormats.length()) {
-                    val format = adaptiveFormats.getJSONObject(i)
-                    if (format.optString("mimeType", "").contains("video/mp4")) {
-                        urlDescarga = format.optString("url", "")
-                        break
-                    }
-                }
-            }
-
-            if (!urlDescarga.isNullOrEmpty()) {
-                Toast.makeText(requireContext(), "¡Enlace capturado de forma legítima!", Toast.LENGTH_SHORT).show()
-                reproducirVideoEnPanel(Uri.parse(urlDescarga))
-                ejecutarDescargaDelSistema(urlDescarga, tituloVideo)
-            } else {
-                Toast.makeText(requireContext(), "Error: Este flujo multimedia requiere descifrado local complejo.", Toast.LENGTH_LONG).show()
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(requireContext(), "Error de extracción en el WebView: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // --- REPRODUCCIÓN Y DESCARGA ---
 
     private fun reproducirVideoEnPanel(videoUri: Uri) {
         binding.videoDownloadContainer.visibility = View.VISIBLE
@@ -216,128 +95,21 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.videoDownloadView.start()
     }
 
-    private fun ejecutarDescargaDelSistema(url: String, nombreArchivo: String) {
-        try {
-            val request = DownloadManager.Request(Uri.parse(url)).apply {
-                setTitle("Descargando de Metro...")
-                setDescription(nombreArchivo)
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, nombreArchivo)
-                setMimeType("video/mp4")
-            }
-            val manager = requireContext().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            manager.enqueue(request)
-            Toast.makeText(requireContext(), "Descarga mandada a la cola pública", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error de descarga: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun adjustPlaylistButtons() {
-    val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
-    
-    // Forma segura de obtener el máximo
-    val maxLineCount = buttons.map { it.lineCount }.maxOrNull() ?: 1
-    
-    buttons.forEach { button -> 
-        button.setLines(maxLineCount) 
-    }
-}
-    private fun setupListeners() {
-        binding.bannerImage?.setOnClickListener {
-            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
-            reenterTransition = null
-        }
-        binding.lastAdded.setOnClickListener {
-            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST))
-            setSharedAxisYTransitions()
-        }
-        binding.topPlayed.setOnClickListener {
-            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST))
-            setSharedAxisYTransitions()
-        }
-        binding.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
-        binding.history.setOnClickListener {
-            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
-            setSharedAxisYTransitions()
-        }
-        binding.userImage.setOnClickListener {
-            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.userImage to "user_image"))
-        }
+        val buttons = listOf(binding.history, binding.lastAdded, binding.topPlayed, binding.actionShuffle)
+        val maxLineCount = buttons.map { it.lineCount }.maxOrNull() ?: 1
+        buttons.forEach { it.setLines(maxLineCount) }
     }
 
     private fun setupTitle() {
         binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        
-        // CORRECCIÓN: El título va en el toolbar, NO en el appBarLayout
         binding.toolbar.title = getString(R.string.app_name)
-    }
-    
-    private fun loadProfile() {
-        binding.bannerImage?.let {
-            Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it)
-        }
-        Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.userImage)
-    }
-
-    fun colorButtons() {
-        binding.history.elevatedAccentColor()
-        binding.lastAdded.elevatedAccentColor()
-        binding.topPlayed.elevatedAccentColor()
-        binding.actionShuffle.elevatedAccentColor()
-    }
-
-    private fun checkForMargins() {
-        if (mainActivity.isBottomNavVisible) {
-            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
-        }
-    }
-
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_main, menu)
-        menu.removeItem(R.id.action_grid_size)
-        menu.removeItem(R.id.action_layout_type)
-        menu.removeItem(R.id.action_sort_order)
-        menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
-        ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.toolbar))
     }
 
     override fun scrollToTop() {
         binding.container.scrollTo(0, 0)
-        
-        // CORRECCIÓN: Asegúrate de que appBarLayout esté expuesto en HomeBinding
-        // Si sigue fallando, es posible que debas usar binding.binding.appBarLayout
+        // Usamos el appBarLayout expuesto en HomeBinding
         binding.appBarLayout.setExpanded(true)
-    }
-
-    fun setSharedAxisXTransitions() {
-        exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true).addTarget(CoordinatorLayout::class.java)
-        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
-    }
-
-    private fun setSharedAxisYTransitions() {
-        exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
-        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_settings -> findNavController().navigate(R.id.settings_fragment, null, navOptions)
-            R.id.action_import_playlist -> ImportPlaylistDialog().show(childFragmentManager, "ImportPlaylist")
-            R.id.action_add_to_playlist -> CreatePlaylistDialog.create(emptyList()).show(childFragmentManager, "ShowCreatePlaylistDialog")
-        }
-        return false
-    }
-
-    override fun onPrepareMenu(menu: Menu) {
-        super.onPrepareMenu(menu)
-        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.toolbar)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        checkForMargins()
-        exitTransition = null
     }
 
     override fun onDestroyView() {
