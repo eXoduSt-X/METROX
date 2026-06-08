@@ -184,13 +184,15 @@ private fun setupVideoListeners() {
         binding.homeContent.absPlaylists.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
         binding.homeContent.absPlaylists.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
         binding.homeContent.absPlaylists.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.homeContent.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.homeContent.userImage to "user_image")) }
-    }
+        binding.imageLayout.userImage.setOnClickListener { 
+    findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image")) 
+}
 
-    private fun setupTitle() {
-        binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.homeContent.appBarLayout.title = getString(R.string.app_name)
-    }
+   private fun setupTitle() {
+    binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+    // Si appBarLayout es parte del include homeContent:
+    binding.homeContent.appBarLayout.title = getString(R.string.app_name)
+}
 
     private fun loadProfile() {
         binding.imageLayout.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
@@ -204,13 +206,13 @@ private fun setupVideoListeners() {
         binding.homeContent.absPlaylists.actionShuffle.elevatedAccentColor()
     }
 
-    private fun checkForMargins() {
-        if (mainActivity.isBottomNavVisible) {
-            binding.homeContent.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { 
-                bottomMargin = dip(R.dimen.bottom_nav_height) 
-            }
+  private fun checkForMargins() {
+    if (mainActivity.isBottomNavVisible) {
+        binding.homeContent.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { 
+            bottomMargin = dip(R.dimen.bottom_nav_height) 
         }
     }
+}
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
@@ -218,7 +220,6 @@ private fun setupVideoListeners() {
         menu.findItem(R.id.action_settings).setShowAsAction(SHOW_AS_ACTION_IF_ROOM)
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), binding.homeContent.toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(binding.homeContent.toolbar))
     }
-
     override fun scrollToTop() {
         binding.homeContent.container.scrollTo(0, 0)
         binding.homeContent.appBarLayout.setExpanded(true)
