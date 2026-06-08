@@ -19,11 +19,6 @@ class HomeBinding(val binding: FragmentHomeBinding) {
     val actionShuffle = homeContent.absPlaylists.actionShuffle
     val history = homeContent.absPlaylists.history
     
-    val videoDownloadContainer = homeContent.videoDownloadContainer
-    val videoDownloadView = homeContent.videoDownloadView
     val youtubeWebView = homeContent.youtubeWebView
     val btnLoadLocalVideo = homeContent.btnLoadLocalVideo
-    
-    // Comentado para evitar el error de "Unresolved Reference"
-    // val btnDownloadFloating = homeContent.btnDownloadFloating
 }
