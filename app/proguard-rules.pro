@@ -69,3 +69,16 @@
 -keep class code.name.monkey.retromusic.network.model.** { *; }
 -keep class code.name.monkey.retromusic.model.** { *; }
 -keep class com.google.android.material.bottomsheet.** { *; }
+
+# ==============================================================================
+# NUEVAS REGLAS: Corrección para la extracción de metraje en JavaTube (Evita Toast de error)
+# ==============================================================================
+
+# 1. Proteger por completo el motor JavaScript de Rhino para que procese los scripts de YouTube
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.mozilla.javascript.**
+
+# 2. Evitar que R8 renombre o elimine las clases y métodos de JavaTube que se usan vía reflexión
+-keep class code.name.monkey.retromusic.javatube.** { *; }
+-dontwarn code.name.monkey.retromusic.javatube.**
+
