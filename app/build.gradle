@@ -72,6 +72,8 @@ configurations.all {
 
     resolutionStrategy {
         force 'com.google.code.findbugs:jsr305:3.0.2'
+        // CORRECCIÓN DE CONFLICTO TRANSITIVO: Intercepta a NewPipe y lo obliga a usar Rhino 1.7.14 en lugar de la versión 1.8.1 corrupta
+        force 'org.mozilla:rhino:1.7.14'
     }
 
     exclude group: 'com.github.spotbugs', module: 'spotbugs-annotations'
