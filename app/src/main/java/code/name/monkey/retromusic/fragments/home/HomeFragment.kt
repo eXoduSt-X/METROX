@@ -159,6 +159,11 @@ private fun setupVideoListeners() {
        override fun onStartTrackingTouch(seekBar: SeekBar?) {}
        override fun onStopTrackingTouch(seekBar: SeekBar?) {}
    })
+        // Asegurarse de que el SeekBar sepa cuánto dura el video cuando carga
+    binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
+        binding.homeContent.videoSeekBar.max = mp.duration
+    }
+    
     // Controles de tiempo
      binding.homeContent.btnRewindTime.setOnClickListener {
         val player = binding.homeContent.videoPlayer
