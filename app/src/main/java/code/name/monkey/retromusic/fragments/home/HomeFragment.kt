@@ -149,77 +149,84 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         view.doOnLayout { adjustPlaylistButtons() }
     }
 
-private fun setupVideoListeners() {
-    // Botones de archivos
-    binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
-    binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
+    private fun setupVideoListeners() {
+        // Botones de archivos
+        binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
+        binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
 
-    // SeekBar: Inicialización y lógica
-    binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-            if (fromUser) {
-                binding.homeContent.videoPlayer.seekTo(progress)
+        // SeekBar
+        binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    binding.homeContent.videoPlayer.seekTo(progress)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
+            binding.homeContent.videoSeekBar.max = mp.duration
+            binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
+        }
+
+        // Navegación
+        binding.homeContent.btnPrevVideo.setOnClickListener {
+            if (currentIndex > 0) {
+                currentIndex--
+                reproducirVideoActual()
             }
         }
-        override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-        override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-    })
 
-    binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
-        binding.homeContent.videoSeekBar.max = mp.duration
-        // Opcional: mostrar tiempo total inicial
-        binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
-    }
+        binding.homeContent.btnRewindTime.setOnClickListener {
+            val player = binding.homeContent.videoPlayer
+            val newPos = player.currentPosition - 5000
+            player.seekTo(if (newPos < 0) 0 else newPos)
+        }
 
-    // Controles de Navegación (Ant, -5s, +5s, Sig)
-    binding.homeContent.btnPrevVideo.setOnClickListener {
-        if (currentIndex > 0) {
-            currentIndex--
-            reproducirVideoActual()
+        binding.homeContent.btnForwardTime.setOnClickListener {
+            val player = binding.homeContent.videoPlayer
+            val newPos = player.currentPosition + 5000
+            player.seekTo(if (newPos > player.duration) player.duration else newPos)
+        }
+
+        binding.homeContent.btnNextVideo.setOnClickListener {
+            if (currentIndex < videoPlaylist.size - 1) {
+                currentIndex++
+                reproducirVideoActual()
+            }
+        }
+
+        // Estado y Pantalla
+        binding.homeContent.btnPlayPause.setOnClickListener {
+            val player = binding.homeContent.videoPlayer
+            if (player.isPlaying) {
+                player.pause()
+                binding.homeContent.btnPlayPause.text = "Play"
+            } else {
+                player.start()
+                binding.homeContent.btnPlayPause.text = "Pause"
+            }
+        }
+
+        binding.homeContent.btnFullscreen.setOnClickListener {
+            Toast.makeText(requireContext(), "Pantalla completa activada", Toast.LENGTH_SHORT).show()
         }
     }
 
-    binding.homeContent.btnRewindTime.setOnClickListener {
-        val player = binding.homeContent.videoPlayer
-        val newPos = player.currentPosition - 5000
-        player.seekTo(if (newPos < 0) 0 else newPos)
-    }
-
-    binding.homeContent.btnForwardTime.setOnClickListener {
-        val player = binding.homeContent.videoPlayer
-        val newPos = player.currentPosition + 5000
-        player.seekTo(if (newPos > player.duration) player.duration else newPos)
-    }
-
-    binding.homeContent.btnNextVideo.setOnClickListener {
-        if (currentIndex < videoPlaylist.size - 1) {
-            currentIndex++
-            reproducirVideoActual()
-        }
-    }
-
-    // Controles de Estado y Pantalla
-    binding.homeContent.btnPlayPause.setOnClickListener {
-        val player = binding.homeContent.videoPlayer
-        if (player.isPlaying) {
-            player.pause()
-            binding.homeContent.btnPlayPause.text = "Play"
-        } else {
-            player.start()
+    private fun reproducirVideoActual() {
+        if (videoPlaylist.isNotEmpty()) {
+            binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
+            binding.homeContent.videoPlayer.start()
             binding.homeContent.btnPlayPause.text = "Pause"
         }
     }
 
-    binding.homeContent.btnFullscreen.setOnClickListener {
-        // Lógica de pantalla completa (puedes ajustar según tu Activity)
-        Toast.makeText(requireContext(), "Pantalla completa activada", Toast.LENGTH_SHORT).show()
-    }
-}
     private fun formatTime(millis: Int): String {
-    val seconds = (millis / 1000) % 60
-    val minutes = (millis / (1000 * 60)) % 60
-    return String.format("%02d:%02d", minutes, seconds)
-}
+        val seconds = (millis / 1000) % 60
+        val minutes = (millis / (1000 * 60)) % 60
+        return String.format("%02d:%02d", minutes, seconds)
+    }
     // --- MÉTODOS ORIGINALES MANTENIDOS ---
     private fun adjustPlaylistButtons() {
         val buttons = listOf(binding.homeContent.absPlaylists.history, binding.homeContent.absPlaylists.lastAdded, binding.homeContent.absPlaylists.topPlayed, binding.homeContent.absPlaylists.actionShuffle)
