@@ -271,7 +271,7 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
 
     override fun onPrepareMenu(menu: Menu) {
         super.onPrepareMenu(menu)
-        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.toolbar)
+        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.appBarLayout.toolbar)
     }
 
     override fun onResume() {
