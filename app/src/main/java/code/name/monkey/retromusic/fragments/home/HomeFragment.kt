@@ -217,7 +217,10 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-
+       binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
+           mp.seekTo(savedPosition) // ¡Aquí recupera la posición!
+           mp.start()              // Autoplay
+        
         binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
             binding.homeContent.videoSeekBar.max = mp.duration
             binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
