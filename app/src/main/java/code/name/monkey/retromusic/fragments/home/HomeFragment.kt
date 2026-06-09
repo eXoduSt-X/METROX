@@ -136,7 +136,33 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 private fun setupVideoListeners() {
         binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
         binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
-        
+            // Controles de tiempo
+     binding.homeContent.btnRewindTime.setOnClickListener {
+        val player = binding.homeContent.videoPlayer
+        val newPos = player.currentPosition - 5000
+        player.seekTo(if (newPos < 0) 0 else newPos)
+    }
+
+     binding.homeContent.btnForwardTime.setOnClickListener {
+        val player = binding.homeContent.videoPlayer
+        val newPos = player.currentPosition + 5000
+        player.seekTo(if (newPos > player.duration) player.duration else newPos)
+    }
+
+    // Controles de Navegación de lista
+      binding.homeContent.btnPrevVideo.setOnClickListener {
+        if (currentIndex > 0) {
+            currentIndex--
+            reproducirVideoActual()
+        }
+    }
+
+       binding.homeContent.btnNextVideo.setOnClickListener {
+        if (currentIndex < videoPlaylist.size - 1) {
+            currentIndex++
+            reproducirVideoActual()
+        }
+    }
         binding.homeContent.btnPlayPause.setOnClickListener {
             if (binding.homeContent.videoPlayer.isPlaying) {
                 binding.homeContent.videoPlayer.pause()
@@ -147,21 +173,6 @@ private fun setupVideoListeners() {
             }
         }
 
-        binding.homeContent.btnForward.setOnClickListener {
-            if (currentIndex < videoPlaylist.size - 1) {
-                currentIndex++
-                reproducirVideoActual()
-            } else {
-                Toast.makeText(requireContext(), "Fin de la lista", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        binding.homeContent.btnRewind.setOnClickListener {
-            if (currentIndex > 0) {
-                currentIndex--
-                reproducirVideoActual()
-            }
-        }
     }
 
     private fun reproducirVideoActual() {
