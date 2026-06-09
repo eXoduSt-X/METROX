@@ -152,17 +152,20 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
-if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-    // Android 13+
-    requestPermissionLauncher.launch(android.Manifest.permission.READ_MEDIA_VIDEO)
-} else {
-    // Android 12 o inferior
-    requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-}
-        // --- INICIALIZAR EL RECYCLERVIEW ---
-        binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
-        loadVideosFromDownloads() // Cargar la lista al iniciar
+binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
 
+    // LANZAMIENTO DE PERMISOS
+    val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        android.Manifest.permission.READ_MEDIA_VIDEO
+    } else {
+        android.Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+        loadVideosFromDownloads()
+    } else {
+        requestPermissionLauncher.launch(permission)
+    }
 // Actualizar la barra mientras el video corre (dentro de un Handler o Timer)
 // Puedes añadir esto al final de tu 'updateSubtitleTask' que ya tienes:
 // binding.homeContent.videoSeekBar.max = binding.homeContent.videoPlayer.duration
