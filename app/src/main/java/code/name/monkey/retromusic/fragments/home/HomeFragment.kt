@@ -59,10 +59,14 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
             binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
             
-            // Actualizar SeekBar (¡Aquí está la magia!)
+            // Actualizar SeekBar y Tiempos
             binding.homeContent.videoSeekBar.max = player.duration
             binding.homeContent.videoSeekBar.progress = currentPos
-            }
+            
+            // ¡ESTO ES LO QUE TE FALTABA!
+            binding.homeContent.tvCurrentTime.text = formatTime(currentPos)
+            binding.homeContent.tvTotalTime.text = formatTime(player.duration)
+        }
             handler.postDelayed(this, 500)
         }
     }
@@ -211,7 +215,11 @@ private fun setupVideoListeners() {
         Toast.makeText(requireContext(), "Pantalla completa activada", Toast.LENGTH_SHORT).show()
     }
 }
-
+    private fun formatTime(millis: Int): String {
+    val seconds = (millis / 1000) % 60
+    val minutes = (millis / (1000 * 60)) % 60
+    return String.format("%02d:%02d", minutes, seconds)
+}
     // --- MÉTODOS ORIGINALES MANTENIDOS ---
     private fun adjustPlaylistButtons() {
         val buttons = listOf(binding.homeContent.absPlaylists.history, binding.homeContent.absPlaylists.lastAdded, binding.homeContent.absPlaylists.topPlayed, binding.homeContent.absPlaylists.actionShuffle)
