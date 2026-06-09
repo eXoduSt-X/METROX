@@ -40,7 +40,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-    
+
+    private val navOptions = androidx.navigation.NavOptions.Builder().build()
+    private val libraryViewModel by androidx.fragment.app.viewModels<code.name.monkey.retromusic.fragments.library.LibraryViewModel>()
+
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
     
@@ -190,8 +193,8 @@ private fun setupVideoListeners() {
     }
 
     private fun setupTitle() {
-        binding.homeContent.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.homeContent.appBarLayout.title = getString(R.string.app_name)
+        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+        binding.appBarLayout.title = getString(R.string.app_name)
     }
 
     private fun loadProfile() {
@@ -208,7 +211,7 @@ private fun setupVideoListeners() {
 
   private fun checkForMargins() {
     if (mainActivity.isBottomNavVisible) {
-        binding.homeContent.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { 
+        binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { 
             bottomMargin = dip(R.dimen.bottom_nav_height) 
         }
     }
@@ -224,7 +227,7 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
             it.setShowAsAction(1)
         }
         
-        val toolbar = binding.homeContent.toolbar
+        val toolbar = binding.toolbar
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(
             requireContext(),
             toolbar,
@@ -234,8 +237,8 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
     }
 
     override fun scrollToTop() {
-        binding.homeContent.container.scrollTo(0, 0)
-        binding.homeContent.appBarLayout.setExpanded(true)
+        binding.container.scrollTo(0, 0)
+        binding.appBarLayout.setExpanded(true)
     }
 
     fun setSharedAxisYTransitions() {
@@ -268,7 +271,7 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
 
     override fun onPrepareMenu(menu: Menu) {
         super.onPrepareMenu(menu)
-        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.homeContent.toolbar)
+        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.toolbar)
     }
 
     override fun onResume() {
