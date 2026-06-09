@@ -33,6 +33,12 @@ import code.name.monkey.retromusic.util.PreferenceUtil.userName
 import com.bumptech.glide.Glide
 import com.google.android.material.transition.MaterialFadeThrough
 import com.google.android.material.transition.MaterialSharedAxis
+import android.Manifest
+import android.os.Build
+import androidx.core.content.ContextCompat
+import android.content.ContentUris
+import android.provider.MediaStore
+import androidx.recyclerview.widget.LinearLayoutManager
 
 // 1. Modelo de datos para los subtítulos
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
