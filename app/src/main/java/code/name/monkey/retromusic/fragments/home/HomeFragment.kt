@@ -355,19 +355,33 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
-    
+
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
-            binding.homeContent.controlsContainer.visibility = View.GONE
-            binding.appBarLayout.visibility = View.GONE
-            binding.homeContent.videoPlayer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-        } else {
-            binding.homeContent.controlsContainer.visibility = View.VISIBLE
-            binding.appBarLayout.visibility = View.VISIBLE
-            binding.homeContent.videoPlayer.layoutParams.height = dip(250)
-        }
+        val content = binding.homeContent
+        val isLandscape = newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val visibility = if (isLandscape) View.GONE else View.VISIBLE
+
+        // 1. Ocultar la barra superior (referencia confirmada)
+        binding.appBarLayout.visibility = visibility
+
+        // 2. Ocultar controles individualmente (usando los IDs que autocompleta el IDE)
+        content.videoSeekBar.visibility = visibility
+        content.btnPrevVideo.visibility = visibility
+        content.btnRewindTime.visibility = visibility
+        content.btnForwardTime.visibility = visibility
+        content.btnNextVideo.visibility = visibility
+        content.btnPlayPause.visibility = visibility
+        content.btnFullscreen.visibility = visibility
+        content.btnOpenFile.visibility = visibility
+        content.btnLoadSubtitles.visibility = visibility
+        content.tvCurrentTime.visibility = visibility
+        content.tvTotalTime.visibility = visibility
+
+        // 3. Ajustar el contenedor de video a pantalla completa en horizontal
+        content.videoContainer.layoutParams.height = if (isLandscape)
+            ViewGroup.LayoutParams.MATCH_PARENT else (250 * resources.displayMetrics.density).toInt()
     }
 
     companion object {
