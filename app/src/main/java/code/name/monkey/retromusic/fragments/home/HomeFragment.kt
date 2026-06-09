@@ -144,7 +144,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
-
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    // Android 13+
+    requestPermissionLauncher.launch(android.Manifest.permission.READ_MEDIA_VIDEO)
+} else {
+    // Android 12 o inferior
+    requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+}
         // --- INICIALIZAR EL RECYCLERVIEW ---
         binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
         loadVideosFromDownloads() // Cargar la lista al iniciar
