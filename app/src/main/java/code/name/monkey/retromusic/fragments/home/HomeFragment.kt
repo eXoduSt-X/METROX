@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.*
 import android.widget.Toast
+import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
@@ -49,11 +50,18 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     
     // Motor de sincronización
     private val updateSubtitleTask = object : Runnable {
-        override fun run() {
-            if (binding.homeContent.videoPlayer.isPlaying) {
-                val currentPos = binding.homeContent.videoPlayer.currentPosition.toLong()
-                val currentSub = subtitleList.find { currentPos in it.startTime..it.endTime }
-                binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
+    override fun run() {
+        if (binding.homeContent.videoPlayer.isPlaying) {
+            val player = binding.homeContent.videoPlayer
+            val currentPos = player.currentPosition
+            
+            // Actualizar Subtítulos
+            val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
+            binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
+            
+            // Actualizar SeekBar (¡Aquí está la magia!)
+            binding.homeContent.videoSeekBar.max = player.duration
+            binding.homeContent.videoSeekBar.progress = currentPos
             }
             handler.postDelayed(this, 500)
         }
@@ -150,7 +158,18 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 private fun setupVideoListeners() {
         binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
         binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
-            // Controles de tiempo
+           
+        // Inicializar la barra de progreso
+    binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+       override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+        if (fromUser) {
+            binding.homeContent.videoPlayer.seekTo(progress)
+        }
+    }
+       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+       override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+   })
+    // Controles de tiempo
      binding.homeContent.btnRewindTime.setOnClickListener {
         val player = binding.homeContent.videoPlayer
         val newPos = player.currentPosition - 5000
