@@ -54,33 +54,31 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
     private val requestPermissionLauncher = registerForActivityResult(
-    ActivityResultContracts.RequestPermission()
-) { isGranted ->
-    if (isGranted) {
-        loadVideosFromDownloads()
-    } else {
-        Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
-    }
-    }
-    // Motor de sincronización
-    private val updateSubtitleTask = object : Runnable {
-    override fun run() {
-        if (binding.homeContent.videoPlayer.isPlaying) {
-            val player = binding.homeContent.videoPlayer
-            val currentPos = player.currentPosition
-            
-            // Actualizar Subtítulos
-            val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
-            binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
-            
-            // Actualizar SeekBar y Tiempos
-            binding.homeContent.videoSeekBar.max = player.duration
-            binding.homeContent.videoSeekBar.progress = currentPos
-            
-            // ¡ESTO ES LO QUE TE FALTABA!
-            binding.homeContent.tvCurrentTime.text = formatTime(currentPos)
-            binding.homeContent.tvTotalTime.text = formatTime(player.duration)
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            loadVideosFromDownloads()
+        } else {
+            Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
         }
+    }
+    private val updateSubtitleTask = object : Runnable {
+        override fun run() {
+            if (binding.homeContent.videoPlayer.isPlaying) {
+                val player = binding.homeContent.videoPlayer
+                val currentPos = player.currentPosition
+
+                // Actualizar Subtítulos
+                val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
+                binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
+
+                // Actualizar SeekBar y Tiempos
+                binding.homeContent.videoSeekBar.max = player.duration
+                binding.homeContent.videoSeekBar.progress = currentPos
+
+                binding.homeContent.tvCurrentTime.text = formatTime(currentPos)
+                binding.homeContent.tvTotalTime.text = formatTime(player.duration)
+            }
             handler.postDelayed(this, 500)
         }
     }
@@ -155,38 +153,35 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
-binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
-  
-    // LANZAMIENTO DE PERMISOS
-    val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        android.Manifest.permission.READ_MEDIA_VIDEO
-    } else {
-        android.Manifest.permission.READ_EXTERNAL_STORAGE
-    }
+        binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
 
-    if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-        loadVideosFromDownloads()
-    } else {
-        requestPermissionLauncher.launch(permission)
-    }
-// Actualizar la barra mientras el video corre (dentro de un Handler o Timer)
-// Puedes añadir esto al final de tu 'updateSubtitleTask' que ya tienes:
-// binding.homeContent.videoSeekBar.max = binding.homeContent.videoPlayer.duration
-// binding.homeContent.videoSeekBar.progress = binding.homeContent.videoPlayer.currentPosition
-    // Configura la sombra a través del binding del include
-    binding.homeContent.tvSubtitleOverlay.setShadowLayer(
-        3f, 2f, 2f, android.graphics.Color.BLACK
-    )
+        // LANZAMIENTO DE PERMISOS
+        val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            android.Manifest.permission.READ_MEDIA_VIDEO
+        } else {
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            loadVideosFromDownloads()
+        } else {
+            requestPermissionLauncher.launch(permission)
+        }
+
+        // Configura la sombra a través del binding del include
+        binding.homeContent.tvSubtitleOverlay.setShadowLayer(
+            3f, 2f, 2f, android.graphics.Color.BLACK
+        )
 
         // Iniciar el motor de sincronización
         handler.post(updateSubtitleTask)
 
         setupListeners()
         setupVideoListeners()
-        
+
         binding.imageLayout.titleWelcome.text = String.format("%s", userName)
 
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
@@ -196,7 +191,7 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
         loadProfile()
         setupTitle()
         colorButtons()
-        
+
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
         view.doOnLayout { adjustPlaylistButtons() }
@@ -217,11 +212,9 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-       binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
-           mp.seekTo(savedPosition) // ¡Aquí recupera la posición!
-           mp.start()              // Autoplay
-        
         binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
+            mp.seekTo(savedPosition)
+            mp.start()
             binding.homeContent.videoSeekBar.max = mp.duration
             binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
         }
@@ -275,14 +268,14 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
         }
     }
 
- private fun reproducirVideoActual() {
-    if (videoPlaylist.isNotEmpty()) {
-        savedPosition = 0 // <--- RESETEAMOS LA POSICIÓN AL CAMBIAR DE VIDEO
-        binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
-        binding.homeContent.videoPlayer.start()
-        binding.homeContent.btnPlayPause.text = "Pause"
+    private fun reproducirVideoActual() {
+        if (videoPlaylist.isNotEmpty()) {
+            savedPosition = 0
+            binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
+            binding.homeContent.videoPlayer.start()
+            binding.homeContent.btnPlayPause.text = "Pause"
+        }
     }
-}
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -296,8 +289,8 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
     }
 
     private fun setupListeners() {
-    binding.imageLayout.bannerImage?.setOnClickListener {
-    findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
+        binding.imageLayout.bannerImage?.setOnClickListener {
+            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
             reenterTransition = null
         }
         binding.homeContent.absPlaylists.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
@@ -326,14 +319,14 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
         binding.homeContent.absPlaylists.actionShuffle.elevatedAccentColor()
     }
 
-  private fun checkForMargins() {
-    if (mainActivity.isBottomNavVisible) {
-        binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { 
-            bottomMargin = dip(R.dimen.bottom_nav_height) 
+    private fun checkForMargins() {
+        if (mainActivity.isBottomNavVisible) {
+            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = dip(R.dimen.bottom_nav_height)
+            }
         }
     }
-}
-   override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
+    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
         
         menu.removeItem(R.id.action_grid_size)
@@ -364,24 +357,23 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
     }
     
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
-       super.onConfigurationChanged(newConfig)
-    
-    if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
-        // Modo cine: Ocultar todo
-        binding.homeContent.controlsContainer.visibility = View.GONE
-        binding.appBarLayout.visibility = View.GONE
-        binding.homeContent.videoPlayer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-    } else {
-        // Modo normal: Restaurar
-        binding.homeContent.controlsContainer.visibility = View.VISIBLE
-        binding.appBarLayout.visibility = View.VISIBLE
-        binding.homeContent.videoPlayer.layoutParams.height = dip(250)
-       }
-     }
-      companion object {
+        super.onConfigurationChanged(newConfig)
+
+        if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+            binding.homeContent.controlsContainer.visibility = View.GONE
+            binding.appBarLayout.visibility = View.GONE
+            binding.homeContent.videoPlayer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+        } else {
+            binding.homeContent.controlsContainer.visibility = View.VISIBLE
+            binding.appBarLayout.visibility = View.VISIBLE
+            binding.homeContent.videoPlayer.layoutParams.height = dip(250)
+        }
+    }
+
+    companion object {
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
-      }
+    }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
