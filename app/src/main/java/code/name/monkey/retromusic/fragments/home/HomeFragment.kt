@@ -44,7 +44,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
    // private val navOptions = androidx.navigation.NavOptions.Builder().build()
    // private val libraryViewModel by androidx.fragment.app.viewModels<code.name.monkey.retromusic.fragments.library.LibraryViewModel>()
-
+    private val downloadVideoList = mutableListOf<Pair<String, Uri>>()
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
     
@@ -115,28 +115,39 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
     private fun loadVideosFromDownloads() {
-    val videoList = mutableListOf<Uri>()
-    val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-    val projection = arrayOf(MediaStore.Video.Media._ID)
-    
-    // Filtramos solo por archivos en Downloads
-    val selection = MediaStore.Video.Media.DATA + " LIKE ?"
-    val selectionArgs = arrayOf("%/Download/%")
+        downloadVideoList.clear()
+        val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DISPLAY_NAME)
+        val selection = MediaStore.Video.Media.DATA + " LIKE ?"
+        val selectionArgs = arrayOf("%/Download/%")
 
-    requireContext().contentResolver.query(collection, projection, selection, selectionArgs, null)?.use { cursor ->
-        val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
-        while (cursor.moveToNext()) {
-            val id = cursor.getLong(idColumn)
-            val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
-            videoList.add(contentUri)
+        requireContext().contentResolver.query(collection, projection, selection, selectionArgs, null)?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idColumn)
+                val name = cursor.getString(nameColumn)
+                val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+                downloadVideoList.add(Pair(name, contentUri))
+            }
+        }
+        
+        // --- AQUÍ CONECTAMOS EL ADAPTADOR ---
+        binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
+            videoPlaylist.clear()
+            videoPlaylist.add(uri)
+            currentIndex = 0
+            reproducirVideoActual()
         }
     }
-    // Aquí es donde actualizarías tu RecyclerView
-    // adapter.submitList(videoList)
-}
+
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-    super.onViewCreated(view, savedInstanceState)
-    _binding = FragmentHomeBinding.bind(view)
+        super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentHomeBinding.bind(view)
+
+        // --- INICIALIZAR EL RECYCLERVIEW ---
+        binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
+        loadVideosFromDownloads() // Cargar la lista al iniciar
 
 // Actualizar la barra mientras el video corre (dentro de un Handler o Timer)
 // Puedes añadir esto al final de tu 'updateSubtitleTask' que ya tienes:
