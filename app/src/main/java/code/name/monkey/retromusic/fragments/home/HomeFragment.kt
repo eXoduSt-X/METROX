@@ -193,7 +193,7 @@ private fun setupVideoListeners() {
     }
 
     private fun setupTitle() {
-        binding.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
+        binding.appBarLayout.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
         binding.appBarLayout.title = getString(R.string.app_name)
     }
 
