@@ -86,5 +86,13 @@
             <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:backgroundTint="#333333" android:text="Subtítulos" />
         </LinearLayout>
 
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvDownloads"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingBottom="20dp"
+            android:scrollbars="vertical" />
+            
     </LinearLayout>
 </LinearLayout>
