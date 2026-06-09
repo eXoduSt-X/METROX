@@ -333,7 +333,7 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
         }
     }
 }
-override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
+   override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
         
         menu.removeItem(R.id.action_grid_size)
@@ -363,8 +363,8 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
     
-override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
-    super.onConfigurationChanged(newConfig)
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+       super.onConfigurationChanged(newConfig)
     
     if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
         // Modo cine: Ocultar todo
@@ -376,12 +376,12 @@ override fun onConfigurationChanged(newConfig: android.content.res.Configuration
         binding.homeContent.controlsContainer.visibility = View.VISIBLE
         binding.appBarLayout.visibility = View.VISIBLE
         binding.homeContent.videoPlayer.layoutParams.height = dip(250)
-    }
-}
-    companion object {
+       }
+     }
+      companion object {
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
-    }
+      }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
