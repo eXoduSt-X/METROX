@@ -47,7 +47,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val downloadVideoList = mutableListOf<Pair<String, Uri>>()
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
-    
+    private val requestPermissionLauncher = registerForActivityResult(
+    ActivityResultContracts.RequestPermission()
+) { isGranted ->
+    if (isGranted) {
+        loadVideosFromDownloads()
+    } else {
+        Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
+    }
+    }
     // Motor de sincronización
     private val updateSubtitleTask = object : Runnable {
     override fun run() {
