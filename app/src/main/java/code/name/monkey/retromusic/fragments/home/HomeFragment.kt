@@ -114,7 +114,26 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             reproducirVideoActual()
         }
     }
+    private fun loadVideosFromDownloads() {
+    val videoList = mutableListOf<Uri>()
+    val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    val projection = arrayOf(MediaStore.Video.Media._ID)
+    
+    // Filtramos solo por archivos en Downloads
+    val selection = MediaStore.Video.Media.DATA + " LIKE ?"
+    val selectionArgs = arrayOf("%/Download/%")
 
+    requireContext().contentResolver.query(collection, projection, selection, selectionArgs, null)?.use { cursor ->
+        val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+        while (cursor.moveToNext()) {
+            val id = cursor.getLong(idColumn)
+            val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+            videoList.add(contentUri)
+        }
+    }
+    // Aquí es donde actualizarías tu RecyclerView
+    // adapter.submitList(videoList)
+}
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     _binding = FragmentHomeBinding.bind(view)
