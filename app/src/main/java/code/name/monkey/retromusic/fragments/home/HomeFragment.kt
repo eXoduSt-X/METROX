@@ -275,13 +275,14 @@ binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireConte
         }
     }
 
-    private fun reproducirVideoActual() {
-        if (videoPlaylist.isNotEmpty()) {
-            binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
-            binding.homeContent.videoPlayer.start()
-            binding.homeContent.btnPlayPause.text = "Pause"
-        }
+ private fun reproducirVideoActual() {
+    if (videoPlaylist.isNotEmpty()) {
+        savedPosition = 0 // <--- RESETEAMOS LA POSICIÓN AL CAMBIAR DE VIDEO
+        binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
+        binding.homeContent.videoPlayer.start()
+        binding.homeContent.btnPlayPause.text = "Pause"
     }
+}
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -361,7 +362,22 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
-
+    
+override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+    super.onConfigurationChanged(newConfig)
+    
+    if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+        // Modo cine: Ocultar todo
+        binding.homeContent.controlsContainer.visibility = View.GONE
+        binding.appBarLayout.visibility = View.GONE
+        binding.homeContent.videoPlayer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+    } else {
+        // Modo normal: Restaurar
+        binding.homeContent.controlsContainer.visibility = View.VISIBLE
+        binding.appBarLayout.visibility = View.VISIBLE
+        binding.homeContent.videoPlayer.layoutParams.height = dip(250)
+    }
+}
     companion object {
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
