@@ -180,14 +180,14 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
         binding.homeContent.btnRewindTime.setOnClickListener {
             val player = binding.homeContent.videoPlayer
-            val newPos = player.currentPosition - 5000
-            player.seekTo(if (newPos < 0) 0 else newPos)
+            val newPos = (player.currentPosition - 5000).coerceAtLeast(0)
+            player.seekTo(newPos)
         }
 
         binding.homeContent.btnForwardTime.setOnClickListener {
             val player = binding.homeContent.videoPlayer
-            val newPos = player.currentPosition + 5000
-            player.seekTo(if (newPos > player.duration) player.duration else newPos)
+            val newPos = (player.currentPosition + 5000).coerceAtMost(player.duration)
+            player.seekTo(newPos)
         }
 
         binding.homeContent.btnNextVideo.setOnClickListener {
@@ -210,7 +210,12 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
 
         binding.homeContent.btnFullscreen.setOnClickListener {
-            Toast.makeText(requireContext(), "Pantalla completa activada", Toast.LENGTH_SHORT).show()
+            requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            val decorView = requireActivity().window.decorView
+            @Suppress("DEPRECATION")
+            decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
         }
     }
 
