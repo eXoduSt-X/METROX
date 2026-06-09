@@ -114,16 +114,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     _binding = FragmentHomeBinding.bind(view)
-// Inicializar la barra de progreso
-   binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-      override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-         if (fromUser) {
-             binding.homeContent.videoPlayer.seekTo(progress)
-         }
-     }
-    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-})
 
 // Actualizar la barra mientras el video corre (dentro de un Handler o Timer)
 // Puedes añadir esto al final de tu 'updateSubtitleTask' que ya tienes:
