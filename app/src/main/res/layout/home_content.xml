@@ -49,28 +49,23 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
             android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
+            <TextView android:id="@+id/tvCurrentTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" />
+            <Space android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" />
+            <TextView android:id="@+id/tvTotalTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="4"
             android:layout_marginTop="8dp">
-
-            <Button
-                android:id="@+id/btnRewindTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-5s" />
-
-            <Button
-                android:id="@+id/btnPlayPause"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:text="Play" />
-
-            <Button
-                android:id="@+id/btnForwardTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="+5s" />
+            <Button android:id="@+id/btnPrevVideo" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="#333333" android:text="Ant" />
+            <Button android:id="@+id/btnRewindTime" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="#333333" android:text="-5s" />
+            <Button android:id="@+id/btnForwardTime" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="#333333" android:text="+5s" />
+            <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="#333333" android:text="Sig" />
         </LinearLayout>
 
         <LinearLayout
@@ -78,50 +73,17 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp">
-
-            <Button
-                android:id="@+id/btnPrevVideo"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Anterior" />
-
-            <Button
-                android:id="@+id/btnNextVideo"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Siguiente" />
+            <Button android:id="@+id/btnPlayPause" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="#333333" android:text="Play / Pause" />
+            <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:backgroundTint="#333333" android:text="Full" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btnFullscreen"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Pantalla Completa" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp">
-
-            <Button
-                android:id="@+id/btnOpenFile"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Video" />
-
-            <Button
-                android:id="@+id/btnLoadSubtitles"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Subtítulos" />
+            android:layout_marginTop="8dp">
+            <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:backgroundTint="#333333" android:text="Video" />
+            <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:backgroundTint="#333333" android:text="Subtítulos" />
         </LinearLayout>
 
     </LinearLayout>
