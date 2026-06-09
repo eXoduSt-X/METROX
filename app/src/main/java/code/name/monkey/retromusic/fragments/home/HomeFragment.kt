@@ -47,7 +47,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-
+    private var savedPosition: Int = 0 
    // private val navOptions = androidx.navigation.NavOptions.Builder().build()
    // private val libraryViewModel by androidx.fragment.app.viewModels<code.name.monkey.retromusic.fragments.library.LibraryViewModel>()
     private val downloadVideoList = mutableListOf<Pair<String, Uri>>()
@@ -159,7 +159,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
 binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
-
+  
     // LANZAMIENTO DE PERMISOS
     val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         android.Manifest.permission.READ_MEDIA_VIDEO
@@ -394,6 +394,10 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
     }
 
     override fun onDestroyView() {
+        if (binding.homeContent.videoPlayer.isPlaying) {
+            savedPosition = binding.homeContent.videoPlayer.currentPosition
+        }
+        
         handler.removeCallbacks(updateSubtitleTask)
         binding.homeContent.videoPlayer.stopPlayback()
         _binding = null
