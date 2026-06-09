@@ -227,7 +227,7 @@ override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
             it.setShowAsAction(1)
         }
         
-        val toolbar = binding.toolbar
+        val toolbar = binding.appBarLayout.toolbar
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(
             requireContext(),
             toolbar,
