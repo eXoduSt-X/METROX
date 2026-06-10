@@ -7,7 +7,7 @@
 
     <style name="Theme.RetroMusic.Black" parent="Theme.RetroMusic.Base.Black" />
 
-    <style name="Theme.RetroMusic.FollowSystem" parent="Theme.RetroMusic.Base.Adaptive">
+    <style name="Theme.RetroMusic.FollowSystem" parent="Theme.RetroMusic.MD3">
         <item name="android:windowBackground">?colorSurface</item>
     </style>
 
