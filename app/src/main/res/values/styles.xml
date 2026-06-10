@@ -12,25 +12,23 @@
     </style>
 
         <style name="Theme.RetroMusic.MD3" parent="@style/Theme.Material3.DayNight.NoActionBar">
-        <item name="roundSelector">@drawable/round_selector</item>
-        <item name="rectSelector">@drawable/rect_selector</item>
-        <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
-        <item name="materialButtonStyle">@style/MaterialButtonTheme</item>
-        
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
-        <item name="android:textColorAlertDialogListItem">@android:color/white</item>
-        
-        <item name="android:textColorPrimary">@android:color/white</item>
-        <item name="textColorPrimary">@android:color/white</item>
-        <item name="android:textColorPrimaryInverse">@android:color/white</item>
+    <item name="roundSelector">@drawable/round_selector</item>
+    <item name="rectSelector">@drawable/rect_selector</item>
+    <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
+    <item name="materialButtonStyle">@style/MaterialButtonTheme</item>
+    <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
+    <item name="android:textColorAlertDialogListItem">@android:color/white</item>
+    <item name="android:textColorPrimary">@android:color/white</item>
+    <item name="textColorPrimary">@android:color/white</item>
+    <item name="android:textColorPrimaryInverse">@android:color/white</item>
+    <item name="android:textColorSecondary">#B3FFFFFF</item>
+    <item name="textColorSecondary">#B3FFFFFF</item>
+    <item name="colorOnSurface">@android:color/white</item>
+    <item name="colorOnSurfaceVariant">#B3FFFFFF</item>
 
-        <item name="android:textColorSecondary">#B3FFFFFF</item>
-        <item name="textColorSecondary">#B3FFFFFF</item>
-
-        <item name="colorOnSurface">@android:color/white</item>
-        <item name="colorOnSurfaceVariant">#B3FFFFFF</item>
-    </style>
-
+    <item name="android:colorControlNormal">#B3FFFFFF</item> 
+    <item name="android:colorControlActivated">?attr/colorSecondary</item>
+</style>
 
     <style name="Theme.RetroMusic.Notification" parent="@android:style/TextAppearance.StatusBar.EventContent" />
 
