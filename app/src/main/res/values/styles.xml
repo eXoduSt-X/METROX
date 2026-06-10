@@ -7,8 +7,15 @@
 
     <style name="Theme.RetroMusic.Black" parent="Theme.RetroMusic.Base.Black" />
 
-    <style name="Theme.RetroMusic.FollowSystem" parent="Theme.RetroMusic.Base.Adaptive">
-        <item name="android:windowBackground">?colorSurface</item>
+        <style name="Theme.RetroMusic.FollowSystem" parent="Theme.RetroMusic.Base.Adaptive">
+        <item name="android:windowBackground">?colorSurface</item>
+        
+        <item name="colorPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#40C4FF</item> 
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#B3FFFFFF</item>
+    </style>
+
     </style>
 
         <style name="Theme.RetroMusic.MD3" parent="@style/Theme.Material3.DayNight.NoActionBar">
