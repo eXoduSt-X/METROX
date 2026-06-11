@@ -37,7 +37,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # MANTENLO TAMBIÉN EN BUILD
+      # 1. Borrar caché de transformaciones de Gradle
+      - name: Clean Gradle Cache
+        run: rm -rf /home/runner/.gradle/caches/transforms-3
+
+      # 2. Descargar FFmpegKit
       - name: Download FFmpegKit
         run: |
           mkdir -p app/libs
@@ -59,4 +63,3 @@ jobs:
           name: METROX-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          
