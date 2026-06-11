@@ -14,11 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # AGREGA ESTO TAMBIÉN EN CHECK
-      - name: Download FFmpegKit
+      - name: Download FFmpeg from Releases
         run: |
           mkdir -p app/libs
-          curl -L https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar -o app/libs/ffmpeg-kit-min.aar
+          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/octet-stream" \
+          "https://github.com/eXoduSt-X/METROX/releases/download/Ffmpeg/ffmpeg-kit-full-gpl-6.0-2.LTS.aar" \
+          -o app/libs/ffmpeg-kit-full.aar
           
       - uses: actions/setup-java@v4
         with:
@@ -36,16 +38,14 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
-      
-      # 1. Borrar caché de transformaciones de Gradle
-      - name: Clean Gradle Cache
-        run: rm -rf /home/runner/.gradle/caches/transforms-3
 
-      # 2. Descargar FFmpegKit
-      - name: Download FFmpegKit
+      - name: Download FFmpeg from Releases
         run: |
           mkdir -p app/libs
-          curl -L https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar -o app/libs/ffmpeg-kit-min.aar
+          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/octet-stream" \
+          "https://github.com/eXoduSt-X/METROX/releases/download/Ffmpeg/ffmpeg-kit-full-gpl-6.0-2.LTS.aar" \
+          -o app/libs/ffmpeg-kit-full.aar
           
       - uses: actions/setup-java@v4
         with:
