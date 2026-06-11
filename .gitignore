@@ -1,44 +1,39 @@
-#built application files
+# --- Archivos de construcción y binarios generados ---
+# (Mantiene tu configuración original)
 *.apk
 *.ap_
- 
-# files for the dex VM
 *.dex
- 
-# Java class files
 *.class
- 
-# generated files
 bin/
 gen/
- 
-# Local configuration file (sdk path, etc)
 local.properties
- 
-# Windows thumbnail db
 Thumbs.db
- 
-# OSX files
 .DS_Store
- 
-# Eclipse project files
 .classpath
 .project
- 
-# Android Studio
 *.iml
 .idea
-#.idea/workspace.xml - remove # and delete .idea if it better suit your needs.
 .gradle
 build/
- 
-#NDK
 obj/
-
-captures
+captures/
 app/normal/release/
 /models/
 /app/release/
 
+# --- MODIFICACIÓN: Gestión de librerías y binarios nativos ---
+# Ignora todos los archivos AAR y SO para evitar subirlos al repo
 *.aar
 *.so
+
+# Pero permitimos específicamente el directorio libs para que el sistema 
+# de descarga pueda crear la carpeta necesaria durante el build
+!app/libs/
+app/libs/*
+# Y volvemos a ignorar el contenido dentro de libs para que Git no lo rastree
+!app/libs/.gitkeep
+
+# --- Seguridad adicional ---
+# Evita subir carpetas de caché de descarga
+.gradle/
+.navigation/
