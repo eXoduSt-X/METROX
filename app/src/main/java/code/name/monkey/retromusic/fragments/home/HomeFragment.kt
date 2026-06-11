@@ -35,6 +35,8 @@ import com.google.android.material.transition.MaterialSharedAxis
 import android.Manifest
 import android.os.Build
 import androidx.core.content.ContextCompat
+import android.content.ContentUris
+import android.provider.MediaStore
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.content.Intent
 
@@ -52,9 +54,24 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
 
-    // --- Launchers ---
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
+    }
+
+    private val updateSubtitleTask = object : Runnable {
+        override fun run() {
+            if (binding.homeContent.videoPlayer.isPlaying) {
+                val player = binding.homeContent.videoPlayer
+                val currentPos = player.currentPosition
+                val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
+                binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
+                binding.homeContent.videoSeekBar.max = player.duration
+                binding.homeContent.videoSeekBar.progress = currentPos
+                binding.homeContent.tvCurrentTime.text = formatTime(currentPos)
+                binding.homeContent.tvTotalTime.text = formatTime(player.duration)
+            }
+            handler.postDelayed(this, 500)
+        }
     }
 
     private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -62,7 +79,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             result.data?.data?.let { uri ->
                 requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 selectedFolderUri = uri
-                saveFolderUri(uri)
                 loadVideosFromSelectedFolder(uri)
             }
         }
@@ -88,19 +104,57 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    private val updateSubtitleTask = object : Runnable {
-        override fun run() {
-            if (binding.homeContent.videoPlayer.isPlaying) {
-                val player = binding.homeContent.videoPlayer
-                val currentPos = player.currentPosition
-                val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
-                binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
-                binding.homeContent.videoSeekBar.max = player.duration
-                binding.homeContent.videoSeekBar.progress = currentPos
-                binding.homeContent.tvCurrentTime.text = formatTime(currentPos)
-                binding.homeContent.tvTotalTime.text = formatTime(player.duration)
+    private fun parseSrt(inputStream: java.io.InputStream) {
+        subtitleList.clear()
+        val lines = inputStream.bufferedReader().readLines()
+        for (i in lines.indices) {
+            if (lines[i].contains("-->")) {
+                val times = lines[i].split(" --> ")
+                val start = parseTimeToMillis(times[0].trim())
+                val end = parseTimeToMillis(times[1].trim())
+                if (i + 1 < lines.size) subtitleList.add(Subtitle(start, end, lines[i + 1]))
             }
-            handler.postDelayed(this, 500)
+        }
+    }
+
+    private fun parseTimeToMillis(time: String): Long {
+        val parts = time.replace(",", ":").split(":")
+        return (parts[0].toLong() * 3600000) + (parts[1].toLong() * 60000) + (parts[2].toLong() * 1000) + parts[3].toLong()
+    }
+
+    private fun loadVideosFromSelectedFolder(uri: Uri) {
+        downloadVideoList.clear()
+        val pickedDir = androidx.documentfile.provider.DocumentFile.fromTreeUri(requireContext(), uri)
+        pickedDir?.listFiles()?.forEach { file ->
+            if (file.type?.startsWith("video/") == true) {
+                downloadVideoList.add(Pair(file.name ?: "Video", file.uri))
+            }
+        }
+        binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
+            videoPlaylist.clear()
+            videoPlaylist.add(uri)
+            currentIndex = 0
+            reproducirVideoActual()
+        }
+    }
+
+    // --- CORRECCIÓN: Método faltante que causaba el error ---
+    private fun loadVideosFromDownloads() {
+        downloadVideoList.clear()
+        val projection = arrayOf(MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media._ID)
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL) else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        requireContext().contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(nameColumn)
+                val id = cursor.getLong(idColumn)
+                val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+                downloadVideoList.add(Pair(name, contentUri))
+            }
+        }
+        binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
+            videoPlaylist.clear(); videoPlaylist.add(uri); currentIndex = 0; reproducirVideoActual()
         }
     }
 
@@ -125,8 +179,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         handler.post(updateSubtitleTask)
         setupListeners()
         setupVideoListeners()
-        binding.imageLayout.titleWelcome.text = String.format("%s", userName)
 
+        binding.imageLayout.titleWelcome.text = String.format("%s", userName)
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
 
@@ -138,7 +192,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
         view.doOnLayout { adjustPlaylistButtons() }
-    }
+    } // Aquí cierra onViewCreated
 
     private fun setupVideoListeners() {
         binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
@@ -171,37 +225,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    private fun loadVideosFromSelectedFolder(uri: Uri) {
-        downloadVideoList.clear()
-        val pickedDir = androidx.documentfile.provider.DocumentFile.fromTreeUri(requireContext(), uri)
-        pickedDir?.listFiles()?.forEach { if (it.type?.startsWith("video/") == true) downloadVideoList.add(Pair(it.name ?: "Video", it.uri)) }
-        
-        binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
-            videoPlaylist.clear()
-            videoPlaylist.add(uri)
-            currentIndex = 0
-            reproducirVideoActual()
-        }
-    }
-
-    private fun parseSrt(inputStream: java.io.InputStream) {
-        subtitleList.clear()
-        val lines = inputStream.bufferedReader().readLines()
-        for (i in lines.indices) {
-            if (lines[i].contains("-->")) {
-                val times = lines[i].split(" --> ")
-                val start = parseTimeToMillis(times[0].trim())
-                val end = parseTimeToMillis(times[1].trim())
-                if (i + 1 < lines.size) subtitleList.add(Subtitle(start, end, lines[i + 1]))
-            }
-        }
-    }
-
-    private fun parseTimeToMillis(time: String): Long {
-        val parts = time.replace(",", ":").split(":")
-        return (parts[0].toLong() * 3600000) + (parts[1].toLong() * 60000) + (parts[2].toLong() * 1000) + parts[3].toLong()
-    }
-
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
             savedPosition = 0
@@ -215,6 +238,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         val seconds = (millis / 1000) % 60
         val minutes = (millis / (1000 * 60)) % 60
         return String.format("%02d:%02d", minutes, seconds)
+    }
+
+    private fun adjustPlaylistButtons() {
+        val buttons = listOf(binding.homeContent.absPlaylists.history, binding.homeContent.absPlaylists.lastAdded, binding.homeContent.absPlaylists.topPlayed, binding.homeContent.absPlaylists.actionShuffle)
+        buttons.maxOf { it.lineCount }.let { maxLineCount -> buttons.forEach { it.setLines(maxLineCount) } }
     }
 
     private fun setupListeners() {
@@ -249,15 +277,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    private fun saveFolderUri(uri: Uri) {
-        requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE).edit().putString(PREF_SELECTED_FOLDER_URI, uri.toString()).apply()
-    }
-
-    private fun loadSavedFolderUri(): Uri? {
-        val uriString = requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE).getString(PREF_SELECTED_FOLDER_URI, null)
-        return uriString?.let { Uri.parse(it) }
-    }
-
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
         menu.removeItem(R.id.action_grid_size); menu.removeItem(R.id.action_layout_type); menu.removeItem(R.id.action_sort_order)
@@ -274,6 +293,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     fun setSharedAxisYTransitions() {
         exitTransition = MaterialSharedAxis(MaterialSharedAxis.Y, true).addTarget(CoordinatorLayout::class.java)
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
+    }
+
+    private fun saveFolderUri(uri: Uri) {
+        requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE).edit().putString(PREF_SELECTED_FOLDER_URI, uri.toString()).apply()
+    }
+
+    private fun loadSavedFolderUri(): Uri? {
+        val uriString = requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE).getString(PREF_SELECTED_FOLDER_URI, null)
+        return uriString?.let { Uri.parse(it) }
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
@@ -294,6 +322,12 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.homeContent.tvTotalTime.visibility = visibility
         binding.homeContent.btnChooseFolder.visibility = visibility
         binding.homeContent.videoContainer.layoutParams.height = if (isLandscape) ViewGroup.LayoutParams.MATCH_PARENT else (250 * resources.displayMetrics.density).toInt()
+    }
+
+    companion object {
+        const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
+        const val TAG: String = "BannerHomeFragment"
+        @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
@@ -322,16 +356,5 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.homeContent.videoPlayer.stopPlayback()
         _binding = null
         super.onDestroyView()
-    }
-
-    private fun adjustPlaylistButtons() {
-        val buttons = listOf(binding.homeContent.absPlaylists.history, binding.homeContent.absPlaylists.lastAdded, binding.homeContent.absPlaylists.topPlayed, binding.homeContent.absPlaylists.actionShuffle)
-        buttons.maxOf { it.lineCount }.let { maxLineCount -> buttons.forEach { it.setLines(maxLineCount) } }
-    }
-
-    companion object {
-        const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
-        const val TAG: String = "BannerHomeFragment"
-        @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
 }
