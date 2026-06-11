@@ -53,6 +53,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val downloadVideoList = mutableListOf<Pair<String, Uri>>()
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
+    private var selectedSubtitleUri: Uri? = null
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
@@ -85,15 +86,16 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private val subtitlePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            try {
-                requireContext().contentResolver.openInputStream(it)?.use { stream -> parseSrt(stream) }
-                Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
-            }
+    uri?.let {
+        selectedSubtitleUri = it // <--- GUARDA LA URI AQUÍ
+        try {
+            requireContext().contentResolver.openInputStream(it)?.use { stream -> parseSrt(stream) }
+            Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
         }
     }
+}
 
     private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
@@ -218,6 +220,16 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             if (player.isPlaying) { player.pause(); binding.homeContent.btnPlayPause.text = "Play" }
             else { player.start(); binding.homeContent.btnPlayPause.text = "Pause" }
         }
+        // Ejemplo de cómo llamar a la función cuando el usuario presione un botón
+       binding.homeContent.btnMixVideo.setOnClickListener {
+             val subUri = selectedSubtitleUri // Obtenemos la Uri guardada
+    
+             if (videoPlaylist.isNotEmpty() && subUri != null) {
+                createMkvWithSubtitles(videoPlaylist[currentIndex], subUri)
+             } else {
+                 Toast.makeText(requireContext(), "Debes seleccionar un video y un archivo de subtítulos primero", Toast.LENGTH_SHORT).show()
+             }
+   }
         binding.homeContent.btnFullscreen.setOnClickListener {
             requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             @Suppress("DEPRECATION")
@@ -357,4 +369,49 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         _binding = null
         super.onDestroyView()
     }
+    private var isFfmpegInstalled = false // Variable de "seguro"
+
+private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
+    if (!isFfmpegInstalled) {
+        Toast.makeText(requireContext(), "FFmpeg aún no está configurado. Por favor, instala el binario.", Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    // Ruta donde esperaremos que esté el binario (una vez lo instalemos)
+    val ffmpegPath = requireContext().filesDir.absolutePath + "/ffmpeg"
+    
+    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+    val outputFile = File(requireContext().externalCacheDir, "resultado.mkv")
+
+    val command = arrayOf(
+        ffmpegPath,
+        "-i", videoFile.absolutePath,
+        "-i", subFile.absolutePath,
+        "-c", "copy",
+        "-c:s", "srt",
+        outputFile.absolutePath
+    )
+
+    Thread {
+        try {
+            val process = Runtime.getRuntime().exec(command)
+            process.waitFor()
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "¡Proceso terminado! Archivo: ${outputFile.name}", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+        }
+    }.start()
+  }
+
+   private fun cacheUriToFile(uri: Uri, name: String): File {
+    val file = File(requireContext().cacheDir, name)
+    requireContext().contentResolver.openInputStream(uri)?.use { input ->
+        java.io.FileOutputStream(file).use { output -> input.copyTo(output) }
+    }
+    return file
+ }
 }
