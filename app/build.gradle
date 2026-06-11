@@ -4,6 +4,12 @@ apply plugin: "androidx.navigation.safeargs.kotlin"
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'com.google.devtools.ksp'
 
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
 android {
     compileSdk 33
     namespace "code.name.monkey.retromusic"
@@ -74,7 +80,7 @@ android {
 
 dependencies {
     // Apunta al archivo que descargamos mediante el workflow de GitHub Actions
-    implementation files("libs/ffmpeg-kit-full.aar")
+    implementation(name: 'ffmpeg-kit-full', ext: 'aar')
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
