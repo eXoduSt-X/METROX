@@ -27,6 +27,9 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix ' DEBUG'
+            // Opcional: si el APK es muy pesado, descomenta esto para reducir tamaño en debug
+            // shrinkResources true
+            // minifyEnabled true
         }
     }
 
@@ -38,12 +41,11 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
-        pickFirst 'lib/arm64-v8a/libavcodec.so'
-        pickFirst 'lib/arm64-v8a/libavformat.so'
-        pickFirst 'lib/arm64-v8a/libswresample.so'
-        pickFirst 'lib/arm64-v8a/libswscale.so'
-        pickFirst 'lib/x86_64/libavcodec.so'
-        pickFirst 'lib/x86_64/libavformat.so'
+        // Necesario para evitar conflictos con los binarios de FFmpeg
+        pickFirst 'lib/arm64-v8a/*.so'
+        pickFirst 'lib/x86_64/*.so'
+        pickFirst 'lib/armeabi-v7a/*.so'
+        pickFirst 'lib/x86/*.so'
     }
 
     lint {
@@ -70,14 +72,14 @@ android {
     }
 }
 
-
 dependencies {
-    // Referencia al archivo local descargado
-    implementation files("libs/ffmpeg-kit-min.aar")
+    // Apunta al archivo que descargamos mediante el workflow de GitHub Actions
+    implementation files("libs/ffmpeg-kit-full.aar")
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
     implementation project(':appthemehelper')
+    // ... (El resto de tus dependencias permanecen exactamente igual)
     implementation "androidx.gridlayout:gridlayout:1.0.0"
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation 'androidx.annotation:annotation:1.6.0'
