@@ -374,49 +374,36 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var isFfmpegInstalled = false // Variable de "seguro"
 
 private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
-    if (!isFfmpegInstalled) {
-        Toast.makeText(requireContext(), "FFmpeg aún no está configurado. Por favor, instala el binario.", Toast.LENGTH_SHORT).show()
-        return
+        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+        val outputFile = File(requireContext().externalCacheDir, "resultado.mkv")
+
+        // Comando correcto para FFmpegKit
+        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
+
+        FFmpegKit.executeAsync(command) { session ->
+            val returnCode = session.returnCode
+            requireActivity().runOnUiThread {
+                if (ReturnCode.isSuccess(returnCode)) {
+                    Toast.makeText(requireContext(), "¡Proceso terminado! ${outputFile.name}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(requireContext(), "Error: ${session.failStackTrace}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
-    // Ruta donde esperaremos que esté el binario (una vez lo instalemos)
-    val ffmpegPath = requireContext().filesDir.absolutePath + "/ffmpeg"
-    
-    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-    val outputFile = File(requireContext().externalCacheDir, "resultado.mkv")
-
-    val command = arrayOf(
-        ffmpegPath,
-        "-i", videoFile.absolutePath,
-        "-i", subFile.absolutePath,
-        "-c", "copy",
-        "-c:s", "srt",
-        outputFile.absolutePath
-    )
-
-    Thread {
+    private fun cacheUriToFile(uri: Uri, name: String): File {
+        val file = File(requireContext().cacheDir, name)
         try {
-            val process = Runtime.getRuntime().exec(command)
-            process.waitFor()
-            requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "¡Proceso terminado! Archivo: ${outputFile.name}", Toast.LENGTH_LONG).show()
+            requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show() }
         }
-    }.start()
-  }
-
-       private fun cacheUriToFile(uri: Uri, name: String): File {
-          val file = File(requireContext().cacheDir, name)
-           requireContext().contentResolver.openInputStream(uri)?.use { input ->
-        // Especificamos explícitamente que usamos el constructor de File
-           FileOutputStream(file as File).use { output -> 
-            input.copyTo(output) 
-          }
-       }
-       return file
-       }
+        return file
+    }
 }
