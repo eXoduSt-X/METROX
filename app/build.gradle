@@ -58,7 +58,14 @@ android {
     configurations.configureEach {
         resolutionStrategy.force 'com.google.code.findbugs:jsr305:1.3.9'
     }
-}
+    
+}packagingOptions {
+        // Esto evita conflictos si otras librerías incluyen FFmpeg
+        pickFirst 'lib/arm64-v8a/libavcodec.so'
+        pickFirst 'lib/arm64-v8a/libavformat.so'
+        pickFirst 'lib/arm64-v8a/libswresample.so'
+        pickFirst 'lib/arm64-v8a/libswscale.so'
+    }
 
 
 dependencies {
