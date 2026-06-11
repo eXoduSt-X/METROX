@@ -11,21 +11,19 @@ gradleEnterprise {
 }
 
 dependencyResolutionManagement {
+    // FAIL_ON_PROJECT_REPOS asegura que todos los módulos usen esta configuración centralizada
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
         maven { url "https://jitpack.io" }
+        
+        // Esto es lo que permite que tu build.gradle (app) encuentre el .aar en app/libs
+        flatDir {
+            dirs 'app/libs'
+        }
     }
 }
 
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url 'https://jitpack.io' } // <--- INDISPENSABLE
-    }
-}
-
-
+rootProject.name = "METROX"
 include ':app', ':appthemehelper'
