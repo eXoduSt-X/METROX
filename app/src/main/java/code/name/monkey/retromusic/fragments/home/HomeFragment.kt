@@ -39,6 +39,7 @@ import androidx.core.content.ContextCompat
 import android.content.ContentUris
 import android.provider.MediaStore
 import androidx.recyclerview.widget.LinearLayoutManager
+import android.content.Intent
 
 // 1. Modelo de datos para los subtítulos
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
@@ -89,6 +90,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     if (result.resultCode == android.app.Activity.RESULT_OK) {
            result.data?.data?.let { uri ->
                 requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                selectedFolderUri = uri
                 selectedFolderUri = uri
                 loadVideosFromSelectedFolder(uri)
               }
@@ -183,7 +185,12 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         } else {
             requestPermissionLauncher.launch(permission)
         }
-
+        val savedUri = loadSavedFolderUri()
+        if (savedUri != null) {
+        loadVideosFromSelectedFolder(savedUri)
+        } else {
+            loadVideosFromDownloads() 
+        }
         // Configura la sombra a través del binding del include
         binding.homeContent.tvSubtitleOverlay.setShadowLayer(
             3f, 2f, 2f, android.graphics.Color.BLACK
@@ -373,6 +380,19 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Y, false)
     }
 
+    private fun saveFolderUri(uri: Uri) {
+    requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE)
+        .edit()
+        .putString(PREF_SELECTED_FOLDER_URI, uri.toString())
+        .apply()
+    }
+    
+    private fun loadSavedFolderUri(): Uri? {
+    val uriString = requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE)
+        .getString(PREF_SELECTED_FOLDER_URI, null)
+    return uriString?.let { Uri.parse(it) }
+    }
+    
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
 
@@ -403,6 +423,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     companion object {
+        const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
