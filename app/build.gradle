@@ -70,30 +70,25 @@ android {
     }
 }
 
-// --- SCRIPT DE DESCARGA PARA GITHUB ACTIONS ---
-// Esto descarga el binario al iniciar el build, evitando repositorios muertos
-tasks.register("downloadFfmpeg") {
-    def file = file("libs/ffmpeg-kit-min.aar")
-    if (!file.exists()) {
-        file.parentFile.mkdirs()
-        def url = "https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar"
-        println "Descargando FFmpegKit..."
-        new URL(url).withInputStream { i -> file.withOutputStream { it << i } }
-    }
-}
-
-tasks.whenTaskAdded { task ->
-    if (task.name == "preBuild") {
-        task.dependsOn("downloadFfmpeg")
+// --- DESCARGA SÍNCRONA (A prueba de errores en CI/CD) ---
+def ffmpegFile = file("libs/ffmpeg-kit-min.aar")
+if (!ffmpegFile.exists()) {
+    println "Descargando FFmpegKit para compilación..."
+    ffmpegFile.parentFile.mkdirs()
+    try {
+        new URL("https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar")
+            .withInputStream { i -> ffmpegFile.withOutputStream { it << i } }
+    } catch (Exception e) {
+        throw new GradleException("Error crítico: No se pudo descargar FFmpegKit: " + e.message)
     }
 }
 
 dependencies {
-    // Referencia al archivo descargado localmente por el script
+    // Referencia al archivo local descargado
     implementation files("libs/ffmpeg-kit-min.aar")
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
-    // --- Tus dependencias existentes ---
+    // --- Tus dependencias ---
     implementation project(':appthemehelper')
     implementation "androidx.gridlayout:gridlayout:1.0.0"
     implementation "androidx.appcompat:appcompat:$appcompat_version"
