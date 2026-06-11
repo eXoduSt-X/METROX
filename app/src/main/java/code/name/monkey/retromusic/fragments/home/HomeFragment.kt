@@ -48,6 +48,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
     private var savedPosition: Int = 0 
+    private var selectedFolderUri: Uri? = null
+    private val videoPlaylist = mutableListOf<Uri>()
+    private var currentIndex = 0
    // private val navOptions = androidx.navigation.NavOptions.Builder().build()
    // private val libraryViewModel by androidx.fragment.app.viewModels<code.name.monkey.retromusic.fragments.library.LibraryViewModel>()
     private val downloadVideoList = mutableListOf<Pair<String, Uri>>()
