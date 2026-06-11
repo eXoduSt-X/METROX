@@ -39,6 +39,8 @@ import android.content.ContentUris
 import android.provider.MediaStore
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.content.Intent
+import java.io.File
+import java.io.FileOutputStream
 
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
 
@@ -407,11 +409,14 @@ private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
     }.start()
   }
 
-   private fun cacheUriToFile(uri: Uri, name: String): File {
-    val file = File(requireContext().cacheDir, name)
-    requireContext().contentResolver.openInputStream(uri)?.use { input ->
-        java.io.FileOutputStream(file).use { output -> input.copyTo(output) }
-    }
-    return file
- }
+       private fun cacheUriToFile(uri: Uri, name: String): File {
+          val file = File(requireContext().cacheDir, name)
+           requireContext().contentResolver.openInputStream(uri)?.use { input ->
+        // Especificamos explícitamente que usamos el constructor de File
+           FileOutputStream(file as File).use { output -> 
+            input.copyTo(output) 
+          }
+       }
+       return file
+       }
 }
