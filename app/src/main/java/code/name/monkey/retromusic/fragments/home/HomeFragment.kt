@@ -82,7 +82,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             handler.postDelayed(this, 500)
         }
     }
-
+    private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+    if (result.resultCode == android.app.Activity.RESULT_OK) {
+           result.data?.data?.let { uri ->
+                requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                selectedFolderUri = uri
+                loadVideosFromSelectedFolder(uri)
+              }
+         }
+    }
     private val subtitlePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             try {
@@ -126,23 +134,25 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             reproducirVideoActual()
         }
     }
-    private fun loadVideosFromDownloads() {
-        downloadVideoList.clear()
-        val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DISPLAY_NAME)
-        val selection = MediaStore.Video.Media.DATA + " LIKE ?"
-        val selectionArgs = arrayOf("%/Download/%")
-
-        requireContext().contentResolver.query(collection, projection, selection, selectionArgs, null)?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
-            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idColumn)
-                val name = cursor.getString(nameColumn)
-                val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
-                downloadVideoList.add(Pair(name, contentUri))
-            }
+    private fun loadVideosFromSelectedFolder(uri: Uri) {
+    downloadVideoList.clear()
+    val pickedDir = androidx.documentfile.provider.DocumentFile.fromTreeUri(requireContext(), uri)
+    
+    pickedDir?.listFiles()?.forEach { file ->
+        // Filtramos solo archivos de video
+        if (file.type?.startsWith("video/") == true) {
+            downloadVideoList.add(Pair(file.name ?: "Video", file.uri))
         }
+    }
+    
+    // Actualizamos el adaptador
+    binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { videoUri ->
+        videoPlaylist.clear()
+        videoPlaylist.add(videoUri)
+        currentIndex = 0
+        reproducirVideoActual()
+    }
+}
         
         // --- AQUÍ CONECTAMOS EL ADAPTADOR ---
         binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
@@ -245,7 +255,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 reproducirVideoActual()
             }
         }
-
+        // En setupVideoListeners():
+       binding.homeContent.btnChooseFolder.setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            folderPickerLauncher.launch(intent)
+        }
         // Estado y Pantalla
         binding.homeContent.btnPlayPause.setOnClickListener {
             val player = binding.homeContent.videoPlayer
@@ -378,6 +392,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         content.btnLoadSubtitles.visibility = visibility
         content.tvCurrentTime.visibility = visibility
         content.tvTotalTime.visibility = visibility
+        content.btnChooseFolder.visibility = visibility
 
         // 3. Ajustar el contenedor de video a pantalla completa en horizontal
         content.videoContainer.layoutParams.height = if (isLandscape)
