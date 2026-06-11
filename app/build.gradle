@@ -70,18 +70,6 @@ android {
     }
 }
 
-// --- DESCARGA SÍNCRONA (A prueba de errores en CI/CD) ---
-def ffmpegFile = file("libs/ffmpeg-kit-min.aar")
-if (!ffmpegFile.exists()) {
-    println "Descargando FFmpegKit para compilación..."
-    ffmpegFile.parentFile.mkdirs()
-    try {
-        new URL("https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar")
-            .withInputStream { i -> ffmpegFile.withOutputStream { it << i } }
-    } catch (Exception e) {
-        throw new GradleException("Error crítico: No se pudo descargar FFmpegKit: " + e.message)
-    }
-}
 
 dependencies {
     // Referencia al archivo local descargado
