@@ -40,4 +40,5 @@ app/normal/release/
 /models/
 /app/release/
 
-/app/libs/*.aar
+*.aar
+*.so
