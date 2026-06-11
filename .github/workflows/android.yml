@@ -31,6 +31,13 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
+      - name: Download FFmpegKit
+        run: |
+          mkdir -p app/libs
+          curl -L https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar -o app/libs/ffmpeg-kit-min-gpl-6.0.2.aar
+          # Renombramos para que coincida con el nombre que Gradle espera
+          mv app/libs/ffmpeg-kit-min-gpl-6.0.2.aar app/libs/ffmpeg-kit-min.aar
+          
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
