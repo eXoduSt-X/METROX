@@ -13,14 +13,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      
+      # AGREGA ESTO TAMBIÉN EN CHECK
+      - name: Download FFmpegKit
+        run: |
+          mkdir -p app/libs
+          curl -L https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar -o app/libs/ffmpeg-kit-min.aar
+          
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v4
-      - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Lint Android
         run: ./gradlew lint
@@ -31,12 +36,12 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
+      
+      # MANTENLO TAMBIÉN EN BUILD
       - name: Download FFmpegKit
         run: |
           mkdir -p app/libs
-          curl -L https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar -o app/libs/ffmpeg-kit-min-gpl-6.0.2.aar
-          # Renombramos para que coincida con el nombre que Gradle espera
-          mv app/libs/ffmpeg-kit-min-gpl-6.0.2.aar app/libs/ffmpeg-kit-min.aar
+          curl -L https://github.com/arthenica/ffmpeg-kit/releases/download/v6.0.2/ffmpeg-kit-min-gpl-6.0.2.aar -o app/libs/ffmpeg-kit-min.aar
           
       - uses: actions/setup-java@v4
         with:
@@ -54,3 +59,4 @@ jobs:
           name: METROX-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          
