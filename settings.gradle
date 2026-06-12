@@ -11,13 +11,11 @@ gradleEnterprise {
 }
 
 dependencyResolutionManagement {
-    // FAIL_ON_PROJECT_REPOS asegura que todos los módulos usen esta configuración centralizada
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
         maven { url "https://jitpack.io" }
-        // Se eliminó el bloque flatDir porque ya no buscaremos librerías .aar en carpetas locales.
     }
 }
 
