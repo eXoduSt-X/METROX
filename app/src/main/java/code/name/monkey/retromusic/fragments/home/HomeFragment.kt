@@ -223,17 +223,18 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             if (player.isPlaying) { player.pause(); binding.homeContent.btnPlayPause.text = "Play" }
             else { player.start(); binding.homeContent.btnPlayPause.text = "Pause" }
         }
-        // Ejemplo de cómo llamar a la función cuando el usuario presione un botón
-       binding.homeContent.btnMixVideo.setOnClickListener {
-             val subUri = selectedSubtitleUri // Obtenemos la Uri guardada
-    
-             if (videoPlaylist.isNotEmpty() && subUri != null) {
+
+        // Botón Mux (MKV)
+        binding.homeContent.btnMixVideo.setOnClickListener {
+            val subUri = selectedSubtitleUri
+            if (videoPlaylist.isNotEmpty() && subUri != null) {
                 createMkvWithSubtitles(videoPlaylist[currentIndex], subUri)
-             } else {
-                 Toast.makeText(requireContext(), "Debes seleccionar un video y un archivo de subtítulos primero", Toast.LENGTH_SHORT).show()
-             }
-   }
-// Este botón ahora hace el Hardcode (Burn) 
+            } else {
+                Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Botón Fullscreen (ahora es Burn para WhatsApp)
         binding.homeContent.btnFullscreen.setOnClickListener {
             val subUri = selectedSubtitleUri
             if (videoPlaylist.isNotEmpty() && subUri != null) {
@@ -242,6 +243,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
             }
         }
+    }
 
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
