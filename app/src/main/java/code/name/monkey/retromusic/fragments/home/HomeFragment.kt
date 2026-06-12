@@ -379,27 +379,33 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     // import com.arthenica.ffmpegkit.ReturnCode
 
     private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
-        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-        val outputFile = File(requireContext().externalCacheDir, "resultado.mkv")
+    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+    
+    // --- NUEVA RUTA PÚBLICA ---
+    // Guardamos en la carpeta Movies/ con un timestamp para evitar sobreescribir archivos
+    val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
+    val outputFile = File(
+        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES),
+        fileName
+    )
+    // --------------------------
 
-        // Comando para copiar streams y añadir subtítulos
-        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
+    val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
 
-        // Usamos la referencia correcta a la librería
-        com.arthenica.ffmpegkit.FFmpegKit.executeAsync(command) { session ->
-            val returnCode = session.returnCode
-            requireActivity().runOnUiThread {
-                if (com.arthenica.ffmpegkit.ReturnCode.isSuccess(returnCode)) {
-                    Toast.makeText(requireContext(), "¡Proceso terminado! ${outputFile.name}", Toast.LENGTH_LONG).show()
-                } else {
-                    // Imprimimos un error más amigable para no saturar la pantalla
-                    Toast.makeText(requireContext(), "Error en el proceso de FFmpeg", Toast.LENGTH_LONG).show()
-                    android.util.Log.e("FFmpegError", session.failStackTrace ?: "Desconocido")
-                }
+    FFmpegKit.executeAsync(command) { session ->
+        val returnCode = session.returnCode
+        requireActivity().runOnUiThread {
+            if (ReturnCode.isSuccess(returnCode)) {
+                // Ahora el Toast te indica exactamente dónde está
+                Toast.makeText(requireContext(), "Guardado en Películas: ${outputFile.name}", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(requireContext(), "Error en el proceso", Toast.LENGTH_LONG).show()
+                android.util.Log.e("FFmpegError", session.failStackTrace ?: "Desconocido")
             }
         }
     }
+}
 
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
