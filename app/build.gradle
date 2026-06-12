@@ -73,13 +73,12 @@ android {
 }
 
 dependencies {
-    // Apunta al archivo que descargamos mediante el workflow de GitHub Actions
-    implementation(name: 'ffmpeg-kit-full', ext: 'aar')
+    // Librería oficial de FFmpegKit (descargada automáticamente desde Maven)
+    implementation 'com.arthenica:ffmpeg-kit-full:6.0-2.LTS'
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
     implementation project(':appthemehelper')
-    // ... (El resto de tus dependencias permanecen exactamente igual)
     implementation "androidx.gridlayout:gridlayout:1.0.0"
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation 'androidx.annotation:annotation:1.6.0'
