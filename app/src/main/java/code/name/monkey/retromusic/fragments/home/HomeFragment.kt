@@ -41,7 +41,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import android.content.Intent
 import java.io.File
 import java.io.FileOutputStream
-
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
