@@ -401,8 +401,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
         val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
 
-        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
-
+        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
+        
         FFmpegKit.executeAsync(command) { session ->
             val returnCode = session.returnCode
             requireActivity().runOnUiThread {
