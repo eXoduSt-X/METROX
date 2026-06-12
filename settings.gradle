@@ -17,11 +17,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url "https://jitpack.io" }
-        
-        // Esto es lo que permite que tu build.gradle (app) encuentre el .aar en app/libs
-        flatDir {
-            dirs 'app/libs'
-        }
+        // Se eliminó el bloque flatDir porque ya no buscaremos librerías .aar en carpetas locales.
     }
 }
 
