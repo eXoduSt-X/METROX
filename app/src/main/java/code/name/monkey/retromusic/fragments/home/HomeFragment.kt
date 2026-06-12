@@ -233,12 +233,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                  Toast.makeText(requireContext(), "Debes seleccionar un video y un archivo de subtítulos primero", Toast.LENGTH_SHORT).show()
              }
    }
+// Este botón ahora hace el Hardcode (Burn) 
         binding.homeContent.btnFullscreen.setOnClickListener {
-            requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            @Suppress("DEPRECATION")
-            requireActivity().window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+            val subUri = selectedSubtitleUri
+            if (videoPlaylist.isNotEmpty() && subUri != null) {
+                createHardcodedVideo(videoPlaylist[currentIndex], subUri)
+            } else {
+                Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
+            }
         }
-    }
 
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
@@ -378,34 +381,51 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     // import com.arthenica.ffmpegkit.FFmpegKit
     // import com.arthenica.ffmpegkit.ReturnCode
 
+ // MODO MUX: Copia rápida (mkv) - Para conservar subtítulos editables
     private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
-    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-    
-    // --- NUEVA RUTA PÚBLICA ---
-    // Guardamos en la carpeta Movies/ con un timestamp para evitar sobreescribir archivos
-    val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
-    val outputFile = File(
-        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES),
-        fileName
-    )
-    // --------------------------
+        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
+        val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
 
-    val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
+        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
 
-    FFmpegKit.executeAsync(command) { session ->
-        val returnCode = session.returnCode
-        requireActivity().runOnUiThread {
-            if (ReturnCode.isSuccess(returnCode)) {
-                // Ahora el Toast te indica exactamente dónde está
-                Toast.makeText(requireContext(), "Guardado en Películas: ${outputFile.name}", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(requireContext(), "Error en el proceso", Toast.LENGTH_LONG).show()
-                android.util.Log.e("FFmpegError", session.failStackTrace ?: "Desconocido")
+        FFmpegKit.executeAsync(command) { session ->
+            val returnCode = session.returnCode
+            requireActivity().runOnUiThread {
+                if (ReturnCode.isSuccess(returnCode)) {
+                    Toast.makeText(requireContext(), "MKV guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(requireContext(), "Error en el proceso MKV", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
-}
+
+    // MODO BURN: Hardcodeo (mp4) - Para enviar por WhatsApp
+    private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
+        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+        val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
+        val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
+
+        val escapedSubPath = subFile.absolutePath.replace("\\", "/").replace(":", "\\:")
+        val command = "-i ${videoFile.absolutePath} -vf subtitles=$escapedSubPath -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
+
+        Toast.makeText(requireContext(), "Burning...", Toast.LENGTH_LONG).show()
+
+        FFmpegKit.executeAsync(command) { session ->
+            val returnCode = session.returnCode
+            requireActivity().runOnUiThread {
+                if (ReturnCode.isSuccess(returnCode)) {
+                    Toast.makeText(requireContext(), "Video quemado guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(requireContext(), "Error al quemar subtítulos", Toast.LENGTH_LONG).show()
+                    android.util.Log.e("FFmpegError", session.failStackTrace ?: "Desconocido")
+                }
+            }
+        }
+    }
 
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
