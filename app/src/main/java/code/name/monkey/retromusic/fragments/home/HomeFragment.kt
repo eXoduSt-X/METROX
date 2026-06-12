@@ -412,5 +412,5 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             e.printStackTrace()
         }
         return file
-    }
+    } 
 }
