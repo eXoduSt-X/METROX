@@ -373,21 +373,28 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
     private var isFfmpegInstalled = false // Variable de "seguro"
 
-private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
+ // Asegúrate de que estos imports estén al principio de tu archivo (HomeFragment.kt)
+    // import com.arthenica.ffmpegkit.FFmpegKit
+    // import com.arthenica.ffmpegkit.ReturnCode
+
+    private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
         val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
         val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
         val outputFile = File(requireContext().externalCacheDir, "resultado.mkv")
 
-        // Comando correcto para FFmpegKit
+        // Comando para copiar streams y añadir subtítulos
         val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt ${outputFile.absolutePath}"
 
-        FFmpegKit.executeAsync(command) { session ->
+        // Usamos la referencia correcta a la librería
+        com.arthenica.ffmpegkit.FFmpegKit.executeAsync(command) { session ->
             val returnCode = session.returnCode
             requireActivity().runOnUiThread {
-                if (ReturnCode.isSuccess(returnCode)) {
+                if (com.arthenica.ffmpegkit.ReturnCode.isSuccess(returnCode)) {
                     Toast.makeText(requireContext(), "¡Proceso terminado! ${outputFile.name}", Toast.LENGTH_LONG).show()
                 } else {
-                    Toast.makeText(requireContext(), "Error: ${session.failStackTrace}", Toast.LENGTH_LONG).show()
+                    // Imprimimos un error más amigable para no saturar la pantalla
+                    Toast.makeText(requireContext(), "Error en el proceso de FFmpeg", Toast.LENGTH_LONG).show()
+                    android.util.Log.e("FFmpegError", session.failStackTrace ?: "Desconocido")
                 }
             }
         }
