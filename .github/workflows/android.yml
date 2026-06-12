@@ -13,21 +13,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Download FFmpeg from Releases
-        run: |
-          mkdir -p app/libs
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/octet-stream" \
-          "https://github.com/eXoduSt-X/METROX/releases/download/Ffmpeg/ffmpeg-kit-full-gpl-6.0-2.LTS.aar" \
-          -o app/libs/ffmpeg-kit-full.aar
-          
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - name: Validate Gradle Wrapper
+      - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Lint Android
         run: ./gradlew lint
@@ -38,15 +29,6 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download FFmpeg from Releases
-        run: |
-          mkdir -p app/libs
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/octet-stream" \
-          "https://github.com/eXoduSt-X/METROX/releases/download/Ffmpeg/ffmpeg-kit-full-gpl-6.0-2.LTS.aar" \
-          -o app/libs/ffmpeg-kit-full.aar
-          
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
