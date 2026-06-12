@@ -253,7 +253,18 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             binding.homeContent.btnPlayPause.text = "Pause"
         }
     }
-
+     private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
+    // Esto crea una cadena como: drawtext=text='Hola':enable='between(t,1,5)':...,drawtext=text='Adiós':enable='between(t,6,10)':...
+    return subtitleList.joinToString(",") { sub ->
+        // Escapamos comillas simples y dos puntos para que FFmpeg no se confunda
+        val safeText = sub.text.replace("'", "\\'").replace(":", "\\:")
+        val startSec = sub.startTime / 1000
+        val endSec = sub.endTime / 1000
+        
+        // Configuración de estilo: centrado en la parte inferior
+        "drawtext=text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+      }
+   }
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
         val minutes = (millis / (1000 * 60)) % 60
@@ -404,31 +415,34 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    // MODO BURN: Hardcodeo (mp4) - Para enviar por WhatsApp
-    private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
-        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-        val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
-        val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
-
-        val escapedSubPath = subFile.absolutePath.replace("\\", "/").replace(":", "\\:")
-        val command = "-i ${videoFile.absolutePath} -vf subtitles=$escapedSubPath -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
-
-        Toast.makeText(requireContext(), "Burning...", Toast.LENGTH_LONG).show()
-
-        FFmpegKit.executeAsync(command) { session ->
-            val returnCode = session.returnCode
-            requireActivity().runOnUiThread {
-                if (ReturnCode.isSuccess(returnCode)) {
-                    Toast.makeText(requireContext(), "Video quemado guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(requireContext(), "Error al quemar subtítulos", Toast.LENGTH_LONG).show()
-                    android.util.Log.e("FFmpegError", session.failStackTrace ?: "Desconocido")
-                }
-            }
-        }
+   private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
+    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+    
+    if (subtitleList.isEmpty()) {
+        Toast.makeText(requireContext(), "No hay subtítulos cargados", Toast.LENGTH_SHORT).show()
+        return
     }
 
+    val filterChain = buildDrawtextFilters(subtitleList)
+    val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
+    val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
+
+    // El comando usa el filterChain que acabamos de construir
+    val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
+
+    Toast.makeText(requireContext(), "Procesando video con filtros...", Toast.LENGTH_LONG).show()
+
+    FFmpegKit.executeAsync(command) { session ->
+        val returnCode = session.returnCode
+        if (ReturnCode.isSuccess(returnCode)) {
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video quemado exitosamente", Toast.LENGTH_LONG).show() }
+        } else {
+            val logs = session.allLogsAsString
+            android.util.Log.e("FFmpegError", logs)
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error al quemar. Revisa Logcat.", Toast.LENGTH_SHORT).show() }
+        }
+      }
+    }
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         try {
