@@ -1,4 +1,4 @@
-apply plugin: 'com.android.application'
+Apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: "androidx.navigation.safeargs.kotlin"
 apply plugin: 'kotlin-parcelize'
@@ -27,9 +27,6 @@ android {
         debug {
             applicationIdSuffix '.debug'
             versionNameSuffix ' DEBUG'
-            // Opcional: si el APK es muy pesado, descomenta esto para reducir tamaño en debug
-            // shrinkResources true
-            // minifyEnabled true
         }
     }
 
@@ -73,9 +70,8 @@ android {
 }
 
 dependencies {
-    // Librería oficial de FFmpegKit (descargada automáticamente desde Maven)
-    implementation 'com.arthenica:ffmpeg-kit-full:6.0-2.LTS'
-    implementation 'com.arthenica:smart-exception-java:0.2.1'
+    // Librería actualizada y compatible con Android 15 (16KB page size)
+    implementation 'io.github.minorlai:ffmpeg-kit-16kb:6.1.2'
 
     // --- Tus dependencias ---
     implementation project(':appthemehelper')
