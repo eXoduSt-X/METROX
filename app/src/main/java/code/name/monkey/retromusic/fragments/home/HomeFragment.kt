@@ -42,14 +42,15 @@ import android.content.Intent
 import java.io.File
 import java.io.FileOutputStream
 import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.ReturnCode 
+import com.arthenica.ffmpegkit.ReturnCode
+
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-    private var savedPosition: Int = 0 
+    private var savedPosition: Int = 0
     private var selectedFolderUri: Uri? = null
     private val videoPlaylist = mutableListOf<Uri>()
     private var currentIndex = 0
@@ -83,23 +84,23 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             result.data?.data?.let { uri ->
                 requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 selectedFolderUri = uri
-                saveFolderUri(uri) // <-- AÑADIR ESTA LÍNEA
+                saveFolderUri(uri)
                 loadVideosFromSelectedFolder(uri)
             }
         }
     }
 
     private val subtitlePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-    uri?.let {
-        selectedSubtitleUri = it // <--- GUARDA LA URI AQUÍ
-        try {
-            requireContext().contentResolver.openInputStream(it)?.use { stream -> parseSrt(stream) }
-            Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
+        uri?.let {
+            selectedSubtitleUri = it
+            try {
+                requireContext().contentResolver.openInputStream(it)?.use { stream -> parseSrt(stream) }
+                Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
+            }
         }
     }
-}
 
     private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
@@ -144,11 +145,14 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    // --- CORRECCIÓN: Método faltante que causaba el error ---
     private fun loadVideosFromDownloads() {
         downloadVideoList.clear()
         val projection = arrayOf(MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media._ID)
-        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL) else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        }
         requireContext().contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
             val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
@@ -160,7 +164,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
         binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
-            videoPlaylist.clear(); videoPlaylist.add(uri); currentIndex = 0; reproducirVideoActual()
+            videoPlaylist.clear()
+            videoPlaylist.add(uri)
+            currentIndex = 0
+            reproducirVideoActual()
         }
     }
 
@@ -173,7 +180,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         if (savedUri != null) {
             loadVideosFromSelectedFolder(savedUri)
         } else {
-            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_VIDEO else Manifest.permission.READ_EXTERNAL_STORAGE
+            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Manifest.permission.READ_MEDIA_VIDEO
+            } else {
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            }
             if (ContextCompat.checkSelfPermission(requireContext(), permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 loadVideosFromDownloads()
             } else {
@@ -198,13 +209,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         postponeEnterTransition()
         view.doOnPreDraw { startPostponedEnterTransition() }
         view.doOnLayout { adjustPlaylistButtons() }
-    } // Aquí cierra onViewCreated
+    }
 
     private fun setupVideoListeners() {
         binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
         binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
         binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { if (fromUser) binding.homeContent.videoPlayer.seekTo(progress) }
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) binding.homeContent.videoPlayer.seekTo(progress)
+            }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
@@ -214,18 +227,31 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             binding.homeContent.videoSeekBar.max = mp.duration
             binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
         }
-        binding.homeContent.btnPrevVideo.setOnClickListener { if (currentIndex > 0) { currentIndex--; reproducirVideoActual() } }
-        binding.homeContent.btnRewindTime.setOnClickListener { binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition - 5000).coerceAtLeast(0)) }
-        binding.homeContent.btnForwardTime.setOnClickListener { binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration)) }
-        binding.homeContent.btnNextVideo.setOnClickListener { if (currentIndex < videoPlaylist.size - 1) { currentIndex++; reproducirVideoActual() } }
-        binding.homeContent.btnChooseFolder.setOnClickListener { folderPickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)) }
+        binding.homeContent.btnPrevVideo.setOnClickListener {
+            if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
+        }
+        binding.homeContent.btnRewindTime.setOnClickListener {
+            binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition - 5000).coerceAtLeast(0))
+        }
+        binding.homeContent.btnForwardTime.setOnClickListener {
+            binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration))
+        }
+        binding.homeContent.btnNextVideo.setOnClickListener {
+            if (currentIndex < videoPlaylist.size - 1) { currentIndex++; reproducirVideoActual() }
+        }
+        binding.homeContent.btnChooseFolder.setOnClickListener {
+            folderPickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
+        }
         binding.homeContent.btnPlayPause.setOnClickListener {
             val player = binding.homeContent.videoPlayer
-            if (player.isPlaying) { player.pause(); binding.homeContent.btnPlayPause.text = "Play" }
-            else { player.start(); binding.homeContent.btnPlayPause.text = "Pause" }
+            if (player.isPlaying) {
+                player.pause()
+                binding.homeContent.btnPlayPause.text = "Play"
+            } else {
+                player.start()
+                binding.homeContent.btnPlayPause.text = "Pause"
+            }
         }
-
-        // Botón Mux (MKV)
         binding.homeContent.btnMixVideo.setOnClickListener {
             val subUri = selectedSubtitleUri
             if (videoPlaylist.isNotEmpty() && subUri != null) {
@@ -234,8 +260,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
             }
         }
-
-        // Botón Fullscreen (ahora es Burn para WhatsApp)
         binding.homeContent.btnFullscreen.setOnClickListener {
             val subUri = selectedSubtitleUri
             if (videoPlaylist.isNotEmpty() && subUri != null) {
@@ -254,18 +278,16 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             binding.homeContent.btnPlayPause.text = "Pause"
         }
     }
-     private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
-    // Esto crea una cadena como: drawtext=text='Hola':enable='between(t,1,5)':...,drawtext=text='Adiós':enable='between(t,6,10)':...
-    return subtitleList.joinToString(",") { sub ->
-        // Escapamos comillas simples y dos puntos para que FFmpeg no se confunda
-        val safeText = sub.text.replace("'", "\\'").replace(":", "\\:")
-        val startSec = sub.startTime / 1000
-        val endSec = sub.endTime / 1000
-        
-        // Configuración de estilo: centrado en la parte inferior
-        "drawtext=text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
-      }
-   }
+
+    private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
+        return subtitleList.joinToString(",") { sub ->
+            val safeText = sub.text.replace("'", "\\'").replace(":", "\\:")
+            val startSec = sub.startTime / 1000
+            val endSec = sub.endTime / 1000
+            "drawtext=text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+        }
+    }
+
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
         val minutes = (millis / (1000 * 60)) % 60
@@ -273,18 +295,36 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private fun adjustPlaylistButtons() {
-        val buttons = listOf(binding.homeContent.absPlaylists.history, binding.homeContent.absPlaylists.lastAdded, binding.homeContent.absPlaylists.topPlayed, binding.homeContent.absPlaylists.actionShuffle)
+        val buttons = listOf(
+            binding.homeContent.absPlaylists.history,
+            binding.homeContent.absPlaylists.lastAdded,
+            binding.homeContent.absPlaylists.topPlayed,
+            binding.homeContent.absPlaylists.actionShuffle
+        )
         buttons.maxOf { it.lineCount }.let { maxLineCount -> buttons.forEach { it.setLines(maxLineCount) } }
     }
 
     private fun setupListeners() {
-        binding.imageLayout.bannerImage?.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image")); reenterTransition = null }
-        binding.homeContent.absPlaylists.lastAdded.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.homeContent.absPlaylists.topPlayed.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST)); setSharedAxisYTransitions() }
+        binding.imageLayout.bannerImage?.setOnClickListener {
+            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
+            reenterTransition = null
+        }
+        binding.homeContent.absPlaylists.lastAdded.setOnClickListener {
+            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to LAST_ADDED_PLAYLIST))
+            setSharedAxisYTransitions()
+        }
+        binding.homeContent.absPlaylists.topPlayed.setOnClickListener {
+            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to TOP_PLAYED_PLAYLIST))
+            setSharedAxisYTransitions()
+        }
         binding.homeContent.absPlaylists.actionShuffle.setOnClickListener { libraryViewModel.shuffleSongs() }
-        binding.homeContent.absPlaylists.history.setOnClickListener { findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST)); setSharedAxisYTransitions() }
-        binding.imageLayout.userImage.setOnClickListener { findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image")) }
-
+        binding.homeContent.absPlaylists.history.setOnClickListener {
+            findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
+            setSharedAxisYTransitions()
+        }
+        binding.imageLayout.userImage.setOnClickListener {
+            findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
+        }
     }
 
     private fun setupTitle() {
@@ -293,7 +333,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private fun loadProfile() {
-        binding.imageLayout.bannerImage?.let { Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it) }
+        binding.imageLayout.bannerImage?.let {
+            Glide.with(requireContext()).load(RetroGlideExtension.getBannerModel()).profileBannerOptions(RetroGlideExtension.getBannerModel()).into(it)
+        }
         Glide.with(requireActivity()).load(RetroGlideExtension.getUserModel()).userProfileOptions(RetroGlideExtension.getUserModel(), requireContext()).into(binding.imageLayout.userImage)
     }
 
@@ -306,13 +348,17 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private fun checkForMargins() {
         if (mainActivity.isBottomNavVisible) {
-            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = dip(R.dimen.bottom_nav_height) }
+            binding.container.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = dip(R.dimen.bottom_nav_height)
+            }
         }
     }
 
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_main, menu)
-        menu.removeItem(R.id.action_grid_size); menu.removeItem(R.id.action_layout_type); menu.removeItem(R.id.action_sort_order)
+        menu.removeItem(R.id.action_grid_size)
+        menu.removeItem(R.id.action_layout_type)
+        menu.removeItem(R.id.action_sort_order)
         menu.findItem(R.id.action_settings)?.setShowAsAction(1)
         val toolbar = binding.appBarLayout.toolbar
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(requireContext(), toolbar, menu, ATHToolbarActivity.getToolbarBackgroundColor(toolbar))
@@ -329,11 +375,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private fun saveFolderUri(uri: Uri) {
-        requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE).edit().putString(PREF_SELECTED_FOLDER_URI, uri.toString()).apply()
+        requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putString(PREF_SELECTED_FOLDER_URI, uri.toString()).apply()
     }
 
     private fun loadSavedFolderUri(): Uri? {
-        val uriString = requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE).getString(PREF_SELECTED_FOLDER_URI, null)
+        val uriString = requireContext().getSharedPreferences("video_prefs", android.content.Context.MODE_PRIVATE)
+            .getString(PREF_SELECTED_FOLDER_URI, null)
         return uriString?.let { Uri.parse(it) }
     }
 
@@ -354,13 +402,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.homeContent.tvCurrentTime.visibility = visibility
         binding.homeContent.tvTotalTime.visibility = visibility
         binding.homeContent.btnChooseFolder.visibility = visibility
-        binding.homeContent.videoContainer.layoutParams.height = if (isLandscape) ViewGroup.LayoutParams.MATCH_PARENT else (250 * resources.displayMetrics.density).toInt()
-    }
-
-    companion object {
-        const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
-        const val TAG: String = "BannerHomeFragment"
-        @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
+        binding.homeContent.videoContainer.layoutParams.height = if (isLandscape) {
+            ViewGroup.LayoutParams.MATCH_PARENT
+        } else {
+            (250 * resources.displayMetrics.density).toInt()
+        }
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
@@ -384,100 +430,95 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     override fun onDestroyView() {
-        if (binding.homeContent.videoPlayer.isPlaying) savedPosition = binding.homeContent.videoPlayer.currentPosition
+        if (binding.homeContent.videoPlayer.isPlaying) {
+            savedPosition = binding.homeContent.videoPlayer.currentPosition
+        }
         handler.removeCallbacks(updateSubtitleTask)
         binding.homeContent.videoPlayer.stopPlayback()
         _binding = null
         super.onDestroyView()
     }
-    private var isFfmpegInstalled = false // Variable de "seguro"
 
- // Asegúrate de que estos imports estén al principio de tu archivo (HomeFragment.kt)
-    // import com.arthenica.ffmpegkit.FFmpegKit
-    // import com.arthenica.ffmpegkit.ReturnCode
-
- // MODO MUX: Copia rápida (mkv) - Para conservar subtítulos editables
     private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
-    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-    
-    val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
-    
-    val contentValues = android.content.ContentValues().apply {
-        put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-        put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/x-matroska")
-        
-        // RELATIVE_PATH solo funciona en Android 10 (API 29) en adelante
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
+
+        val contentValues = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/x-matroska")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+            }
         }
-    }
 
-    val resolver = requireContext().contentResolver
-    
-    // Verificación de versión para elegir la URI correcta
-    val collectionUri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
-    } else {
-        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-    }
+        val resolver = requireContext().contentResolver
+        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        } else {
+            android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        }
+        val uri = resolver.insert(collectionUri, contentValues)
 
-    val uri = resolver.insert(collectionUri, contentValues)
-
-    if (uri != null) {
-        val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
-        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
-        
-        FFmpegKit.executeAsync(command) { session ->
-            if (ReturnCode.isSuccess(session.returnCode)) {
-                try {
-                    resolver.openOutputStream(uri)?.use { outputStream ->
-                        outputFile.inputStream().use { inputStream ->
-                            inputStream.copyTo(outputStream)
+        if (uri != null) {
+            val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
+            val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
+            FFmpegKit.executeAsync(command) { session ->
+                if (ReturnCode.isSuccess(session.returnCode)) {
+                    try {
+                        resolver.openOutputStream(uri)?.use { outputStream ->
+                            outputFile.inputStream().use { inputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
                         }
+                        requireActivity().runOnUiThread {
+                            Toast.makeText(requireContext(), "Guardado en Downloads", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("FFmpegError", "Error al copiar archivo: ${e.message}")
                     }
-                    requireActivity().runOnUiThread { 
-                        Toast.makeText(requireContext(), "Guardado en Downloads", Toast.LENGTH_SHORT).show() 
+                } else {
+                    android.util.Log.e("FFmpegError", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error en FFmpeg", Toast.LENGTH_SHORT).show()
                     }
-                } catch (e: Exception) {
-                    android.util.Log.e("FFmpegError", "Error al copiar archivo: ${e.message}")
-                }
-            } else {
-                android.util.Log.e("FFmpegError", session.allLogsAsString)
-                requireActivity().runOnUiThread { 
-                    Toast.makeText(requireContext(), "Error en FFmpeg", Toast.LENGTH_SHORT).show() 
                 }
             }
         }
     }
-   private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
-    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-    
-    if (subtitleList.isEmpty()) {
-        Toast.makeText(requireContext(), "No hay subtítulos cargados", Toast.LENGTH_SHORT).show()
-        return
-    }
 
-    val filterChain = buildDrawtextFilters(subtitleList)
-    val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
-    val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
+    private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
+        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
 
-    // El comando usa el filterChain que acabamos de construir
-    val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
-
-    Toast.makeText(requireContext(), "Procesando video con filtros...", Toast.LENGTH_LONG).show()
-
-    FFmpegKit.executeAsync(command) { session ->
-        val returnCode = session.returnCode
-        if (ReturnCode.isSuccess(returnCode)) {
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video quemado exitosamente", Toast.LENGTH_LONG).show() }
-        } else {
-            val logs = session.allLogsAsString
-            android.util.Log.e("FFmpegError", logs)
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error al quemar. Revisa Logcat.", Toast.LENGTH_SHORT).show() }
+        if (subtitleList.isEmpty()) {
+            Toast.makeText(requireContext(), "No hay subtítulos cargados", Toast.LENGTH_SHORT).show()
+            return
         }
-      }
+
+        val filterChain = buildDrawtextFilters(subtitleList)
+        val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
+        val outputFile = File(
+            android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES),
+            fileName
+        )
+        val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
+
+        Toast.makeText(requireContext(), "Procesando video con filtros...", Toast.LENGTH_LONG).show()
+
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Video quemado exitosamente", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                android.util.Log.e("FFmpegError", session.allLogsAsString)
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al quemar. Revisa Logcat.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         try {
@@ -490,5 +531,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             e.printStackTrace()
         }
         return file
-    } 
+    }
+
+    companion object {
+        const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
+        const val TAG: String = "BannerHomeFragment"
+        @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
+    }
 }
