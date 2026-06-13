@@ -113,29 +113,26 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     try {
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
-        
-        // 1. Creamos un archivo temporal en la misma carpeta
         val tempFile = File(songFile.parentFile, "${songFile.nameWithoutExtension}_temp.lrc")
-        
-        // 2. Escribimos el nuevo contenido en el archivo temporal
+
+        // 1. Escribimos los datos en el archivo temporal
         tempFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
 
-        // 3. RENOMBRAMOS el temporal sobre el original (Esto es "atómico" y el sistema lo permite)
-        if (lrcFile.exists()) {
-            lrcFile.delete() // Ahora sí, el sistema permitirá el borrado porque es un reemplazo inmediato
-        }
-        tempFile.renameTo(lrcFile)
+        // 2. En lugar de renameTo, leemos el temporal y escribimos en el original
+        // Esto obliga a que el archivo original se sobrescriba a nivel de bytes
+        lrcFile.writeBytes(tempFile.readBytes())
+
+        // 3. Ahora que el original está actualizado, borramos el temporal
+        tempFile.delete()
 
         lyricsType = LyricsType.SYNCED_LYRICS
-        
-        // 4. Recargamos la vista
         binding.lyricsView.loadLrc(lrcFile)
 
-        Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "LRC actualizado correctamente", Toast.LENGTH_SHORT).show()
 
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(requireContext(), "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
   }
 
