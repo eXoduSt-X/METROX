@@ -109,7 +109,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.etLyrics.setText(currentContent)
     }
 
-Binding.saveFab.setOnClickListener {
+binding.saveFab.setOnClickListener {
     try {
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
