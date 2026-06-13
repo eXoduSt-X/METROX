@@ -117,34 +117,35 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
             songFile.nameWithoutExtension + ".lrc"
         )
 
-        // Forzar la creación o sobreescritura
-        if (lrcFile.exists()) {
-            lrcFile.delete() // Eliminamos el existente para asegurar una escritura limpia
-        }
-        
-        // Escribir el contenido nuevo
-        lrcFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
+        // 1. Preparamos el texto a guardar
+        val lyricsContent = binding.etLyrics.text.toString()
 
+        // 2. Escribimos directamente (writeText sobrescribe automáticamente)
+        // Usamos .apply para asegurar que escribimos y luego refrescamos
+        lrcFile.writeText(lyricsContent, Charsets.UTF_8)
+
+        // 3. Actualizamos el estado
         lyricsType = LyricsType.SYNCED_LYRICS
         
-        // Recargar la vista con el nuevo archivo
-        binding.lyricsView.loadLrc(lrcFile)
+        // 4. IMPORTANTE: Recargamos la vista usando el CONTENIDO, no el archivo, 
+        // para asegurar que el LrcView libere cualquier bloqueo anterior.
+        binding.lyricsView.loadLrc(lyricsContent) 
 
         Toast.makeText(
             requireContext(),
-            "LRC guardado exitosamente",
+            "LRC guardado correctamente",
             Toast.LENGTH_SHORT
         ).show()
 
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(
             requireContext(),
-            "Error al guardar: ${e.message}",
+            "Error al guardar: ${e.localizedMessage}",
             Toast.LENGTH_LONG
-            ).show()
-          }
-      }
+        ).show()
+    }
+  }
 }
 
     private fun setupSincroControls() {
