@@ -398,24 +398,44 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
  // MODO MUX: Copia rápida (mkv) - Para conservar subtítulos editables
     private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
-        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
-        val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
+    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+    
+    // Nombre del archivo con timestamp para evitar conflictos
+    val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
+    
+    // Configuramos MediaStore para la carpeta Descargas (Downloads)
+    val contentValues = android.content.ContentValues().apply {
+        put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+        put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/x-matroska")
+        // AQUÍ ESTÁ LA CLAVE: DIRECTORY_DOWNLOADS
+        put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+    }
 
+    val resolver = requireContext().contentResolver
+    val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+
+    if (uri != null) {
+        val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
         val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
         
         FFmpegKit.executeAsync(command) { session ->
-            val returnCode = session.returnCode
-            requireActivity().runOnUiThread {
-                if (ReturnCode.isSuccess(returnCode)) {
-                    Toast.makeText(requireContext(), "MKV guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(requireContext(), "Error en el proceso MKV", Toast.LENGTH_LONG).show()
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                // Copiamos el resultado final al destino registrado en MediaStore
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    outputFile.inputStream().use { inputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
                 }
+                requireActivity().runOnUiThread { 
+                    Toast.makeText(requireContext(), "Guardado en Downloads", Toast.LENGTH_SHORT).show() 
+                }
+            } else {
+                android.util.Log.e("FFmpegError", session.allLogsAsString)
             }
         }
     }
+}
 
    private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
     val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
