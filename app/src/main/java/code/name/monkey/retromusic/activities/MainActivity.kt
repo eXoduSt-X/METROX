@@ -2,15 +2,6 @@
  * Copyright (c) 2020 Hemanth Savarla.
  *
  * Licensed under the GNU General Public License v3
- *
- * This is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
  */
 package code.name.monkey.retromusic.activities
 
@@ -47,17 +38,32 @@ class MainActivity : AbsSlidingMusicPanelActivity() {
         const val EXPAND_PANEL = "expand_panel"
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // --- INICIO DE SOLICITUD DE PERMISO ---
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.addCategory("android.intent.category.DEFAULT")
+                    intent.data = Uri.parse("package:${applicationContext.packageName}")
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    val intent = Intent()
+                    intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                    startActivity(intent)
+                }
+            }
+        }
+        // --- FIN DE SOLICITUD DE PERMISO ---
+
         setTaskDescriptionColorAuto()
         hideStatusBar()
         updateTabs()
-
         setupNavigationController()
-
         WhatsNewFragment.showChangeLog(this)
     }
-
     private fun setupNavigationController() {
         val navController = findNavController(R.id.fragment_container)
         val navInflater = navController.navInflater
