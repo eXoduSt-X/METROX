@@ -139,8 +139,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
         binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
             videoPlaylist.clear()
-            videoPlaylist.add(uri)
-            currentIndex = 0
+            videoPlaylist.addAll(downloadVideoList.map { it.second })
+            currentIndex = downloadVideoList.indexOfFirst { it.second == uri }.coerceAtLeast(0)
             reproducirVideoActual()
         }
     }
@@ -165,8 +165,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
         binding.homeContent.rvDownloads.adapter = DownloadVideoAdapter(downloadVideoList) { uri ->
             videoPlaylist.clear()
-            videoPlaylist.add(uri)
-            currentIndex = 0
+            videoPlaylist.addAll(downloadVideoList.map { it.second })
+            currentIndex = downloadVideoList.indexOfFirst { it.second == uri }.coerceAtLeast(0)
             reproducirVideoActual()
         }
     }
@@ -462,6 +462,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
         if (uri != null) {
             val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
+            if (outputFile.exists()) outputFile.delete()
             val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
             FFmpegKit.executeAsync(command) { session ->
                 if (ReturnCode.isSuccess(session.returnCode)) {
@@ -521,6 +522,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
+        if (file.exists()) file.delete()
         try {
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(file).use { output ->
