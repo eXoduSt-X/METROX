@@ -113,30 +113,33 @@ binding.saveFab.setOnClickListener {
     try {
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
-        val lyricsText = binding.etLyrics.text.toString()
+        val tempFile = File(songFile.parentFile, "${songFile.nameWithoutExtension}_temp.lrc")
+        
+        // 1. Escribimos en el temporal
+        tempFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
 
-        try {
-            // Intentamos el camino normal primero
-            lrcFile.writeText(lyricsText, Charsets.UTF_8)
-            binding.lyricsView.loadLrc(lrcFile)
-            Toast.makeText(requireContext(), "Guardado correctamente", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            // Si falla, creamos el archivo de respaldo .lrcC
-            val backupFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrcC")
-            backupFile.writeText(lyricsText, Charsets.UTF_8)
-            
-            Toast.makeText(
-                requireContext(), 
-                "Archivo bloqueado. Se guardó como: " + backupFile.name, 
-                Toast.LENGTH_LONG
-            ).show()
+        // 2. Intentamos reemplazar
+        val success = if (lrcFile.exists()) {
+            lrcFile.delete() && tempFile.renameTo(lrcFile)
+        } else {
+            tempFile.renameTo(lrcFile)
         }
+
+        // 3. Limpieza de seguridad: si algo salió mal, borramos el temporal para no dejar basura
+        if (!success) {
+            tempFile.delete()
+            throw Exception("El sistema denegó la sobrescritura.")
+        }
+
         lyricsType = LyricsType.SYNCED_LYRICS
+        binding.lyricsView.loadLrc(lrcFile)
+        Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
+
     } catch (e: Exception) {
-        Toast.makeText(requireContext(), "Error grave: ${e.message}", Toast.LENGTH_LONG).show()
+        e.printStackTrace()
+        Toast.makeText(requireContext(), "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
   }
-
 }
 
     private fun setupSincroControls() {
