@@ -110,42 +110,41 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     binding.saveFab.setOnClickListener {
+    try {
+        val songFile = File(song.data)
+        val lrcFile = File(
+            songFile.parentFile,
+            songFile.nameWithoutExtension + ".lrc"
+        )
 
-        try {
+        // Forzar la creación o sobreescritura
+        if (lrcFile.exists()) {
+            lrcFile.delete() // Eliminamos el existente para asegurar una escritura limpia
+        }
+        
+        // Escribir el contenido nuevo
+        lrcFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
 
-            val songFile = File(song.data)
+        lyricsType = LyricsType.SYNCED_LYRICS
+        
+        // Recargar la vista con el nuevo archivo
+        binding.lyricsView.loadLrc(lrcFile)
 
-            val lrcFile = File(
-                songFile.parentFile,
-                songFile.nameWithoutExtension + ".lrc"
-            )
-
-            lrcFile.writeText(
-                binding.etLyrics.text.toString(),
-                Charsets.UTF_8
-            )
-
-            lyricsType = LyricsType.SYNCED_LYRICS
-
-            binding.lyricsView.loadLrc(lrcFile)
-
-            Toast.makeText(
-                requireContext(),
-                "LRC guardado:\n${lrcFile.name}",
-                Toast.LENGTH_LONG
-            ).show()
+        Toast.makeText(
+            requireContext(),
+            "LRC guardado exitosamente",
+            Toast.LENGTH_SHORT
+        ).show()
 
         } catch (e: Exception) {
-
             e.printStackTrace()
-
             Toast.makeText(
-                requireContext(),
-                "Error al guardar el archivo LRC",
-                Toast.LENGTH_SHORT
+            requireContext(),
+            "Error al guardar: ${e.message}",
+            Toast.LENGTH_LONG
             ).show()
-        }
-    }
+          }
+      }
 }
 
     private fun setupSincroControls() {
