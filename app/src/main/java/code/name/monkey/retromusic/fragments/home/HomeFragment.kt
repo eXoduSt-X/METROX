@@ -58,6 +58,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
     private var selectedSubtitleUri: Uri? = null
+    private var selectedAudioUri: Uri? = null
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
@@ -99,6 +100,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private val audioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            selectedAudioUri = it
+            val name = requireContext().contentResolver.query(it, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else "Audio" } ?: "Audio"
+            Toast.makeText(requireContext(), "Audio cargado: $name", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -255,18 +265,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.homeContent.btnMixVideo.setOnClickListener {
             val subUri = selectedSubtitleUri
             if (videoPlaylist.isNotEmpty() && subUri != null) {
-                createMkvWithSubtitles(videoPlaylist[currentIndex], subUri)
+                createMkvWithSubtitles(videoPlaylist[currentIndex], subUri, selectedAudioUri)
             } else {
-                Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Selecciona video y subtítulos primero", Toast.LENGTH_SHORT).show()
             }
         }
         binding.homeContent.btnFullscreen.setOnClickListener {
-            val subUri = selectedSubtitleUri
-            if (videoPlaylist.isNotEmpty() && subUri != null) {
-                createHardcodedVideo(videoPlaylist[currentIndex], subUri)
-            } else {
-                Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
-            }
+            audioPickerLauncher.launch("audio/*")
         }
     }
 
@@ -439,10 +444,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         super.onDestroyView()
     }
 
-    private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
+    private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri, audioUri: Uri? = null) {
         val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
         val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
+        val fileName = "VID_${System.currentTimeMillis()}.mkv"
 
         val contentValues = android.content.ContentValues().apply {
             put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
@@ -463,7 +468,15 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         if (uri != null) {
             val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
             if (outputFile.exists()) outputFile.delete()
-            val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
+            val command = if (audioUri != null) {
+                val audioFile = cacheUriToFile(audioUri, "input_audio.mp3")
+                // Video + subtítulos + audio externo: el audio externo queda como pista 0 (principal)
+                "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -i ${audioFile.absolutePath} " +
+                "-map 0:v -map 2:a -map 1:s " +
+                "-c copy -c:s srt -disposition:a:0 default -disposition:s:0 default ${outputFile.absolutePath}"
+            } else {
+                "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
+            }
             FFmpegKit.executeAsync(command) { session ->
                 if (ReturnCode.isSuccess(session.returnCode)) {
                     try {
