@@ -83,6 +83,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             result.data?.data?.let { uri ->
                 requireContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 selectedFolderUri = uri
+                saveFolderUri(uri) // <-- AÑADIR ESTA LÍNEA
                 loadVideosFromSelectedFolder(uri)
             }
         }
