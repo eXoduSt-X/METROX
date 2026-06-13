@@ -112,40 +112,33 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     binding.saveFab.setOnClickListener {
     try {
         val songFile = File(song.data)
-        val lrcFile = File(
-            songFile.parentFile,
-            songFile.nameWithoutExtension + ".lrc"
-        )
+        val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
+        
+        // 1. Creamos un archivo temporal en la misma carpeta
+        val tempFile = File(songFile.parentFile, "${songFile.nameWithoutExtension}_temp.lrc")
+        
+        // 2. Escribimos el nuevo contenido en el archivo temporal
+        tempFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
 
-        // 1. Preparamos el texto a guardar
-        val lyricsContent = binding.etLyrics.text.toString()
+        // 3. RENOMBRAMOS el temporal sobre el original (Esto es "atómico" y el sistema lo permite)
+        if (lrcFile.exists()) {
+            lrcFile.delete() // Ahora sí, el sistema permitirá el borrado porque es un reemplazo inmediato
+        }
+        tempFile.renameTo(lrcFile)
 
-        // 2. Escribimos directamente (writeText sobrescribe automáticamente)
-        // Usamos .apply para asegurar que escribimos y luego refrescamos
-        lrcFile.writeText(lyricsContent, Charsets.UTF_8)
-
-        // 3. Actualizamos el estado
         lyricsType = LyricsType.SYNCED_LYRICS
         
-        // 4. IMPORTANTE: Recargamos la vista usando el CONTENIDO, no el archivo, 
-        // para asegurar que el LrcView libere cualquier bloqueo anterior.
-        binding.lyricsView.loadLrc(lyricsContent) 
+        // 4. Recargamos la vista
+        binding.lyricsView.loadLrc(lrcFile)
 
-        Toast.makeText(
-            requireContext(),
-            "LRC guardado correctamente",
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
 
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(
-            requireContext(),
-            "Error al guardar: ${e.localizedMessage}",
-            Toast.LENGTH_LONG
-        ).show()
+        Toast.makeText(requireContext(), "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
   }
+
 }
 
     private fun setupSincroControls() {
