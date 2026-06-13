@@ -401,19 +401,28 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
     val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
     
-    // Nombre del archivo con timestamp para evitar conflictos
     val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
     
-    // Configuramos MediaStore para la carpeta Descargas (Downloads)
     val contentValues = android.content.ContentValues().apply {
         put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
         put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/x-matroska")
-        // AQUÍ ESTÁ LA CLAVE: DIRECTORY_DOWNLOADS
-        put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+        
+        // RELATIVE_PATH solo funciona en Android 10 (API 29) en adelante
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+        }
     }
 
     val resolver = requireContext().contentResolver
-    val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+    
+    // Verificación de versión para elegir la URI correcta
+    val collectionUri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
+    } else {
+        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    }
+
+    val uri = resolver.insert(collectionUri, contentValues)
 
     if (uri != null) {
         val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
@@ -421,22 +430,26 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode)) {
-                // Copiamos el resultado final al destino registrado en MediaStore
-                resolver.openOutputStream(uri)?.use { outputStream ->
-                    outputFile.inputStream().use { inputStream ->
-                        inputStream.copyTo(outputStream)
+                try {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        outputFile.inputStream().use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
                     }
-                }
-                requireActivity().runOnUiThread { 
-                    Toast.makeText(requireContext(), "Guardado en Downloads", Toast.LENGTH_SHORT).show() 
+                    requireActivity().runOnUiThread { 
+                        Toast.makeText(requireContext(), "Guardado en Downloads", Toast.LENGTH_SHORT).show() 
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("FFmpegError", "Error al copiar archivo: ${e.message}")
                 }
             } else {
                 android.util.Log.e("FFmpegError", session.allLogsAsString)
+                requireActivity().runOnUiThread { 
+                    Toast.makeText(requireContext(), "Error en FFmpeg", Toast.LENGTH_SHORT).show() 
+                }
             }
         }
     }
-}
-
    private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
     val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
     
