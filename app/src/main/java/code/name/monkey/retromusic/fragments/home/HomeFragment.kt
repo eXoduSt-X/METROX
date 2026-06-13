@@ -398,26 +398,41 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
  // MODO MUX: Copia rápida (mkv) - Para conservar subtítulos editables
     private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri) {
-        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-        val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
-        val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
+    val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
+    val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
+    val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
+    
+    // Para Android 10+ usa MediaStore, para versiones anteriores Downloads directo
+    val outputFile = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // En Android 10+ guardamos en Downloads usando MediaStore
+        saveToDownloads(videoFile, subFile, fileName, "video/x-matroska")
+        return // La función saveToDownloads maneja todo
+    } else {
+        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+    }
 
-        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
-        
-        FFmpegKit.executeAsync(command) { session ->
-            val returnCode = session.returnCode
-            requireActivity().runOnUiThread {
-                if (ReturnCode.isSuccess(returnCode)) {
-                    Toast.makeText(requireContext(), "MKV guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(requireContext(), "Error en el proceso MKV", Toast.LENGTH_LONG).show()
+    val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
+    
+    FFmpegKit.executeAsync(command) { session ->
+        val returnCode = session.returnCode
+        requireActivity().runOnUiThread {
+            if (ReturnCode.isSuccess(returnCode)) {
+                Toast.makeText(requireContext(), "MKV guardado en Downloads: ${outputFile.name}", Toast.LENGTH_LONG).show()
+                // Notificar al sistema para que aparezca en la galería
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                    Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
+                        mediaScanIntent.data = Uri.fromFile(outputFile)
+                        requireContext().sendBroadcast(mediaScanIntent)
+                    }
                 }
+            } else {
+                Toast.makeText(requireContext(), "Error en el proceso MKV", Toast.LENGTH_LONG).show()
             }
         }
     }
+}
 
-   private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
+private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
     val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
     
     if (subtitleList.isEmpty()) {
@@ -427,24 +442,118 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
     val filterChain = buildDrawtextFilters(subtitleList)
     val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
-    val outputFile = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES), fileName)
+    
+    // Mismo enfoque para el video quemado
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val outputFile = File(requireContext().cacheDir, fileName)
+        val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -preset fast -c:a copy ${outputFile.absolutePath}"
+        
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                // Copiar a Downloads usando MediaStore
+                copyToDownloads(outputFile, fileName, "video/mp4")
+                outputFile.delete() // Limpiar cache
+            } else {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al procesar", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        return
+    }
 
-    // El comando usa el filterChain que acabamos de construir
-    val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
+    val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+    val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -preset fast -c:a copy ${outputFile.absolutePath}"
 
-    Toast.makeText(requireContext(), "Procesando video con filtros...", Toast.LENGTH_LONG).show()
+    Toast.makeText(requireContext(), "Procesando video...", Toast.LENGTH_LONG).show()
 
     FFmpegKit.executeAsync(command) { session ->
         val returnCode = session.returnCode
         if (ReturnCode.isSuccess(returnCode)) {
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video quemado exitosamente", Toast.LENGTH_LONG).show() }
+            requireActivity().runOnUiThread { 
+                Toast.makeText(requireContext(), "Video guardado en Downloads", Toast.LENGTH_LONG).show()
+                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { 
+                    it.data = Uri.fromFile(outputFile)
+                    requireContext().sendBroadcast(it)
+                }
+            }
         } else {
             val logs = session.allLogsAsString
             android.util.Log.e("FFmpegError", logs)
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error al quemar. Revisa Logcat.", Toast.LENGTH_SHORT).show() }
+            requireActivity().runOnUiThread { 
+                Toast.makeText(requireContext(), "Error: ${session.returnCode}", Toast.LENGTH_SHORT).show() 
+            }
         }
-      }
     }
+}
+
+// Para Android 10+ (Scoped Storage)
+private fun saveToDownloads(videoFile: File, subFile: File, fileName: String, mimeType: String) {
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+        put(MediaStore.Downloads.MIME_TYPE, mimeType)
+        put(MediaStore.Downloads.IS_PENDING, 1) // Marcar como pendiente mientras se procesa
+    }
+
+    val resolver = requireContext().contentResolver
+    val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+    } else null
+
+    uri?.let { outputUri ->
+        // Primero copiamos a un archivo temporal en cache
+        val tempOutput = File(requireContext().cacheDir, fileName)
+        val command = "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${tempOutput.absolutePath}"
+        
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                // Copiar el resultado a MediaStore
+                resolver.openOutputStream(outputUri)?.use { outputStream ->
+                    tempOutput.inputStream().use { it.copyTo(outputStream) }
+                }
+                // Marcar como completado
+                contentValues.clear()
+                contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(outputUri, contentValues, null, null)
+                tempOutput.delete()
+                
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Guardado en Downloads: $fileName", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                resolver.delete(outputUri, null, null)
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al procesar", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+}
+
+private fun copyToDownloads(cacheFile: File, fileName: String, mimeType: String) {
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+        put(MediaStore.Downloads.MIME_TYPE, mimeType)
+        put(MediaStore.Downloads.IS_PENDING, 1)
+    }
+
+    val resolver = requireContext().contentResolver
+    val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+    
+    uri?.let { outputUri ->
+        resolver.openOutputStream(outputUri)?.use { outputStream ->
+            cacheFile.inputStream().use { it.copyTo(outputStream) }
+        }
+        contentValues.clear()
+        contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
+        resolver.update(outputUri, contentValues, null, null)
+        
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "Guardado en Downloads: $fileName", Toast.LENGTH_LONG).show()
+        }
+    }
+}
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         try {
