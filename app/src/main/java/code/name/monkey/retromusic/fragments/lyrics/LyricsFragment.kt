@@ -110,35 +110,32 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
 binding.saveFab.setOnClickListener {
-    try {
+        val lyricsText = binding.etLyrics.text.toString()
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
-        
-        // 1. Creamos un archivo temporal en la misma carpeta
-        val tempFile = File(songFile.parentFile, "${songFile.nameWithoutExtension}_temp.lrc")
-        
-        // 2. Escribimos el nuevo contenido en el archivo temporal
-        tempFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
 
-        // 3. RENOMBRAMOS el temporal sobre el original (Esto es "atómico" y el sistema lo permite)
-        if (lrcFile.exists()) {
-            lrcFile.delete() // Ahora sí, el sistema permitirá el borrado porque es un reemplazo inmediato
+        try {
+            // Con el permiso MANAGE_EXTERNAL_STORAGE, esto funcionará en cualquier carpeta.
+            lrcFile.writeText(lyricsText, Charsets.UTF_8)
+            
+            lyricsType = LyricsType.SYNCED_LYRICS
+            
+            // 4. Recargamos la vista de letras
+            binding.lyricsView.loadLrc(lrcFile)
+
+            Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Si llegara a fallar (por ejemplo, si el usuario no concedió el permiso),
+            // notificamos con un mensaje claro.
+            Toast.makeText(
+                requireContext(), 
+                "Error al guardar: ${e.localizedMessage}. Asegúrate de haber concedido el acceso a archivos.", 
+                Toast.LENGTH_LONG
+            ).show()
         }
-        tempFile.renameTo(lrcFile)
-
-        lyricsType = LyricsType.SYNCED_LYRICS
-        
-        // 4. Recargamos la vista
-        binding.lyricsView.loadLrc(lrcFile)
-
-        Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
-
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(requireContext(), "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
-  }
-
 }
 
     private fun setupSincroControls() {
