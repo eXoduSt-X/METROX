@@ -109,30 +109,28 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.etLyrics.setText(currentContent)
     }
 
-binding.saveFab.setOnClickListener {
+Binding.saveFab.setOnClickListener {
     try {
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
+        
+        // 1. Creamos un archivo temporal en la misma carpeta
         val tempFile = File(songFile.parentFile, "${songFile.nameWithoutExtension}_temp.lrc")
         
-        // 1. Escribimos en el temporal
+        // 2. Escribimos el nuevo contenido en el archivo temporal
         tempFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
 
-        // 2. Intentamos reemplazar
-        val success = if (lrcFile.exists()) {
-            lrcFile.delete() && tempFile.renameTo(lrcFile)
-        } else {
-            tempFile.renameTo(lrcFile)
+        // 3. RENOMBRAMOS el temporal sobre el original (Esto es "atómico" y el sistema lo permite)
+        if (lrcFile.exists()) {
+            lrcFile.delete() // Ahora sí, el sistema permitirá el borrado porque es un reemplazo inmediato
         }
-
-        // 3. Limpieza de seguridad: si algo salió mal, borramos el temporal para no dejar basura
-        if (!success) {
-            tempFile.delete()
-            throw Exception("El sistema denegó la sobrescritura.")
-        }
+        tempFile.renameTo(lrcFile)
 
         lyricsType = LyricsType.SYNCED_LYRICS
+        
+        // 4. Recargamos la vista
         binding.lyricsView.loadLrc(lrcFile)
+
         Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
 
     } catch (e: Exception) {
@@ -140,6 +138,7 @@ binding.saveFab.setOnClickListener {
         Toast.makeText(requireContext(), "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
   }
+
 }
 
     private fun setupSincroControls() {
