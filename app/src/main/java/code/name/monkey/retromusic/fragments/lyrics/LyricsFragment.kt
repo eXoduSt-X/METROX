@@ -113,32 +113,27 @@ binding.saveFab.setOnClickListener {
     try {
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
-        
-        // --- DIAGNÓSTICO ---
-        if (lrcFile.exists()) {
-            val canWrite = lrcFile.canWrite()
-            if (!canWrite) {
-                // Si esto salta, el problema no es tu código, es que Android bloqueó el archivo
-                Toast.makeText(requireContext(), "Archivo bloqueado por el sistema (Sólo lectura)", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
+        val lyricsText = binding.etLyrics.text.toString()
+
+        try {
+            // Intentamos el camino normal primero
+            lrcFile.writeText(lyricsText, Charsets.UTF_8)
+            binding.lyricsView.loadLrc(lrcFile)
+            Toast.makeText(requireContext(), "Guardado correctamente", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            // Si falla, creamos el archivo de respaldo .lrcC
+            val backupFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrcC")
+            backupFile.writeText(lyricsText, Charsets.UTF_8)
+            
+            Toast.makeText(
+                requireContext(), 
+                "Archivo bloqueado. Se guardó como: " + backupFile.name, 
+                Toast.LENGTH_LONG
+            ).show()
         }
-        // --- FIN DIAGNÓSTICO ---
-
-        // Si pasa el diagnóstico, procedemos con la escritura de bajo nivel
-        binding.lyricsView.loadLrc(null as File?) 
-        
-        val fos = java.io.FileOutputStream(lrcFile, false)
-        fos.write(binding.etLyrics.text.toString().toByteArray(Charsets.UTF_8))
-        fos.flush()
-        fos.close()
-
-        binding.lyricsView.loadLrc(lrcFile)
-        Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
-
+        lyricsType = LyricsType.SYNCED_LYRICS
     } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), "Error grave: ${e.message}", Toast.LENGTH_LONG).show()
     }
   }
 
