@@ -109,30 +109,36 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         binding.etLyrics.setText(currentContent)
     }
 
-    binding.saveFab.setOnClickListener {
+binding.saveFab.setOnClickListener {
     try {
         val songFile = File(song.data)
         val lrcFile = File(songFile.parentFile, songFile.nameWithoutExtension + ".lrc")
-        val tempFile = File(songFile.parentFile, "${songFile.nameWithoutExtension}_temp.lrc")
+        
+        // --- DIAGNÓSTICO ---
+        if (lrcFile.exists()) {
+            val canWrite = lrcFile.canWrite()
+            if (!canWrite) {
+                // Si esto salta, el problema no es tu código, es que Android bloqueó el archivo
+                Toast.makeText(requireContext(), "Archivo bloqueado por el sistema (Sólo lectura)", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+        }
+        // --- FIN DIAGNÓSTICO ---
 
-        // 1. Escribimos los datos en el archivo temporal
-        tempFile.writeText(binding.etLyrics.text.toString(), Charsets.UTF_8)
+        // Si pasa el diagnóstico, procedemos con la escritura de bajo nivel
+        binding.lyricsView.loadLrc(null as File?) 
+        
+        val fos = java.io.FileOutputStream(lrcFile, false)
+        fos.write(binding.etLyrics.text.toString().toByteArray(Charsets.UTF_8))
+        fos.flush()
+        fos.close()
 
-        // 2. En lugar de renameTo, leemos el temporal y escribimos en el original
-        // Esto obliga a que el archivo original se sobrescriba a nivel de bytes
-        lrcFile.writeBytes(tempFile.readBytes())
-
-        // 3. Ahora que el original está actualizado, borramos el temporal
-        tempFile.delete()
-
-        lyricsType = LyricsType.SYNCED_LYRICS
         binding.lyricsView.loadLrc(lrcFile)
-
-        Toast.makeText(requireContext(), "LRC actualizado correctamente", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Guardado exitosamente", Toast.LENGTH_SHORT).show()
 
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(requireContext(), "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
     }
   }
 
