@@ -8,6 +8,7 @@ import android.view.*
 import android.widget.Toast
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.os.bundleOf
 import androidx.core.view.doOnLayout
@@ -106,19 +107,112 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val audioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             selectedAudioUri = it
-            val name = requireContext().contentResolver.query(it, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-                ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else "Audio" } ?: "Audio"
+            val name = requireContext().contentResolver.query(
+                it, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else "Audio" } ?: "Audio"
             Toast.makeText(requireContext(), "Audio cargado: $name", Toast.LENGTH_SHORT).show()
         }
     }
 
+    // Picker de videos para UNIR — selección múltiple
     private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
+            // Reproducir el primero en el player
             videoPlaylist.clear()
             videoPlaylist.addAll(uris)
             currentIndex = 0
             reproducirVideoActual()
+
+            // Si seleccionó más de uno, preguntar si desea unirlos
+            if (uris.size > 1) {
+                mostrarDialogoUnirVideos(uris)
+            }
         }
+    }
+
+    private fun mostrarDialogoUnirVideos(uris: List<Uri>) {
+        val nombres = uris.map { uri ->
+            requireContext().contentResolver.query(
+                uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else uri.lastPathSegment ?: "Video" } ?: "Video"
+        }
+
+        val listaTexto = nombres.mapIndexed { i, nombre -> "${i + 1}. $nombre" }.joinToString("\n")
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("¿Unir estos ${uris.size} videos?")
+            .setMessage("Se unirán en este orden:\n\n$listaTexto\n\nEl resultado se guardará en Downloads.")
+            .setPositiveButton("Unir") { _, _ ->
+                unirVideos(uris, nombres)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
+        Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
+
+        Thread {
+            try {
+                // 1. Copiar cada video a caché
+                val archivos = uris.mapIndexed { i, uri ->
+                    cacheUriToFile(uri, "merge_input_$i.mp4")
+                }
+
+                // 2. Crear el archivo de lista para FFmpeg (formato concat)
+                val listaFile = File(requireContext().cacheDir, "merge_list.txt")
+                listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
+
+                // 3. Archivo de salida en Downloads
+                val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
+                val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
+                if (outputFile.exists()) outputFile.delete()
+
+                // 4. Comando FFmpeg usando el demuxer concat (copia sin recodificar, rápido)
+                val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
+
+                FFmpegKit.executeAsync(command) { session ->
+                    if (ReturnCode.isSuccess(session.returnCode)) {
+                        // 5. Guardar en Downloads vía MediaStore
+                        val contentValues = android.content.ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, nombreSalida)
+                            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+                            }
+                        }
+                        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                        } else {
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                        }
+                        val destUri = requireContext().contentResolver.insert(collectionUri, contentValues)
+                        if (destUri != null) {
+                            requireContext().contentResolver.openOutputStream(destUri)?.use { out ->
+                                outputFile.inputStream().use { it.copyTo(out) }
+                            }
+                            requireActivity().runOnUiThread {
+                                Toast.makeText(requireContext(), "✓ Video unido guardado en Downloads", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        // Limpiar caché
+                        archivos.forEach { it.delete() }
+                        listaFile.delete()
+                        outputFile.delete()
+                    } else {
+                        android.util.Log.e("FFmpegMerge", session.allLogsAsString)
+                        requireActivity().runOnUiThread {
+                            Toast.makeText(requireContext(), "Error al unir videos. Revisa Logcat.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error preparando los archivos", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
     }
 
     private fun parseSrt(inputStream: java.io.InputStream) {
@@ -447,36 +541,37 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private fun createMkvWithSubtitles(videoUri: Uri, subtitleUri: Uri, audioUri: Uri? = null) {
         val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
         val subFile = cacheUriToFile(subtitleUri, "input_sub.srt")
-        val fileName = "VID_${System.currentTimeMillis()}.mkv"
+        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mkv"
 
         val contentValues = android.content.ContentValues().apply {
-            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/x-matroska")
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/x-matroska")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
             }
         }
 
         val resolver = requireContext().contentResolver
         val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI
         } else {
-            android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         }
         val uri = resolver.insert(collectionUri, contentValues)
 
         if (uri != null) {
             val outputFile = File(requireContext().cacheDir, "temp_output.mkv")
             if (outputFile.exists()) outputFile.delete()
+
             val command = if (audioUri != null) {
                 val audioFile = cacheUriToFile(audioUri, "input_audio.mp3")
-                // Video + subtítulos + audio externo: el audio externo queda como pista 0 (principal)
                 "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -i ${audioFile.absolutePath} " +
                 "-map 0:v -map 2:a -map 1:s " +
                 "-c copy -c:s srt -disposition:a:0 default -disposition:s:0 default ${outputFile.absolutePath}"
             } else {
                 "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
             }
+
             FFmpegKit.executeAsync(command) { session ->
                 if (ReturnCode.isSuccess(session.returnCode)) {
                     try {
@@ -496,38 +591,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                     requireActivity().runOnUiThread {
                         Toast.makeText(requireContext(), "Error en FFmpeg", Toast.LENGTH_SHORT).show()
                     }
-                }
-            }
-        }
-    }
-
-    private fun createHardcodedVideo(videoUri: Uri, subtitleUri: Uri) {
-        val videoFile = cacheUriToFile(videoUri, "input_video.mp4")
-
-        if (subtitleList.isEmpty()) {
-            Toast.makeText(requireContext(), "No hay subtítulos cargados", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val filterChain = buildDrawtextFilters(subtitleList)
-        val fileName = "Video_WhatsApp_${System.currentTimeMillis()}.mp4"
-        val outputFile = File(
-            android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES),
-            fileName
-        )
-        val command = "-i ${videoFile.absolutePath} -vf \"$filterChain\" -c:v libx264 -crf 23 -c:a copy ${outputFile.absolutePath}"
-
-        Toast.makeText(requireContext(), "Procesando video con filtros...", Toast.LENGTH_LONG).show()
-
-        FFmpegKit.executeAsync(command) { session ->
-            if (ReturnCode.isSuccess(session.returnCode)) {
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Video quemado exitosamente", Toast.LENGTH_LONG).show()
-                }
-            } else {
-                android.util.Log.e("FFmpegError", session.allLogsAsString)
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error al quemar. Revisa Logcat.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
