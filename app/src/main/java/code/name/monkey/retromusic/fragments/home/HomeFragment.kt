@@ -367,7 +367,18 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.homeContent.btnFullscreen.setOnClickListener {
             audioPickerLauncher.launch("audio/*")
         }
+        binding.homeContent.btnSplit.setOnClickListener {
+            val startTime = binding.homeContent.etStartTime.text.toString()
+            val endTime = binding.homeContent.etEndTime.text.toString()
+
+            if (startTime.isNotEmpty() && endTime.isNotEmpty() && videoPlaylist.isNotEmpty()) {
+                splitVideo(videoPlaylist[currentIndex], startTime, endTime)
+            } else {
+                Toast.makeText(requireContext(), "Revisa los tiempos o selecciona un video", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
+
 
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
@@ -595,7 +606,29 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
     }
+   private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
+        val videoFile = cacheUriToFile(videoUri, "input_split.mp4")
+        val fileName = "Clip_${System.currentTimeMillis()}.mp4"
+        val outputDir = requireContext().getExternalFilesDir(android.os.Environment.DIRECTORY_MOVIES)
+        val outputFile = File(outputDir, fileName)
 
+        val command = "-i ${videoFile.absolutePath} -ss $startTime -to $endTime -c copy ${outputFile.absolutePath}"
+
+        Toast.makeText(requireContext(), "Procesando corte...", Toast.LENGTH_SHORT).show()
+
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Clip guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                android.util.Log.e("FFmpegError", session.allLogsAsString)
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al cortar", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+   }
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
