@@ -686,27 +686,39 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     val tempDir = File(requireContext().cacheDir, "temp_img_video")
-    if (!tempDir.exists()) tempDir.mkdirs()
+    if (tempDir.exists()) tempDir.deleteRecursively() // Limpiar carpeta previa
+    tempDir.mkdirs()
     
-    // Copiar a archivos numerados para FFmpeg
     imageUris.forEachIndexed { i, uri ->
+        // Forzamos a .jpg para evitar problemas de extensión
         val file = File(tempDir, "img_${String.format("%03d", i)}.jpg")
-        requireContext().contentResolver.openInputStream(uri)?.use { input ->
-            file.outputStream().use { output -> input.copyTo(output) }
+        try {
+            requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FFmpegImage", "Error copiando imagen $i: ${e.message}")
         }
     }
 
     val outputFile = File(requireContext().cacheDir, "output_img_video.mp4")
     val fileName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
 
-    // Comando FFmpeg
-    val command = "-framerate 1/$duration -i ${tempDir.absolutePath}/img_%03d.jpg -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+    // Se añadió 'scale=trunc(iw/2)*2:trunc(ih/2)*2' para asegurar que las dimensiones sean pares
+    // y evitar errores comunes de codificación.
+    val command = "-framerate 1/$duration -i ${tempDir.absolutePath}/img_%03d.jpg -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
-            // Guardar en Downloads usando MediaStore (igual que splitVideo)
             saveToDownloads(outputFile, fileName)
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video creado", Toast.LENGTH_SHORT).show() }
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video creado con éxito", Toast.LENGTH_SHORT).show() }
+        } else {
+            // AQUÍ VERÁS EL ERROR REAL EN LOGCAT
+            val logs = session.allLogsAsString
+            android.util.Log.e("FFmpegImage", "Error completo: $logs")
+            requireActivity().runOnUiThread { 
+                Toast.makeText(requireContext(), "Fallo al crear video. Revisa el Logcat.", Toast.LENGTH_LONG).show() 
+            }
         }
     }
 }
