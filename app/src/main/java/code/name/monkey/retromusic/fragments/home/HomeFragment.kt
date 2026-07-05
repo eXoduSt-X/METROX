@@ -723,7 +723,7 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error final: FFmpeg no pudo procesar la ruta.", Toast.LENGTH_LONG).show() }
         }
     }
-}
+} 
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
