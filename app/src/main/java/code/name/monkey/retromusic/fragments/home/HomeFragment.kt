@@ -685,21 +685,20 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    // 1. Usar una subcarpeta en Descargas para trabajar
-    val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-    val tempDir = File(downloadDir, "temp_img_processing")
+    // 1. Usar un nombre de carpeta ultra simple en la caché
+    val tempDir = File(requireContext().cacheDir, "imgs")
     if (tempDir.exists()) tempDir.deleteRecursively()
     tempDir.mkdirs()
 
-    val listFile = File(tempDir, "files.txt")
+    val listFile = File(tempDir, "l.txt")
     val stringBuilder = StringBuilder()
 
-    // 2. Copiar archivos a la carpeta de trabajo en Descargas
     imageUris.forEachIndexed { i, uri ->
-        val file = File(tempDir, "img_$i.jpg")
+        val file = File(tempDir, "$i.jpg")
         try {
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }
+                // Usamos una ruta absoluta simple
                 stringBuilder.append("file '${file.absolutePath}'\n")
                 stringBuilder.append("duration $duration\n")
             }
@@ -707,23 +706,25 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     }
     listFile.writeText(stringBuilder.toString())
 
-    // 3. Definir salida en Descargas directamente
-    val fileName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
-    val outputFile = File(downloadDir, fileName)
+    // 2. Definir salida en la misma carpeta caché
+    val outputFile = File(requireContext().cacheDir, "out.mp4")
 
-    // 4. Comando FFmpeg trabajando directamente sobre carpetas públicas
+    // 3. Comando simplificado sin rutas largas
     val command = "-y -f concat -safe 0 -i ${listFile.absolutePath} -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
-            // Limpieza: Borrar los archivos temporales de la carpeta de trabajo
-            tempDir.deleteRecursively()
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Video guardado en Downloads!", Toast.LENGTH_LONG).show() }
+            // AHORA movemos el archivo final a Descargas después de crearlo con éxito
+            val finalName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
+            saveToDownloads(outputFile, finalName) 
+            
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Video guardado!", Toast.LENGTH_SHORT).show() }
         } else {
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error final: FFmpeg no pudo procesar la ruta.", Toast.LENGTH_LONG).show() }
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error final: Formato de fotos no compatible", Toast.LENGTH_LONG).show() }
         }
     }
-} 
+}
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
