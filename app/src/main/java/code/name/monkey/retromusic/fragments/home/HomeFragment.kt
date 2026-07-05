@@ -60,7 +60,14 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val handler = Handler(Looper.getMainLooper())
     private var selectedSubtitleUri: Uri? = null
     private var selectedAudioUri: Uri? = null
+    private var selectedImageUris = mutableListOf<Uri>()
 
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+      if (uris.isNotEmpty()) {
+          selectedImageUris = uris.toMutableList()
+          Toast.makeText(requireContext(), "${uris.size} imágenes seleccionadas", Toast.LENGTH_SHORT).show()
+      }
+  }
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
     }
@@ -315,7 +322,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         view.doOnLayout { adjustPlaylistButtons() }
     }
 
-    private fun setupVideoListeners() {
+        private fun setupVideoListeners() {
         binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
         binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
         binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -367,17 +374,36 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         binding.homeContent.btnFullscreen.setOnClickListener {
             audioPickerLauncher.launch("audio/*")
         }
+        // Listeners para Corte de Video
+        binding.homeContent.btnSetStart.setOnClickListener {
+            binding.homeContent.etStartTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
+        }
+        binding.homeContent.btnSetEnd.setOnClickListener {
+            binding.homeContent.etEndTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
+        }
         binding.homeContent.btnSplit.setOnClickListener {
             val startTime = binding.homeContent.etStartTime.text.toString()
             val endTime = binding.homeContent.etEndTime.text.toString()
-
             if (startTime.isNotEmpty() && endTime.isNotEmpty() && videoPlaylist.isNotEmpty()) {
                 splitVideo(videoPlaylist[currentIndex], startTime, endTime)
             } else {
                 Toast.makeText(requireContext(), "Revisa los tiempos o selecciona un video", Toast.LENGTH_SHORT).show()
             }
         }
+        // Listeners para Video desde Imágenes
+        binding.homeContent.btnSelectImages.setOnClickListener {
+            imagePickerLauncher.launch("image/*")
+        }
+        binding.homeContent.btnCreateImgVideo.setOnClickListener {
+            val duration = binding.homeContent.etImageDuration.text.toString()
+            if (selectedImageUris.isNotEmpty() && duration.isNotEmpty()) {
+                createVideoFromImages(selectedImageUris, duration)
+            } else {
+                Toast.makeText(requireContext(), "Selecciona fotos y duración", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
+
 
 
     private fun reproducirVideoActual() {
@@ -658,7 +684,32 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
     }
+private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
+    val tempDir = File(requireContext().cacheDir, "temp_img_video")
+    if (!tempDir.exists()) tempDir.mkdirs()
+    
+    // Copiar a archivos numerados para FFmpeg
+    imageUris.forEachIndexed { i, uri ->
+        val file = File(tempDir, "img_${String.format("%03d", i)}.jpg")
+        requireContext().contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output -> input.copyTo(output) }
+        }
+    }
 
+    val outputFile = File(requireContext().cacheDir, "output_img_video.mp4")
+    val fileName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
+
+    // Comando FFmpeg
+    val command = "-framerate 1/$duration -i ${tempDir.absolutePath}/img_%03d.jpg -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+
+    FFmpegKit.executeAsync(command) { session ->
+        if (ReturnCode.isSuccess(session.returnCode)) {
+            // Guardar en Downloads usando MediaStore (igual que splitVideo)
+            saveToDownloads(outputFile, fileName)
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video creado", Toast.LENGTH_SHORT).show() }
+        }
+    }
+}
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
@@ -673,7 +724,23 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
         return file
     }
-
+// --- PEGA saveToDownloads AQUÍ ---
+    private fun saveToDownloads(file: File, fileName: String) {
+        val contentValues = android.content.ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+            }
+        }
+        val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+        uri?.let {
+            requireContext().contentResolver.openOutputStream(it)?.use { out ->
+                file.inputStream().use { input -> input.copyTo(out) }
+            }
+        }
+    }
+    // ----------------------------------
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
         const val TAG: String = "BannerHomeFragment"
