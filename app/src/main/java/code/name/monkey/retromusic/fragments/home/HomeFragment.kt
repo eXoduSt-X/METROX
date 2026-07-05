@@ -726,20 +726,30 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     }
 // --- PEGA saveToDownloads AQUÍ ---
     private fun saveToDownloads(file: File, fileName: String) {
-        val contentValues = android.content.ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
-            }
-        }
-        val uri = requireContext().contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-        uri?.let {
-            requireContext().contentResolver.openOutputStream(it)?.use { out ->
-                file.inputStream().use { input -> input.copyTo(out) }
-            }
+    val contentValues = android.content.ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+        put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
         }
     }
+
+    // AÑADE ESTA CONDICIÓN PARA EVITAR EL ERROR DE API
+    val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Downloads.EXTERNAL_CONTENT_URI
+    } else {
+        // Fallback para versiones anteriores a Android 10
+        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    }
+
+    val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
+    
+    uri?.let {
+        requireContext().contentResolver.openOutputStream(it)?.use { out ->
+            file.inputStream().use { input -> input.copyTo(out) }
+        }
+    }
+}
     // ----------------------------------
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
