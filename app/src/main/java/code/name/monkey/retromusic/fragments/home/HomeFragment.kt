@@ -685,42 +685,40 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    // 1. Usar un nombre de carpeta ultra simple en la caché
-    val tempDir = File(requireContext().cacheDir, "imgs")
-    if (tempDir.exists()) tempDir.deleteRecursively()
-    tempDir.mkdirs()
-
-    val listFile = File(tempDir, "l.txt")
+    // 1. Usamos el directorio de archivos privados (el más seguro para FFmpeg)
+    val workDir = requireContext().filesDir
+    
+    // 2. Creamos la lista pero sin usar absolutePath en el nombre del archivo del comando
+    // (A veces, FFmpegKit en Android prefiere rutas más cortas)
+    val listFile = File(workDir, "list.txt")
     val stringBuilder = StringBuilder()
 
     imageUris.forEachIndexed { i, uri ->
-        val file = File(tempDir, "$i.jpg")
+        val file = File(workDir, "i$i.jpg")
         try {
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }
-                // Usamos una ruta absoluta simple
-                stringBuilder.append("file '${file.absolutePath}'\n")
+                // IMPORTANTE: Escapamos la ruta por si tiene espacios o caracteres raros
+                stringBuilder.append("file '${file.absolutePath.replace("'", "\\'")}'\n")
                 stringBuilder.append("duration $duration\n")
             }
         } catch (e: Exception) { }
     }
     listFile.writeText(stringBuilder.toString())
 
-    // 2. Definir salida en la misma carpeta caché
-    val outputFile = File(requireContext().cacheDir, "out.mp4")
+    val outputFile = File(workDir, "out.mp4")
 
-    // 3. Comando simplificado sin rutas largas
-    val command = "-y -f concat -safe 0 -i ${listFile.absolutePath} -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+    // 3. Comando FORZANDO el acceso mediante el sistema de archivos de Linux (base de Android)
+    val command = "-y -f concat -safe 0 -i \"${listFile.absolutePath}\" -c:v libx264 -pix_fmt yuv420p \"${outputFile.absolutePath}\""
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
-            // AHORA movemos el archivo final a Descargas después de crearlo con éxito
-            val finalName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
-            saveToDownloads(outputFile, finalName) 
-            
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Video guardado!", Toast.LENGTH_SHORT).show() }
+            saveToDownloads(outputFile, "Video_${System.currentTimeMillis()}.mp4")
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito!", Toast.LENGTH_SHORT).show() }
         } else {
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error final: Formato de fotos no compatible", Toast.LENGTH_LONG).show() }
+            // Si esto vuelve a fallar, el problema es que FFmpegKit no tiene permisos 
+            // de ejecución sobre la partición /data.
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "FFmpeg error: ${session.failStackTrace}", Toast.LENGTH_LONG).show() }
         }
     }
 }
