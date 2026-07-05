@@ -685,40 +685,42 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    val tempDir = File(requireContext().cacheDir, "img_sequence")
+    // 1. Usar una subcarpeta en Descargas para trabajar
+    val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+    val tempDir = File(downloadDir, "temp_img_processing")
     if (tempDir.exists()) tempDir.deleteRecursively()
     tempDir.mkdirs()
 
     val listFile = File(tempDir, "files.txt")
     val stringBuilder = StringBuilder()
 
+    // 2. Copiar archivos a la carpeta de trabajo en Descargas
     imageUris.forEachIndexed { i, uri ->
         val file = File(tempDir, "img_$i.jpg")
         try {
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }
-                // El formato requerido para el archivo de texto es: file 'nombre.jpg'
                 stringBuilder.append("file '${file.absolutePath}'\n")
                 stringBuilder.append("duration $duration\n")
             }
         } catch (e: Exception) { }
     }
-    
-    // Escribir la lista de archivos
     listFile.writeText(stringBuilder.toString())
 
-    val outputFile = File(requireContext().cacheDir, "output.mp4")
+    // 3. Definir salida en Descargas directamente
     val fileName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
+    val outputFile = File(downloadDir, fileName)
 
-    // Comando usando el protocolo concat
-    val command = "-y -f concat -safe 0 -i ${listFile.absolutePath} -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+    // 4. Comando FFmpeg trabajando directamente sobre carpetas públicas
+    val command = "-y -f concat -safe 0 -i ${listFile.absolutePath} -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
-            saveToDownloads(outputFile, fileName)
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito!", Toast.LENGTH_SHORT).show() }
+            // Limpieza: Borrar los archivos temporales de la carpeta de trabajo
+            tempDir.deleteRecursively()
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Video guardado en Downloads!", Toast.LENGTH_LONG).show() }
         } else {
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error crítico en FFmpeg", Toast.LENGTH_SHORT).show() }
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error final: FFmpeg no pudo procesar la ruta.", Toast.LENGTH_LONG).show() }
         }
     }
 }
