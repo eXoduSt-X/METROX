@@ -85,41 +85,42 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp">
+
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <EditText android:id="@+id/etStartTime" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="Inicio (00:00:00)" android:textColor="#FFFFFF" android:textColorHint="#777777" android:textSize="12sp" android:inputType="text" />
+                <Button android:id="@+id/btnSetStart" android:layout_width="wrap_content" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="SET" android:textSize="10sp" android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <EditText android:id="@+id/etEndTime" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="Fin (00:00:00)" android:textColor="#FFFFFF" android:textColorHint="#777777" android:textSize="12sp" android:inputType="text" />
+                <Button android:id="@+id/btnSetEnd" android:layout_width="wrap_content" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="SET" android:textSize="10sp" android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <Button android:id="@+id/btnSplit" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="CORTAR VIDEO" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical">
 
-            <EditText
-                android:id="@+id/etStartTime"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Inicio (00:00:00)"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#777777"
-                android:textSize="12sp"
-                android:inputType="text" />
-
-            <EditText
-                android:id="@+id/etEndTime"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:hint="Fin (00:00:00)"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#777777"
-                android:textSize="12sp"
-                android:inputType="text" />
-
-            <Button
-                android:id="@+id/btnSplit"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="#03DAC5"
-                android:text="CORTAR"
-                android:textSize="10sp" />
+            <Button android:id="@+id/btnSelectImages" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="FOTOS" android:textSize="10sp" />
+            <EditText android:id="@+id/etImageDuration" android:layout_width="60dp" android:layout_height="wrap_content" android:hint="Segs" android:textColor="#FFFFFF" android:inputType="number" android:textSize="12sp" android:layout_marginHorizontal="8dp" />
+            <Button android:id="@+id/btnCreateImgVideo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="CREAR VIDEO" android:textSize="10sp" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
