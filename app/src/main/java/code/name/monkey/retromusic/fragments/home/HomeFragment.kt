@@ -606,29 +606,59 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
     }
-   private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
+       private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
         val videoFile = cacheUriToFile(videoUri, "input_split.mp4")
         val fileName = "Clip_${System.currentTimeMillis()}.mp4"
-        val outputDir = requireContext().getExternalFilesDir(android.os.Environment.DIRECTORY_MOVIES)
-        val outputFile = File(outputDir, fileName)
 
-        val command = "-i ${videoFile.absolutePath} -ss $startTime -to $endTime -c copy ${outputFile.absolutePath}"
+        // 1. Configurar los valores para guardarlo en Descargas (Downloads)
+        val contentValues = android.content.ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+            }
+        }
 
-        Toast.makeText(requireContext(), "Procesando corte...", Toast.LENGTH_SHORT).show()
+        val resolver = requireContext().contentResolver
+        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        }
 
-        FFmpegKit.executeAsync(command) { session ->
-            if (ReturnCode.isSuccess(session.returnCode)) {
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Clip guardado: ${outputFile.name}", Toast.LENGTH_LONG).show()
-                }
-            } else {
-                android.util.Log.e("FFmpegError", session.allLogsAsString)
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error al cortar", Toast.LENGTH_SHORT).show()
+        val destUri = resolver.insert(collectionUri, contentValues)
+
+        if (destUri != null) {
+            val outputFile = File(requireContext().cacheDir, "output_split.mp4")
+            
+            // 2. Comando FFmpeg
+            val command = "-i ${videoFile.absolutePath} -ss $startTime -to $endTime -c copy ${outputFile.absolutePath}"
+
+            FFmpegKit.executeAsync(command) { session ->
+                if (ReturnCode.isSuccess(session.returnCode)) {
+                    // 3. Copiar el archivo desde caché a la URI de Descargas
+                    try {
+                        resolver.openOutputStream(destUri)?.use { outputStream ->
+                            outputFile.inputStream().use { inputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                        }
+                        requireActivity().runOnUiThread {
+                            Toast.makeText(requireContext(), "Clip guardado en Downloads", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("FFmpegError", "Error al copiar: ${e.message}")
+                    }
+                } else {
+                    android.util.Log.e("FFmpegError", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al cortar", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
-   }
+    }
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
