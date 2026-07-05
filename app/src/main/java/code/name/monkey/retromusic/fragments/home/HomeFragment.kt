@@ -685,39 +685,41 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    val tempDir = File(requireContext().cacheDir, "temp_img_video")
-    if (tempDir.exists()) tempDir.deleteRecursively() // Limpiar carpeta previa
+    // 1. Limpiar carpeta temporal y crearla de nuevo
+    val tempDir = File(requireContext().cacheDir, "img_sequence")
+    if (tempDir.exists()) tempDir.deleteRecursively()
     tempDir.mkdirs()
     
+    // 2. Renombrado automático: Copiamos cada Uri a la carpeta temporal con un nombre simple (0.jpg, 1.jpg, etc.)
     imageUris.forEachIndexed { i, uri ->
-        // Forzamos a .jpg para evitar problemas de extensión
-        val file = File(tempDir, "img_${String.format("%03d", i)}.jpg")
+        val file = File(tempDir, "$i.jpg")
         try {
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }
             }
         } catch (e: Exception) {
-            android.util.Log.e("FFmpegImage", "Error copiando imagen $i: ${e.message}")
+            // El proceso continuará incluso si una imagen falla al copiar
         }
     }
 
-    val outputFile = File(requireContext().cacheDir, "output_img_video.mp4")
+    val outputFile = File(requireContext().cacheDir, "output.mp4")
     val fileName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
 
-    // Se añadió 'scale=trunc(iw/2)*2:trunc(ih/2)*2' para asegurar que las dimensiones sean pares
-    // y evitar errores comunes de codificación.
-    val command = "-framerate 1/$duration -i ${tempDir.absolutePath}/img_%03d.jpg -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+    // 3. Comando FFmpeg:
+    // %d.jpg le dice a FFmpeg que busque archivos numerados en secuencia (0, 1, 2...)
+    // El filtro 'scale' asegura que la resolución sea par (obligatorio para libx264)
+    val command = "-framerate 1/$duration -i ${tempDir.absolutePath}/%d.jpg -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
+            // Guardar el resultado en la carpeta Descargas
             saveToDownloads(outputFile, fileName)
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Video creado con éxito", Toast.LENGTH_SHORT).show() }
-        } else {
-            // AQUÍ VERÁS EL ERROR REAL EN LOGCAT
-            val logs = session.allLogsAsString
-            android.util.Log.e("FFmpegImage", "Error completo: $logs")
             requireActivity().runOnUiThread { 
-                Toast.makeText(requireContext(), "Fallo al crear video. Revisa el Logcat.", Toast.LENGTH_LONG).show() 
+                Toast.makeText(requireContext(), "¡Video creado con éxito!", Toast.LENGTH_LONG).show() 
+            }
+        } else {
+            requireActivity().runOnUiThread { 
+                Toast.makeText(requireContext(), "Error al procesar el video. Revisa el formato de tus fotos.", Toast.LENGTH_LONG).show() 
             }
         }
     }
