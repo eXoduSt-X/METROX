@@ -686,42 +686,33 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     val workDir = requireContext().filesDir
-    val listFile = File(workDir, "list.txt")
-    val content = StringBuilder()
-
-    // Usamos el ContentResolver para copiar archivos a un lugar donde FFmpeg 
-    // pueda leerlos como rutas locales simples, evitando las URIs.
+    // Copia las fotos a la carpeta interna
     imageUris.forEachIndexed { i, uri ->
-        val file = File(workDir, "i$i.jpg")
-        try {
-            requireContext().contentResolver.openInputStream(uri)?.use { input ->
-                file.outputStream().use { output -> input.copyTo(output) }
-                // Pasamos la ruta absoluta directamente, que es lo que el binario sí entiende
-                content.append("file '").append(file.absolutePath).append("'\n")
-                content.append("duration ").append(duration).append("\n")
-            }
-        } catch (e: Exception) { }
+        val file = File(workDir, "$i.jpg")
+        requireContext().contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output -> input.copyTo(output) }
+        }
     }
-    
-    listFile.writeText(content.toString(), Charsets.UTF_8)
-    val outputFile = File(workDir, "out.mp4")
 
-    // Comando directo usando la ruta absoluta del archivo list.txt
-    val command = "-y -f concat -safe 0 -i ${listFile.absolutePath} -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+    val outputFile = File(workDir, "final.mp4")
+
+    // Comando sin filtros, solo conversión básica de imagen a video (concat demuxer)
+    // Esto usa el módulo 'image2' que viene en casi todos los binarios
+    val command = "-y -framerate 1/$duration -i ${workDir.absolutePath}/%d.jpg -c:v libx264 ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
             saveToDownloads(outputFile, "Video_${System.currentTimeMillis()}.mp4")
             requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito!", Toast.LENGTH_SHORT).show() }
         } else {
-            // Si esto sigue fallando, veremos el error real en el log
-            val error = session.failStackTrace
+            // Si esto vuelve a fallar, el error nos dirá si falta el encoder
             requireActivity().runOnUiThread { 
                 Toast.makeText(requireContext(), "Error: ${session.returnCode}", Toast.LENGTH_LONG).show() 
             }
         }
     }
 }
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
