@@ -688,46 +688,40 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     val tempDir = File(requireContext().cacheDir, "img_sequence")
     if (tempDir.exists()) tempDir.deleteRecursively()
     tempDir.mkdirs()
-    
-    var filesCopied = 0
+
+    val listFile = File(tempDir, "files.txt")
+    val stringBuilder = StringBuilder()
+
     imageUris.forEachIndexed { i, uri ->
-        // Forzamos a que siempre se guarde como .jpg sin importar el original
-        val file = File(tempDir, "$i.jpg")
+        val file = File(tempDir, "img_$i.jpg")
         try {
             requireContext().contentResolver.openInputStream(uri)?.use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }
-                filesCopied++
+                // El formato requerido para el archivo de texto es: file 'nombre.jpg'
+                stringBuilder.append("file '${file.absolutePath}'\n")
+                stringBuilder.append("duration $duration\n")
             }
-        } catch (e: Exception) {
-            android.util.Log.e("FFmpegImage", "Error en foto $i: ${e.message}")
-        }
+        } catch (e: Exception) { }
     }
-
-    if (filesCopied < 2) {
-        Toast.makeText(requireContext(), "Error: Necesitas al menos 2 fotos válidas (JPG)", Toast.LENGTH_LONG).show()
-        return
-    }
+    
+    // Escribir la lista de archivos
+    listFile.writeText(stringBuilder.toString())
 
     val outputFile = File(requireContext().cacheDir, "output.mp4")
     val fileName = "Video_Fotos_${System.currentTimeMillis()}.mp4"
 
-    // Cambiamos el comando para forzar el formato de entrada a imágenes
-    // Y añadimos -y para sobrescribir si ya existe algo
-    val command = "-y -framerate 1/$duration -i ${tempDir.absolutePath}/%d.jpg -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+    // Comando usando el protocolo concat
+    val command = "-y -f concat -safe 0 -i ${listFile.absolutePath} -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
         if (ReturnCode.isSuccess(session.returnCode)) {
             saveToDownloads(outputFile, fileName)
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Video creado!", Toast.LENGTH_SHORT).show() }
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito!", Toast.LENGTH_SHORT).show() }
         } else {
-            // Esto es crucial: como no tienes Logcat, este Toast te dirá si hubo un error específico
-            requireActivity().runOnUiThread { 
-                Toast.makeText(requireContext(), "FFmpeg falló. ¿Son fotos muy grandes?", Toast.LENGTH_LONG).show() 
-            }
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "Error crítico en FFmpeg", Toast.LENGTH_SHORT).show() }
         }
     }
 }
-
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
