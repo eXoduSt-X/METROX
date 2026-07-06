@@ -71,7 +71,7 @@ android {
 
 dependencies {
     // Librería actualizada y compatible con Android 15 (16KB page size)
-    implementation 'io.github.minorlai:ffmpeg-kit-16kb:6.1.2'
+    implementation 'io.github.jamaismagic.ffmpeg:ffmpeg-kit-main-full-gpl-16kb:6.1.4'
 
     // --- Tus dependencias ---
     implementation project(':appthemehelper')
