@@ -686,33 +686,39 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     val workDir = requireContext().filesDir
-    // Copia las fotos a la carpeta interna
+    
+    // 1. Limpieza y preparación
     imageUris.forEachIndexed { i, uri ->
         val file = File(workDir, "$i.jpg")
-        requireContext().contentResolver.openInputStream(uri)?.use { input ->
-            file.outputStream().use { output -> input.copyTo(output) }
-        }
+        try {
+            requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+        } catch (e: Exception) { }
     }
 
     val outputFile = File(workDir, "final.mp4")
-
-    // Comando sin filtros, solo conversión básica de imagen a video (concat demuxer)
-    // Esto usa el módulo 'image2' que viene en casi todos los binarios
-    val command = "-y -framerate 1/$duration -i ${workDir.absolutePath}/%d.jpg -c:v libx264 ${outputFile.absolutePath}"
+    
+    // 2. Comando Full
+    // Usamos -pattern_type sequence para que FFmpeg lea todos los archivos %d.jpg
+    val command = "-y -framerate 1/$duration -pattern_type sequence -i ${workDir.absolutePath}/%d.jpg -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
     FFmpegKit.executeAsync(command) { session ->
-        if (ReturnCode.isSuccess(session.returnCode)) {
+        val returnCode = session.returnCode
+        
+        if (ReturnCode.isSuccess(returnCode)) {
             saveToDownloads(outputFile, "Video_${System.currentTimeMillis()}.mp4")
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito!", Toast.LENGTH_SHORT).show() }
+            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito total!", Toast.LENGTH_SHORT).show() }
         } else {
-            // Si esto vuelve a fallar, el error nos dirá si falta el encoder
+            // Si esto falla, obtenemos el log detallado del binario Full
+            val log = session.failStackTrace
+            Log.e("FFmpegError", log ?: "Sin detalles")
             requireActivity().runOnUiThread { 
-                Toast.makeText(requireContext(), "Error: ${session.returnCode}", Toast.LENGTH_LONG).show() 
+                Toast.makeText(requireContext(), "Error: ${returnCode?.value}", Toast.LENGTH_LONG).show() 
             }
         }
     }
 }
-
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
