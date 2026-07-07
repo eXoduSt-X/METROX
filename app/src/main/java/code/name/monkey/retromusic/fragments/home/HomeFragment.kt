@@ -687,15 +687,22 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    // ... (tu lógica de copiar imágenes a archivos sigue igual) ...
+    // 1. Definimos las rutas necesarias
+    val workDir = requireContext().cacheDir 
+    val outputFile = File(workDir, "final_video.mp4")
     
-    // Comando FFmpeg (asegúrate de que las rutas sean absolutas)
+    // ... AQUÍ VA TU LÓGICA EXISTENTE PARA COPIAR LAS IMÁGENES A LA CARPETA ...
+    // Asegúrate de que las imágenes estén en ${workDir.absolutePath}/0.jpg, 1.jpg, etc.
+
+    // 2. Ahora el comando SÍ encontrará las variables
     val command = "-y -framerate 1/$duration -pattern_type sequence -i ${workDir.absolutePath}/%d.jpg -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
-    // LLAMADA AL NUEVO MÉTODO
+    // 3. LLAMADA AL NUEVO MÉTODO
     runManualFFmpeg(command) { success, message ->
         requireActivity().runOnUiThread {
             if (success) {
+                // Si tuvo éxito, lo guardamos en Descargas usando la otra función
+                saveToDownloads(outputFile, "Video_Creado_${System.currentTimeMillis()}.mp4")
                 Toast.makeText(context, "¡Video creado con éxito!", Toast.LENGTH_SHORT).show()
             } else {
                 Log.e("FFmpeg_MANUAL_ERR", message)
@@ -704,7 +711,7 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
         }
     }
 }
-
+    
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
