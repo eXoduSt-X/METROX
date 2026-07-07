@@ -45,7 +45,6 @@ import java.io.FileOutputStream
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import android.util.Log
-import java.io.File
 import android.os.Environment
 
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
@@ -729,7 +728,24 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
         }
     }
-// --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
+
+    // AÑADE ESTA CONDICIÓN PARA EVITAR EL ERROR DE API
+    val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Downloads.EXTERNAL_CONTENT_URI
+    } else {
+        // Fallback para versiones anteriores a Android 10
+        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    }
+
+    val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
+    
+    uri?.let {
+        requireContext().contentResolver.openOutputStream(it)?.use { out ->
+            file.inputStream().use { input -> input.copyTo(out) }
+        }
+    }
+}
+    // --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
     private fun getFFmpegFromDownloads(context: android.content.Context): String? {
         val destinationFile = File(context.filesDir, "ffmpeg")
@@ -782,22 +798,6 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             }
         }.start()
     }
-    // AÑADE ESTA CONDICIÓN PARA EVITAR EL ERROR DE API
-    val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        MediaStore.Downloads.EXTERNAL_CONTENT_URI
-    } else {
-        // Fallback para versiones anteriores a Android 10
-        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-    }
-
-    val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
-    
-    uri?.let {
-        requireContext().contentResolver.openOutputStream(it)?.use { out ->
-            file.inputStream().use { input -> input.copyTo(out) }
-        }
-    }
-}
     // ----------------------------------
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
