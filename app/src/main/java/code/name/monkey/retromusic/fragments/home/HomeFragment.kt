@@ -757,25 +757,28 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
     // --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
     private fun getFFmpegFromDownloads(context: android.content.Context): String? {
-        val destinationFile = File(context.filesDir, "ffmpeg")
-        
-        if (destinationFile.exists() && destinationFile.canExecute()) {
-            return destinationFile.absolutePath
-        }
-
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val sourceFile = File(downloadsDir, "ffmpeg")
-
-        if (sourceFile.exists()) {
-            sourceFile.inputStream().use { input ->
-                destinationFile.outputStream().use { output -> input.copyTo(output) }
-            }
-            destinationFile.setExecutable(true)
-            return destinationFile.absolutePath
-        }
-        return null
+    // CAMBIA ESTA LÍNEA: de filesDir a codeCacheDir
+    val destinationFile = File(context.codeCacheDir, "ffmpeg") 
+    
+    if (destinationFile.exists() && destinationFile.canExecute()) {
+        return destinationFile.absolutePath
     }
 
+    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    val sourceFile = File(downloadsDir, "ffmpeg")
+
+    if (sourceFile.exists()) {
+        sourceFile.inputStream().use { input ->
+            destinationFile.outputStream().use { output -> input.copyTo(output) }
+        }
+        
+        // Es vital intentar darle permisos de ejecución
+        destinationFile.setExecutable(true, false) // false significa que es para todos
+        
+        return destinationFile.absolutePath
+    }
+    return null
+}
     private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
         val binaryPath = getFFmpegFromDownloads(requireContext())
         if (binaryPath == null) {
