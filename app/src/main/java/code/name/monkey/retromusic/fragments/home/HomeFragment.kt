@@ -45,6 +45,8 @@ import java.io.FileOutputStream
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import android.util.Log
+import java.io.File
+import android.os.Environment
 
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
 
@@ -686,40 +688,24 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    val workDir = requireContext().filesDir
+    // ... (tu lógica de copiar imágenes a archivos sigue igual) ...
     
-    // 1. Limpieza y preparación
-    imageUris.forEachIndexed { i, uri ->
-        val file = File(workDir, "$i.jpg")
-        try {
-            requireContext().contentResolver.openInputStream(uri)?.use { input ->
-                file.outputStream().use { output -> input.copyTo(output) }
-            }
-        } catch (e: Exception) { }
-    }
-
-    val outputFile = File(workDir, "final.mp4")
-    
-    // 2. Comando Full
-    // Usamos -pattern_type sequence para que FFmpeg lea todos los archivos %d.jpg
+    // Comando FFmpeg (asegúrate de que las rutas sean absolutas)
     val command = "-y -framerate 1/$duration -pattern_type sequence -i ${workDir.absolutePath}/%d.jpg -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
-    FFmpegKit.executeAsync(command) { session ->
-        val returnCode = session.returnCode
-        
-        if (ReturnCode.isSuccess(returnCode)) {
-            saveToDownloads(outputFile, "Video_${System.currentTimeMillis()}.mp4")
-            requireActivity().runOnUiThread { Toast.makeText(requireContext(), "¡Éxito total!", Toast.LENGTH_SHORT).show() }
-        } else {
-            // Si esto falla, obtenemos el log detallado del binario Full
-            val log = session.failStackTrace
-            Log.e("FFmpegError", log ?: "Sin detalles")
-            requireActivity().runOnUiThread { 
-                Toast.makeText(requireContext(), "Error: ${returnCode?.value}", Toast.LENGTH_LONG).show() 
+    // LLAMADA AL NUEVO MÉTODO
+    runManualFFmpeg(command) { success, message ->
+        requireActivity().runOnUiThread {
+            if (success) {
+                Toast.makeText(context, "¡Video creado con éxito!", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.e("FFmpeg_MANUAL_ERR", message)
+                Toast.makeText(context, "Error: Revisa el log", Toast.LENGTH_LONG).show()
             }
         }
     }
 }
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
@@ -743,7 +729,59 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
         }
     }
+// --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
+    private fun getFFmpegFromDownloads(context: android.content.Context): String? {
+        val destinationFile = File(context.filesDir, "ffmpeg")
+        
+        // Si ya lo movimos y es ejecutable, lo usamos
+        if (destinationFile.exists() && destinationFile.canExecute()) {
+            return destinationFile.absolutePath
+        }
+
+        // Buscamos en Downloads
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val sourceFile = File(downloadsDir, "ffmpeg")
+
+        if (sourceFile.exists()) {
+            sourceFile.inputStream().use { input ->
+                destinationFile.outputStream().use { output -> input.copyTo(output) }
+            }
+            destinationFile.setExecutable(true) // ¡Fundamental!
+            return destinationFile.absolutePath
+        }
+        return null
+    }
+
+    private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
+        val binaryPath = getFFmpegFromDownloads(requireContext())
+        if (binaryPath == null) {
+            onComplete(false, "Binario 'ffmpeg' no encontrado en Descargas")
+            return
+        }
+
+        // Dividir el string del comando en una lista de argumentos
+        val fullCommand = listOf(binaryPath) + commandArgs.split(" ")
+
+        Thread {
+            try {
+                val process = ProcessBuilder(fullCommand)
+                    .redirectErrorStream(true)
+                    .start()
+
+                val output = process.inputStream.bufferedReader().readText()
+                process.waitFor()
+
+                if (process.exitValue() == 0) {
+                    onComplete(true, "Éxito")
+                } else {
+                    onComplete(false, output)
+                }
+            } catch (e: Exception) {
+                onComplete(false, e.message ?: "Error desconocido")
+            }
+        }.start()
+    }
     // AÑADE ESTA CONDICIÓN PARA EVITAR EL ERROR DE API
     val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         MediaStore.Downloads.EXTERNAL_CONTENT_URI
