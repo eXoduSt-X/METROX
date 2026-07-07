@@ -720,42 +720,42 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
         return file
     }
 // --- PEGA saveToDownloads AQUÍ ---
-    private fun saveToDownloads(file: File, fileName: String) {
-    val contentValues = android.content.ContentValues().apply {
-        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-        put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+   private fun saveToDownloads(file: File, fileName: String) {
+        val contentValues = android.content.ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+            }
         }
-    }
 
-    // AÑADE ESTA CONDICIÓN PARA EVITAR EL ERROR DE API
-    val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        MediaStore.Downloads.EXTERNAL_CONTENT_URI
-    } else {
-        // Fallback para versiones anteriores a Android 10
-        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-    }
-
-    val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
-    
-    uri?.let {
-        requireContext().contentResolver.openOutputStream(it)?.use { out ->
-            file.inputStream().use { input -> input.copyTo(out) }
+        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         }
-    }
-}
+
+        val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
+        
+        uri?.let {
+            requireContext().contentResolver.openOutputStream(it)?.use { out ->
+                file.inputStream().use { input -> input.copyTo(out) }
+            }
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "Guardado en Descargas", Toast.LENGTH_SHORT).show()
+            }
+        }
+    } // <--- Esta llave cierra correctamente saveToDownloads
+
     // --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
     private fun getFFmpegFromDownloads(context: android.content.Context): String? {
         val destinationFile = File(context.filesDir, "ffmpeg")
         
-        // Si ya lo movimos y es ejecutable, lo usamos
         if (destinationFile.exists() && destinationFile.canExecute()) {
             return destinationFile.absolutePath
         }
 
-        // Buscamos en Downloads
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val sourceFile = File(downloadsDir, "ffmpeg")
 
@@ -763,7 +763,7 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             sourceFile.inputStream().use { input ->
                 destinationFile.outputStream().use { output -> input.copyTo(output) }
             }
-            destinationFile.setExecutable(true) // ¡Fundamental!
+            destinationFile.setExecutable(true)
             return destinationFile.absolutePath
         }
         return null
@@ -776,7 +776,6 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             return
         }
 
-        // Dividir el string del comando en una lista de argumentos
         val fullCommand = listOf(binaryPath) + commandArgs.split(" ")
 
         Thread {
