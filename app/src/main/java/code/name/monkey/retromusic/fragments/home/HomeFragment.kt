@@ -44,6 +44,7 @@ import java.io.File
 import java.io.FileOutputStream
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
+import android.util.Log
 
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
 
