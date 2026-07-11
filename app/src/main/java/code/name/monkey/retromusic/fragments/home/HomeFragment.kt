@@ -756,8 +756,7 @@ private val audioPickerLauncher = registerForActivityResult(ActivityResultContra
         return destinationFile.absolutePath
     }
     return null
-}
-    private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
+    }   private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
         val binaryPath = getFFmpegFromDownloads(requireContext())
         if (binaryPath == null) {
             onComplete(false, "Binario 'ffmpeg' no encontrado en Descargas")
@@ -784,40 +783,37 @@ private val audioPickerLauncher = registerForActivityResult(ActivityResultContra
                 onComplete(false, e.message ?: "Error desconocido")
             }
         }.start()
-    }
+    } // Cierra runManualFFmpeg
 
     private fun convertirAudiosAMp3(uris: List<Uri>) {
-    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
 
-    Thread {
-        uris.forEach { uri ->
-            val fileName = "MP3_${System.currentTimeMillis()}.mp3"
-            // Usamos tu función cacheUriToFile existente
-            val inputFile = cacheUriToFile(uri, "temp_input_audio.tmp")
-            val outputFile = File(requireContext().cacheDir, "output_temp.mp3")
+        Thread {
+            uris.forEach { uri ->
+                val fileName = "MP3_${System.currentTimeMillis()}.mp3"
+                val inputFile = cacheUriToFile(uri, "temp_input_audio.tmp")
+                val outputFile = File(requireContext().cacheDir, "output_temp.mp3")
 
-            // Comando FFmpeg: Conversión directa a MP3 con buena calidad
-            val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
-            val session = FFmpegKit.execute(command)
-            
-            if (ReturnCode.isSuccess(session.returnCode)) {
-                saveToDownloads(outputFile, fileName)
+                val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
+                val session = FFmpegKit.execute(command)
+                
+                if (ReturnCode.isSuccess(session.returnCode)) {
+                    saveToDownloads(outputFile, fileName)
+                }
+                
+                if (inputFile.exists()) inputFile.delete()
+                if (outputFile.exists()) outputFile.delete()
             }
             
-            // Limpieza
-            if (inputFile.exists()) inputFile.delete()
-            if (outputFile.exists()) outputFile.delete()
-        }
-        
-        requireActivity().runOnUiThread {
-            Toast.makeText(requireContext(), "¡Conversión completada!", Toast.LENGTH_SHORT).show()
-        }
-    }.start()
-}
-    // ----------------------------------
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "¡Conversión completada!", Toast.LENGTH_SHORT).show()
+            }
+        }.start()
+    } // Cierra convertirAudiosAMp3
+
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
-}
+} // Cierra la clase HomeFragment
