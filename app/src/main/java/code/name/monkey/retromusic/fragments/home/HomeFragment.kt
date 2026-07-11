@@ -61,15 +61,17 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
     private var selectedSubtitleUri: Uri? = null
-    private var selectedAudioUri: Uri? = null
-    private var selectedImageUris = mutableListOf<Uri>()
+    private var selectedAudioUris = mutableListOf<Uri>()
+  
 
-    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-      if (uris.isNotEmpty()) {
-          selectedImageUris = uris.toMutableList()
-          Toast.makeText(requireContext(), "${uris.size} imágenes seleccionadas", Toast.LENGTH_SHORT).show()
-      }
-  }
+
+    // Nuevo Launcher para selección múltiple de audio
+private val audioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+    if (uris.isNotEmpty()) {
+        selectedAudioUris = uris.toMutableList()
+        Toast.makeText(requireContext(), "${uris.size} audios seleccionados", Toast.LENGTH_SHORT).show()
+    }
+}
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
     }
@@ -393,21 +395,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
         // Listeners para Video desde Imágenes
-        binding.homeContent.btnSelectImages.setOnClickListener {
-            imagePickerLauncher.launch("image/*")
-        }
-        binding.homeContent.btnCreateImgVideo.setOnClickListener {
-            val duration = binding.homeContent.etImageDuration.text.toString()
-            if (selectedImageUris.isNotEmpty() && duration.isNotEmpty()) {
-                createVideoFromImages(selectedImageUris, duration)
-            } else {
-                Toast.makeText(requireContext(), "Selecciona fotos y duración", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
-
+        
+        
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
             savedPosition = 0
@@ -460,6 +449,19 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
             setSharedAxisYTransitions()
         }
+        // Botón para seleccionar audios
+       binding.homeContent.btnSelectAudio.setOnClickListener {
+          audioPickerLauncher.launch("audio/*")
+        }
+
+// Botón para convertir
+       binding.homeContent.btnConvert.setOnClickListener {
+          if (selectedAudioUris.isNotEmpty()) {
+              convertirAudiosAMp3(selectedAudioUris)
+       } else {
+        Toast.makeText(requireContext(), "Selecciona audios primero", Toast.LENGTH_SHORT).show()
+    }
+}
         binding.imageLayout.userImage.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
         }
@@ -686,31 +688,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
     }
-private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
-    // 1. Definimos las rutas necesarias
-    val workDir = requireContext().cacheDir 
-    val outputFile = File(workDir, "final_video.mp4")
-    
-    // ... AQUÍ VA TU LÓGICA EXISTENTE PARA COPIAR LAS IMÁGENES A LA CARPETA ...
-    // Asegúrate de que las imágenes estén en ${workDir.absolutePath}/0.jpg, 1.jpg, etc.
 
-    // 2. Ahora el comando SÍ encontrará las variables
-    val command = "-y -framerate 1/$duration -pattern_type sequence -i ${workDir.absolutePath}/%d.jpg -c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
-
-    // 3. LLAMADA AL NUEVO MÉTODO
-    runManualFFmpeg(command) { success, message ->
-        requireActivity().runOnUiThread {
-            if (success) {
-                // Si tuvo éxito, lo guardamos en Descargas usando la otra función
-                saveToDownloads(outputFile, "Video_Creado_${System.currentTimeMillis()}.mp4")
-                Toast.makeText(context, "¡Video creado con éxito!", Toast.LENGTH_SHORT).show()
-            } else {
-                Log.e("FFmpeg_MANUAL_ERR", message)
-                Toast.makeText(context, "Error: Revisa el log", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-}
     
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
@@ -807,6 +785,35 @@ private fun createVideoFromImages(imageUris: List<Uri>, duration: String) {
             }
         }.start()
     }
+
+    private fun convertirAudiosAMp3(uris: List<Uri>) {
+    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
+
+    Thread {
+        uris.forEach { uri ->
+            val fileName = "MP3_${System.currentTimeMillis()}.mp3"
+            // Usamos tu función cacheUriToFile existente
+            val inputFile = cacheUriToFile(uri, "temp_input_audio.tmp")
+            val outputFile = File(requireContext().cacheDir, "output_temp.mp3")
+
+            // Comando FFmpeg: Conversión directa a MP3 con buena calidad
+            val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
+            val session = FFmpegKit.execute(command)
+            
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                saveToDownloads(outputFile, fileName)
+            }
+            
+            // Limpieza
+            if (inputFile.exists()) inputFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }
+        
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "¡Conversión completada!", Toast.LENGTH_SHORT).show()
+        }
+    }.start()
+}
     // ----------------------------------
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
