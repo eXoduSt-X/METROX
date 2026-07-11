@@ -802,30 +802,45 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
     }
 
     private fun convertirAudiosAMp3(uris: List<Uri>) {
-        Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
+    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
 
-        Thread {
-            uris.forEach { uri ->
-                val fileName = "MP3_${System.currentTimeMillis()}.mp3"
-                val inputFile = cacheUriToFile(uri, "temp_input_audio.tmp")
-                val outputFile = File(requireContext().cacheDir, "output_temp.mp3")
+    Thread {
+        var exitosos = 0
+        var fallidos = 0
 
-                val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
-                val session = FFmpegKit.execute(command)
-                
-                if (ReturnCode.isSuccess(session.returnCode)) {
-                    saveToDownloads(outputFile, fileName, "audio/mpeg")
-                }
-                
-                if (inputFile.exists()) inputFile.delete()
-                if (outputFile.exists()) outputFile.delete()
+        uris.forEachIndexed { index, uri ->
+            val fileName = "MP3_${System.currentTimeMillis()}_$index.mp3"
+            val inputFile = cacheUriToFile(uri, "temp_input_audio_$index.tmp")
+
+            if (!inputFile.exists() || inputFile.length() == 0L) {
+                android.util.Log.e("ConvertMp3", "Archivo de entrada vacío o inexistente: $uri")
+                fallidos++
+                return@forEachIndexed
             }
-            
-            requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "¡Conversión completada!", Toast.LENGTH_SHORT).show()
+
+            val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
+            if (outputFile.exists()) outputFile.delete()
+
+            val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
+            val session = FFmpegKit.execute(command)
+
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "audio/mpeg")
+                exitosos++
+            } else {
+                fallidos++
+                android.util.Log.e("ConvertMp3", "FALLÓ para $uri: ${session.allLogsAsString}")
             }
-        }.start()
-    }
+
+            if (inputFile.exists()) inputFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }
+
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "Conversión: $exitosos ok, $fallidos fallidos", Toast.LENGTH_LONG).show()
+        }
+    }.start()
+}
 
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
