@@ -451,7 +451,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
         }
         // Botón para seleccionar audios
        binding.homeContent.btnSelectAudio.setOnClickListener {
-          audioPickerLauncher.launch("audio/*")
+          multiaudioPickerLauncher.launch("audio/*")
         }
 
 // Botón para convertir
