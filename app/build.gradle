@@ -70,9 +70,9 @@ android {
 }
 
 dependencies {
-    // FFmpeg-Kit nativo compatible con Android 15 (16KB) registrado en Maven Central
+    // FFmpeg-Kit compatible con 16KB (Android 15) desde Maven Central
     implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1'
-    implementation 'com.comviva.smart-exception:smart-exception-java:0.2.1'
+    implementation 'com.arthenica:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
     implementation project(':appthemehelper')
