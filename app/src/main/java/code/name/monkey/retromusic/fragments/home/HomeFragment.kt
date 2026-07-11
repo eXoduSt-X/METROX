@@ -66,7 +66,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
 
     // Nuevo Launcher para selección múltiple de audio
-private val audioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
     if (uris.isNotEmpty()) {
         selectedAudioUris = uris.toMutableList()
         Toast.makeText(requireContext(), "${uris.size} audios seleccionados", Toast.LENGTH_SHORT).show()
