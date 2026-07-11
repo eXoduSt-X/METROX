@@ -118,9 +118,8 @@
             android:layout_marginTop="8dp"
             android:gravity="center_vertical">
 
-            <Button android:id="@+id/btnSelectImages" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="FOTOS" android:textSize="10sp" />
-            <EditText android:id="@+id/etImageDuration" android:layout_width="60dp" android:layout_height="wrap_content" android:hint="Segs" android:textColor="#FFFFFF" android:inputType="number" android:textSize="12sp" android:layout_marginHorizontal="8dp" />
-            <Button android:id="@+id/btnCreateImgVideo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="CREAR VIDEO" android:textSize="10sp" />
+            <Button android:id="@+id/btnSelectAudio" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="FLAC/OPUS" android:textSize="10sp" />
+            <Button android:id="@+id/btnConvert" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="CONVERTIR A MP3" android:textSize="10sp" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
