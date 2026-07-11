@@ -70,8 +70,8 @@ android {
 }
 
 dependencies {
-    // FFmpeg-Kit Versión FULL GPL (Soporta MP3Lame) y compatible con Android 15 (16KB)
-    implementation 'com.github.moizhassankh:ffmpeg-kit-android-16KB:full-gpl-v6.1.1'
+    // FFmpeg-Kit nativo compatible con Android 15 (16KB) registrado en Maven Central
+    implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1'
     implementation 'com.comviva.smart-exception:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
