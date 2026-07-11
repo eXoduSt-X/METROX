@@ -18,7 +18,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url "https://jitpack.io" }
         maven { 
-            url "https://bintray.com" 
+            url "https://jcenter.bintray.com" // URL corregida al espejo oficial de JCenter
             allowInsecureProtocol = true // Necesario para jaudiotagger y material-intro antiguos
         }
     }
