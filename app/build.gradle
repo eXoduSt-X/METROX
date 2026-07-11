@@ -70,8 +70,8 @@ android {
 }
 
 dependencies {
-    // FFmpeg-Kit compatible con 16KB (Android 15) desde Maven Central
-    implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1'
+    // FFmpeg-Kit Full con soporte 16KB bajado a la v6.0.0 para solucionar el bug de D8/Dexing
+    implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.0.0'
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
