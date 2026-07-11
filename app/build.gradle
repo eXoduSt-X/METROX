@@ -69,12 +69,6 @@ android {
     }
 }
 
-// Repositorios requeridos a nivel de módulo para resolver paquetes de JitPack
-repositories {
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
-}
-
 dependencies {
     // FFmpeg-Kit Versión FULL GPL (Soporta MP3Lame) y compatible con Android 15 (16KB)
     implementation 'com.github.moizhassankh:ffmpeg-kit-android-16KB:full-gpl-v6.1.1'
