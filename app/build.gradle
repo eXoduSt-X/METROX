@@ -70,8 +70,9 @@ android {
 }
 
 dependencies {
-    // Librería actualizada y compatible con Android 15 (16KB page size)
-    implementation 'io.github.minorlai:ffmpeg-kit-16kb:6.1.2'
+    // FFmpeg-Kit Versión FULL GPL (Soporta MP3Lame) y compatible con Android 15 (16KB)
+    implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb-full-gpl:6.1.1'
+    implementation 'com.artenica:smart-exception-java:0.2.1'
 
     // --- Tus dependencias ---
     implementation project(':appthemehelper')
