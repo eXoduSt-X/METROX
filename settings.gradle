@@ -1,11 +1,11 @@
-// https://docs.gradle.com/enterprise/gradle-plugin/
+// https://gradle.com
 plugins {
     id "com.gradle.enterprise" version "3.10.3"
 }
 
 gradleEnterprise {
     buildScan {
-        termsOfServiceUrl = "https://gradle.com/terms-of-service"
+        termsOfServiceUrl = "https://gradle.com"
         termsOfServiceAgree = "yes"
     }
 }
@@ -14,8 +14,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        mavenCentral()
-        maven { url "https://jitpack.io" } // <- Repositorio agregado exitosamente
+        mavenCentral() // Busca el artefacto directamente en los repositorios de Sonatype/Central
     }
 }
 
