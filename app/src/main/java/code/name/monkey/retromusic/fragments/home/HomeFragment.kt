@@ -756,7 +756,9 @@ private val audioPickerLauncher = registerForActivityResult(ActivityResultContra
         return destinationFile.absolutePath
     }
     return null
-    }   private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
+    }   
+            
+    private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
         val binaryPath = getFFmpegFromDownloads(requireContext())
         if (binaryPath == null) {
             onComplete(false, "Binario 'ffmpeg' no encontrado en Descargas")
@@ -783,7 +785,7 @@ private val audioPickerLauncher = registerForActivityResult(ActivityResultContra
                 onComplete(false, e.message ?: "Error desconocido")
             }
         }.start()
-    } // Cierra runManualFFmpeg
+    }
 
     private fun convertirAudiosAMp3(uris: List<Uri>) {
         Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
@@ -809,11 +811,11 @@ private val audioPickerLauncher = registerForActivityResult(ActivityResultContra
                 Toast.makeText(requireContext(), "¡Conversión completada!", Toast.LENGTH_SHORT).show()
             }
         }.start()
-    } // Cierra convertirAudiosAMp3
+    }
 
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
         const val TAG: String = "BannerHomeFragment"
         @JvmStatic fun newInstance(): HomeFragment = HomeFragment()
     }
-} // Cierra la clase HomeFragment
+}
