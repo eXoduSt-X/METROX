@@ -705,33 +705,47 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
         return file
     }
 // --- PEGA saveToDownloads AQUÍ ---
-   private fun saveToDownloads(file: File, fileName: String) {
-        val contentValues = android.content.ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
-            }
+   private fun saveToDownloads(file: File, fileName: String, mimeType: String = "video/mp4") {
+    val contentValues = android.content.ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+        put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
         }
+    }
 
-        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Downloads.EXTERNAL_CONTENT_URI
-        } else {
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        }
+    val isAudio = mimeType.startsWith("audio/")
+    val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Downloads.EXTERNAL_CONTENT_URI
+    } else if (isAudio) {
+        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+    } else {
+        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    }
 
-        val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
-        
-        uri?.let {
-            requireContext().contentResolver.openOutputStream(it)?.use { out ->
+    val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
+
+    if (uri != null) {
+        try {
+            requireContext().contentResolver.openOutputStream(uri)?.use { out ->
                 file.inputStream().use { input -> input.copyTo(out) }
             }
             requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "Guardado en Descargas", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Guardado en Descargas: $fileName", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SaveToDownloads", "Error copiando $fileName: ${e.message}")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "Error al guardar $fileName", Toast.LENGTH_SHORT).show()
             }
         }
-    } // <--- Esta llave cierra correctamente saveToDownloads
-
+    } else {
+        android.util.Log.e("SaveToDownloads", "insert() devolvió null para $fileName (mime=$mimeType)")
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "No se pudo crear $fileName en Descargas", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
     // --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
     private fun getFFmpegFromDownloads(context: android.content.Context): String? {
@@ -800,7 +814,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
                 val session = FFmpegKit.execute(command)
                 
                 if (ReturnCode.isSuccess(session.returnCode)) {
-                    saveToDownloads(outputFile, fileName)
+                    saveToDownloads(outputFile, fileName, "audio/mpeg")
                 }
                 
                 if (inputFile.exists()) inputFile.delete()
