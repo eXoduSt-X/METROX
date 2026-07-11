@@ -61,8 +61,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private val subtitleList = mutableListOf<Subtitle>()
     private val handler = Handler(Looper.getMainLooper())
     private var selectedSubtitleUri: Uri? = null
+    private var selectedAudioUri: Uri? = null
     private var selectedAudioUris = mutableListOf<Uri>()
-  
 
 
     // Nuevo Launcher para selección múltiple de audio
@@ -117,7 +117,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
 
     private val audioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            selectedAudioUris = it
+            selectedAudioUri = it
             val name = requireContext().contentResolver.query(
                 it, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
             )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else "Audio" } ?: "Audio"
