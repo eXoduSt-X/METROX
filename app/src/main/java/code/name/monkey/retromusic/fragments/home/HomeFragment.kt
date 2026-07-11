@@ -395,7 +395,7 @@ private val audioPickerLauncher = registerForActivityResult(ActivityResultContra
             }
         }
         // Listeners para Video desde Imágenes
-        
+        }
         
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
