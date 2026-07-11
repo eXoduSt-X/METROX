@@ -117,7 +117,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
 
     private val audioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            selectedAudioUri = it
+            selectedAudioUris = it
             val name = requireContext().contentResolver.query(
                 it, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
             )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else "Audio" } ?: "Audio"
