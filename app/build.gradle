@@ -79,8 +79,10 @@ dependencies {
     // 1. Vinculación estricta y prioritaria de nuestra librería física local de 16KB + mp3lame
     implementation files('libs/ffmpeg-kit-16kb-full.aar')
 
-    // 2. Cargador de árbol local (Excluyendo el binario anterior mediante patrón correcto de string para evitar firmas duplicadas)
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar']) {
+    // 2. Cargador simplificado compatible con Configuration Cache (Excluyendo el binario anterior)
+    implementation fileTree('libs') {
+        include '*.jar'
+        include '*.aar'
         exclude '**/ffmpeg-kit-16kb-full.aar'
     }
 
