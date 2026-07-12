@@ -97,7 +97,7 @@ dependencies {
     implementation "androidx.preference:preference-ktx:$preference_version"
     implementation "androidx.core:core-ktx:$core_version"
     implementation 'androidx.palette:palette-ktx:1.0.0'
-    implementation 'app.documentfile:documentfile:1.0.1'
+    implementation 'androidx.documentfile:documentfile:1.0.1' // Línea corregida
     implementation 'androidx.mediarouter:mediarouter:1.3.1'
     implementation "androidx.navigation:navigation-runtime-ktx:$navigation_version"
     implementation "androidx.navigation:navigation-fragment-ktx:$navigation_version"
