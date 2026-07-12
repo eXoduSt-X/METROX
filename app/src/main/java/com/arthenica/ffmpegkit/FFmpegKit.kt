@@ -47,9 +47,7 @@ class FFmpegSession {
 }
 
 class ReturnCode {
-    // Doble firma obligatoria: propiedad y función clásica para evadir errores de inferencia
-    val isSuccess: Boolean = true
-    
+    // Dejar únicamente la función limpia; esto evita el choque de firmas (Platform declaration clash)
     fun isSuccess(): Boolean = true
     fun isCancel(): Boolean = false
     
