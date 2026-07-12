@@ -75,11 +75,13 @@ android {
 }
 
 dependencies {
-    // 1. Vinculación exclusiva de tu binario FÍSICO local (Trae la interfaz Java Completa + Códecs Full)
+    // 1. Vinculación exclusiva de tu binario FÍSICO local de 79MB (Interfaz Java Completa + mp3lame)
     implementation files('libs/ffmpeg-kit-16kb-full.aar')
 
-    // 2. Cargador de árbol para otros jar/aar
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar']) {
+    // 2. Cargador simplificado corregido y compatible con Configuration Cache
+    implementation fileTree('libs') {
+        include '*.jar'
+        include '*.aar'
         exclude '**/ffmpeg-kit-16kb-full.aar'
     }
 
