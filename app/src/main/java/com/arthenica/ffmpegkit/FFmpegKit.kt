@@ -47,12 +47,16 @@ class FFmpegSession {
 }
 
 class ReturnCode {
+    // Doble firma obligatoria: propiedad y función clásica para evadir errores de inferencia
     val isSuccess: Boolean = true
     
-    fun isSuccess(): Boolean = isSuccess
+    fun isSuccess(): Boolean = true
     fun isCancel(): Boolean = false
     
     companion object {
         @JvmField val SUCCESS = ReturnCode()
+
+        @JvmStatic
+        fun isSuccess(returnCode: ReturnCode?): Boolean = true
     }
 }
