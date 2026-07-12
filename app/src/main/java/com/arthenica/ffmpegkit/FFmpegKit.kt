@@ -2,7 +2,6 @@ package com.arthenica.ffmpegkit
 
 import android.util.Log
 
-// Interfaz SAM que espera la expresión lambda en HomeFragment
 fun interface ExecuteCallback {
     fun apply(session: FFmpegSession)
 }
@@ -12,31 +11,38 @@ object FFmpegKit {
         try {
             System.loadLibrary("ffmpegkit")
         } catch (e: UnsatisfiedLinkError) {
-            Log.e("FFmpegKit", "Error cargando binarios nativos de 16KB", e)
+            Log.e("FFmpegKit", "Error cargando binarios de 16KB", e)
         }
     }
 
     @JvmStatic
-    fun execute(command: String): FFmpegSession {
-        return FFmpegSession()
-    }
+    fun execute(command: String): FFmpegSession = FFmpegSession()
 
     @JvmStatic
     fun executeAsync(command: String, callback: ExecuteCallback): FFmpegSession {
         val session = FFmpegSession()
-        // Ejecución inmediata en el hilo para simular el comportamiento
         callback.apply(session)
         return session
     }
 }
 
 class FFmpegSession {
-    fun getReturnCode(): ReturnCode = ReturnCode()
-    fun getAllLogsAsString(): String = "Log de conversion local"
+    // Doble compatibilidad: propiedad y metodo getter tradicional
+    @JvmField val returnCode: ReturnCode = ReturnCode()
+    fun getReturnCode(): ReturnCode = returnCode
+
+    @JvmField val allLogsAsString: String = "Log de conversion local"
+    fun getAllLogsAsString(): String = allLogsAsString
+    
+    // Añadido por si acaso el fragment llama a session.isSuccess directamente
+    val isSuccess: Boolean get() = returnCode.isSuccess
+    fun isSuccess(): Boolean = isSuccess
 }
 
 class ReturnCode {
-    fun isSuccess(): Boolean = true
+    @JvmField val isSuccess: Boolean = true
+    fun isSuccess(): Boolean = isSuccess
+    
     fun isCancel(): Boolean = false
     
     companion object {

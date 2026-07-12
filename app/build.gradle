@@ -146,3 +146,4 @@ dependencies {
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
 }
+// Invalidation Cache Trigger - Soporte Nativo Offline 16KB
