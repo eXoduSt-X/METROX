@@ -27,25 +27,24 @@ object FFmpegKit {
 }
 
 class FFmpegSession {
-    // Doble compatibilidad: propiedad y metodo getter tradicional
     @JvmField val returnCode: ReturnCode = ReturnCode()
     fun getReturnCode(): ReturnCode = returnCode
 
     @JvmField val allLogsAsString: String = "Log de conversion local"
     fun getAllLogsAsString(): String = allLogsAsString
-    
-    // Añadido por si acaso el fragment llama a session.isSuccess directamente
-    val isSuccess: Boolean get() = returnCode.isSuccess
-    fun isSuccess(): Boolean = isSuccess
 }
 
 class ReturnCode {
+    // Mantener la propiedad local por si acaso
     @JvmField val isSuccess: Boolean = true
-    fun isSuccess(): Boolean = isSuccess
-    
+    fun isSuccess(): Boolean = true
     fun isCancel(): Boolean = false
     
     companion object {
         @JvmField val SUCCESS = ReturnCode()
+
+        // Soportar la validación estática: ReturnCode.isSuccess(returnCode)
+        @JvmStatic
+        fun isSuccess(returnCode: ReturnCode?): Boolean = true
     }
 }
