@@ -38,7 +38,7 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
-        // Configuración indispensable para inyectar binarios de 16KB sin compresión en Android 15
+        // Configuración indispensable para asegurar que Android 15 use tus binarios nativos de 16KB sin compresión
         jniLibs {
             useLegacyPackaging = false
         }
@@ -74,22 +74,9 @@ android {
     }
 }
 
-// SOLUCIÓN RADICAL D8: Forzamos a que las tareas de Dexing ignoren el análisis profundo del bytecode
-// de dependencias externas en tiempo de Debug, evadiendo el NullPointerException por completo.
-project.ext {
-    set("android.enableDexingArtifactTransform", "false")
-}
-
 dependencies {
-    // 1. Vinculación exclusiva de tu binario FÍSICO local (Interfaz Java Completa + Códecs Full)
-    implementation files('libs/ffmpeg-kit-16kb-full.aar')
-
-    // 2. Cargador simplificado compatible con el Caché de Gradle
-    implementation fileTree('libs') {
-        include '*.jar'
-        include '*.aar'
-        exclude '**/ffmpeg-kit-16kb-full.aar'
-    }
+    // 1. Cargador de árboles locales estándar (Soporta archivos locales planos sin dependencias corruptas de FFmpeg)
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
