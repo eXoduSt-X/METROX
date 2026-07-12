@@ -38,7 +38,7 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
-        // Evita duplicación de binarios nativos manteniendo el orden de prioridad
+        // Da prioridad absoluta a nuestras librerías de 16KB ubicadas en jniLibs
         pickFirst 'lib/arm64-v8a/*.so'
         pickFirst 'lib/x86_64/*.so'
         pickFirst 'lib/armeabi-v7a/*.so'
@@ -69,22 +69,18 @@ android {
             // Fuerza la versión limpia de jsr305
             force 'com.google.code.findbugs:jsr305:1.3.9'
             
-            // Purga drástica: Bloquea cualquier intento remoto de descargar el artefacto roto 6.0.0
+            // Purgamos y bloqueamos el artefacto remoto corrupto
             exclude group: 'com.moizhassan.ffmpeg', module: 'ffmpeg-kit-16kb'
         }
     }
 }
 
 dependencies {
-    // 1. Vinculación estricta y prioritaria de nuestra librería física local de 16KB + mp3lame
-    implementation files('libs/ffmpeg-kit-16kb-full.aar')
+    // 1. API de clases Java estándar de FFmpeg (Las librerías nativas de 16KB se inyectan mediante jniLibs)
+    implementation 'com.arthenica:ffmpeg-kit-full:6.0-2'
 
-    // 2. Cargador simplificado compatible con Configuration Cache (Excluyendo el binario anterior)
-    implementation fileTree('libs') {
-        include '*.jar'
-        include '*.aar'
-        exclude '**/ffmpeg-kit-16kb-full.aar'
-    }
+    // 2. Cargador de árboles local estándar
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
