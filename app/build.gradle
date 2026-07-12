@@ -38,7 +38,10 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
-        // CRUCIAL: Fuerza el uso estricto de tus binarios locales de 16KB de jniLibs sobre los de minorlai
+        // Esencial para que Android 15 cargue los binarios nativos alineados a 16KB sin comprimirlos
+        jniLibs {
+            useLegacyPackaging = false
+        }
         pickFirst 'lib/arm64-v8a/*.so'
         pickFirst 'lib/x86_64/*.so'
         pickFirst 'lib/armeabi-v7a/*.so'
@@ -72,11 +75,13 @@ android {
 }
 
 dependencies {
-    // 1. Proveedor de interfaces Java de FFmpegKit (Versión limpia que resuelve el error de Kotlin)
-    implementation 'io.github.minorlai:ffmpeg-kit-16kb:6.1.2'
+    // 1. Vinculación exclusiva de tu binario FÍSICO local (Trae la interfaz Java Completa + Códecs Full)
+    implementation files('libs/ffmpeg-kit-16kb-full.aar')
 
-    // 2. Cargador de árboles locales para tus archivos jar/aar restantes
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    // 2. Cargador de árbol para otros jar/aar
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar']) {
+        exclude '**/ffmpeg-kit-16kb-full.aar'
+    }
 
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 

@@ -69,3 +69,7 @@
 -keep class code.name.monkey.retromusic.network.model.** { *; }
 -keep class code.name.monkey.retromusic.model.** { *; }
 -keep class com.google.android.material.bottomsheet.** { *; }
+# Evita que el compilador analice y rompa el bytecode de las clases de FFmpegKit
+-keep class com.arthenica.ffmpegkit.** { *; }
+-dontwarn com.arthenica.ffmpegkit.**
+-keepattributes MethodParameters,Signature,InnerClasses,EnclosingMethod
