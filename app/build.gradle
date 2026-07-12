@@ -51,12 +51,12 @@ android {
     }
 
     compileOptions {
-        // Elevamos la compatibilidad a Java 11 para mitigar bugs de desugaring en D8
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
+        // Sincronizado estrictamente a Java 11 para resolver el warning de KSP/Kotlin
         jvmTarget = "11"
     }
 
@@ -74,6 +74,12 @@ android {
             exclude group: 'com.moizhassan.ffmpeg', module: 'ffmpeg-kit-16kb'
         }
     }
+}
+
+// Bloque técnico avanzado: Desactiva de raíz el desugaring en D8 para librerías físicas locales
+// Esto evita que D8 intente procesar las firmas corruptas en las clases nativas de FFmpeg
+tasks.withType(com.android.build.gradle.internal.tasks.DexFileDependenciesTask).configureEach {
+    it.enableDesugaring.set(false)
 }
 
 dependencies {
