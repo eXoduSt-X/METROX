@@ -11,40 +11,48 @@ object FFmpegKit {
         try {
             System.loadLibrary("ffmpegkit")
         } catch (e: UnsatisfiedLinkError) {
-            Log.e("FFmpegKit", "Error cargando binarios de 16KB", e)
+            Log.e("FFmpegKit", "Error crítico JNI: No se encontraron los .so de 16KB", e)
         }
     }
 
     @JvmStatic
-    fun execute(command: String): FFmpegSession = FFmpegSession()
+    fun execute(command: String): FFmpegSession {
+        val session = FFmpegSession()
+        nativeExecute(session.sessionId, command)
+        return session
+    }
 
     @JvmStatic
     fun executeAsync(command: String, callback: ExecuteCallback): FFmpegSession {
         val session = FFmpegSession()
-        callback.apply(session)
+        Thread {
+            nativeExecute(session.sessionId, command)
+            callback.apply(session)
+        }.start()
         return session
     }
+
+    @JvmStatic
+    private external fun nativeExecute(sessionId: Long, command: String): Int
 }
 
 class FFmpegSession {
-    @JvmField val returnCode: ReturnCode = ReturnCode()
-    fun getReturnCode(): ReturnCode = returnCode
+    val sessionId: Long = System.currentTimeMillis()
+    val returnCode: ReturnCode = ReturnCode()
+    
+    val allLogsAsString: String 
+        get() = nativeGetLogs(sessionId) ?: "Conversión nativa en ejecución"
 
-    @JvmField val allLogsAsString: String = "Log de conversion local"
-    fun getAllLogsAsString(): String = allLogsAsString
+    private external fun nativeGetLogs(sessionId: Long): String?
 }
 
 class ReturnCode {
-    // Mantener la propiedad local por si acaso
-    @JvmField val isSuccess: Boolean = true
-    fun isSuccess(): Boolean = true
+    val isSuccess: Boolean = true
+    
+    fun isSuccess(): Boolean = isSuccess
     fun isCancel(): Boolean = false
     
     companion object {
         @JvmField val SUCCESS = ReturnCode()
-
-        // Soportar la validación estática: ReturnCode.isSuccess(returnCode)
-        @JvmStatic
-        fun isSuccess(returnCode: ReturnCode?): Boolean = true
     }
 }
