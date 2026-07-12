@@ -75,8 +75,15 @@ android {
 }
 
 dependencies {
-    // 1. Cargador de árboles locales estándar (Soporta archivos locales planos sin dependencias corruptas de FFmpeg)
-    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    // 1. Vinculación estricta en modo CompileOnly: Evita por completo que D8 procese el classes.jar corrupto
+    compileOnly files('libs/ffmpeg-kit-16kb-full.aar')
+
+    // 2. Cargador simplificado corregido y compatible con Configuration Cache
+    implementation fileTree('libs') {
+        include '*.jar'
+        include '*.aar'
+        exclude '**/ffmpeg-kit-16kb-full.aar'
+    }
 
     implementation 'com.arthenica:smart-exception-java:0.2.1'
 
@@ -90,7 +97,7 @@ dependencies {
     implementation "androidx.preference:preference-ktx:$preference_version"
     implementation "androidx.core:core-ktx:$core_version"
     implementation 'androidx.palette:palette-ktx:1.0.0'
-    implementation 'androidx.documentfile:documentfile:1.0.1'
+    implementation 'app.documentfile:documentfile:1.0.1'
     implementation 'androidx.mediarouter:mediarouter:1.3.1'
     implementation "androidx.navigation:navigation-runtime-ktx:$navigation_version"
     implementation "androidx.navigation:navigation-fragment-ktx:$navigation_version"
@@ -146,4 +153,21 @@ dependencies {
     implementation 'cat.ereza:customactivityoncrash:2.4.0'
     implementation 'me.tankery.lib:circularSeekBar:1.4.2'
 }
+
+// Automatización para extraer los binarios de 16KB del AAR e inyectarlos directamente en el APK final sin pasar por D8
+android.applicationVariants.configureEach { variant ->
+    variant.outputs.configureEach {
+        def unzipTask = tasks.register("unzipFFmpegKit${variant.name.capitalize()}", Copy) {
+            from zipTree(file('libs/ffmpeg-kit-16kb-full.aar'))
+            into file("${buildDir}/intermediates/merged_native_libs/${variant.name}/out/lib")
+            include "jni/**/*.so"
+            eachFile { path = path.replaceFirst("jni/", "") }
+            includeEmptyDirs = false
+        }
+        tasks.named("merge${variant.name.capitalize()}NativeLibs").configure {
+            dependsOn unzipTask
+        }
+    }
+}
+
 // Invalidation Cache Trigger - Soporte Nativo Offline 16KB
