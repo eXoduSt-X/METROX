@@ -79,9 +79,9 @@ dependencies {
     // 1. Vinculación estricta y prioritaria de nuestra librería física local de 16KB + mp3lame
     implementation files('libs/ffmpeg-kit-16kb-full.aar')
 
-    // 2. Cargador de árbol local (Excluyendo el binario anterior para evitar firmas duplicadas)
+    // 2. Cargador de árbol local (Excluyendo el binario anterior mediante patrón correcto de string para evitar firmas duplicadas)
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar']) {
-        exclude name: 'ffmpeg-kit-16kb-full.aar'
+        exclude '**/ffmpeg-kit-16kb-full.aar'
     }
 
     implementation 'com.arthenica:smart-exception-java:0.2.1'
@@ -142,7 +142,7 @@ dependencies {
     implementation 'com.h6ah4i.android.widget.advrecyclerview:advrecyclerview:1.0.0'
     implementation 'com.github.bosphere.android-fadingedgelayout:fadingedgelayout:1.0.0'
     implementation 'net.yslibrary.keyboardvisibilityevent:keyboardvisibilityevent:3.0.0-RC3'
-    implementation 'com.github.jetradarmobile:android-snowfall:1.2.1'
+    implementation 'com.github.jetragit add app/build.gradledarmobile:android-snowfall:1.2.1'
     implementation "dev.chrisbanes.insetter:insetter:0.6.1"
     implementation 'com.github.Adonai:jaudiotagger:2.3.15'
     implementation 'com.r0adkll:slidableactivity:2.1.0'
