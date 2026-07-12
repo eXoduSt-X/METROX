@@ -38,7 +38,7 @@ android {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/java.properties']
         }
-        // Fuerza el uso estricto de tus binarios locales de 16KB en jniLibs
+        // CRUCIAL: Fuerza el uso estricto de tus binarios locales de 16KB de jniLibs sobre los de minorlai
         pickFirst 'lib/arm64-v8a/*.so'
         pickFirst 'lib/x86_64/*.so'
         pickFirst 'lib/armeabi-v7a/*.so'
@@ -72,7 +72,10 @@ android {
 }
 
 dependencies {
-    // 1. Cargador de árboles locales para tus archivos jar/aar locales
+    // 1. Proveedor de interfaces Java de FFmpegKit (Versión limpia que resuelve el error de Kotlin)
+    implementation 'io.github.minorlai:ffmpeg-kit-16kb:6.1.2'
+
+    // 2. Cargador de árboles locales para tus archivos jar/aar restantes
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 
     implementation 'com.arthenica:smart-exception-java:0.2.1'
