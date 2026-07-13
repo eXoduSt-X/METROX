@@ -18,7 +18,9 @@ object FFmpegKit {
     @JvmStatic
     fun execute(command: String): FFmpegSession {
         val session = FFmpegSession()
-        FFmpegKitConfig.nativeFFmpegExecute(session.sessionId, command)
+        // Convertimos el String en el Array<String> que exige la vtable nativa
+        val arguments = command.split(" ").toTypedArray()
+        FFmpegKitConfig.nativeFFmpegExecute(session.sessionId, arguments)
         return session
     }
 
@@ -26,7 +28,9 @@ object FFmpegKit {
     fun executeAsync(command: String, callback: ExecuteCallback): FFmpegSession {
         val session = FFmpegSession()
         Thread {
-            FFmpegKitConfig.nativeFFmpegExecute(session.sessionId, command)
+            // Convertimos el String en el Array<String> que exige la vtable nativa
+            val arguments = command.split(" ").toTypedArray()
+            FFmpegKitConfig.nativeFFmpegExecute(session.sessionId, arguments)
             callback.apply(session)
         }.start()
         return session
@@ -43,7 +47,7 @@ object FFmpegKitConfig {
     fun getVersion(): String = "6.0"
 
     // =========================================================================
-    //   MAPA JNI REAL DEL BINARIO EXTRAÍDO DE GITHUB ACTIONS (100% FIEL)
+    //   MAPA JNI REAL DEL BINARIO EXTRAÍDO DE GITHUB ACTIONS (100% ALINEADO)
     // =========================================================================
     @JvmStatic external fun disableNativeRedirection()
     @JvmStatic external fun enableNativeRedirection()
