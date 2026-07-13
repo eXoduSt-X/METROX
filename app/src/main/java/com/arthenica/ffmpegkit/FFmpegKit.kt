@@ -60,11 +60,11 @@ object FFmpegKitConfig {
     @JvmStatic external fun nativeFFprobeExecute(sessionId: Long, arguments: Array<String>): Int
     @JvmStatic external fun registerNewNativeFFmpegPipe(pipeName: String): Int
     @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
-    @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
     @JvmStatic external fun setNativeLogLevel(level: Int)
 
     // =========================================================================
     //   CALLBACKS OBLIGATORIOS (LLAMADAS DESDE C++ HACIA KOTLIN)
+    //   Alineación exacta de firmas primitivas contra la vtable de tu teléfono
     // =========================================================================
     @JvmStatic
     fun log(sessionId: Long, level: Int, messageBytes: ByteArray) {
@@ -72,27 +72,17 @@ object FFmpegKitConfig {
         Log.d("FFmpegKitNativo", "[$level] Sesión $sessionId: $message")
     }
 
-    // CORRECCIÓN MATEMÁTICA EN LA RAM: Firma exacta para (JIFFJDDD)V
     @JvmStatic
-    fun statistics(
-        sessionId: Long,          // J
-        time: Int,                // I
-        bitrate: Float,           // F
-        speed: Float,             // F
-        videoFrameNumber: Long,   // J (Corregido de Int a Long)
-        videoQuality: Double,     // D
-        videoFps: Double,         // D
-        pts: Double               // D (Añadido el parámetro faltante del log)
-    ) {
-        Log.d("FFmpegKitNativo", "Telemetría recibida - Tiempo: $time ms, Velocidad: ${speed}x")
+    fun statistics(sessionId: Long, videoFrameNumber: Int, videoFps: Float, videoQuality: Float, size: Long, time: Double, bitrate: Double, speed: Double) {
+        // Mapeo exacto de la firma (JIFFJDDD)V que exige tu binario para no crashear
     }
 
     @JvmStatic
     fun statisticsWithCallback(sessionId: Long, statisticsAddress: Long) {
-        // Mapea la firma complementaria de puntero JNI de estadísticas
+        // Puntero JNI complementario de telemetría
     }
 
-    // --- Métodos de compatibilidad requeridos por el Fragment ---
+    // --- Métodos de compatibilidad requeridos por la UI ---
     @JvmStatic fun enableRedirection() {}
     @JvmStatic fun disableRedirection() {}
 }
