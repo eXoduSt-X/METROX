@@ -1,12 +1,3 @@
-Para lograr que la interfaz sea más compacta y coherente con el estilo de color que buscas, he realizado los siguientes cambios:
-
-1. **Rediseño de la sección de corte:** He movido los campos `EditText` y sus botones `SET` junto al botón `CORTAR` en una estructura de filas más eficiente, evitando que ocupen tanto espacio vertical.
-2. **Ajuste de colores:** Todos los elementos que antes eran violeta (`#6200EE`) ahora son un gris oscuro (`#333333`), excepto `btnMixVideo` (MKV) que mantiene su propósito especial.
-3. **Optimización:** He mantenido la lógica funcional intacta para que sea solo copiar y pegar.
-
-Aquí tienes el código completo de `home_content.xml`:
-
-```xml
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -65,7 +56,6 @@ Aquí tienes el código completo de `home_content.xml`:
             <TextView android:id="@+id/tvTotalTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" />
         </LinearLayout>
 
-        <!-- Controles de Reproducción -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -79,7 +69,6 @@ Aquí tienes el código completo de `home_content.xml`:
             <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Herramientas -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -93,7 +82,6 @@ Aquí tienes el código completo de `home_content.xml`:
             <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="DIR" android:textSize="10sp" />
         </LinearLayout>
 
-        <!-- Corte de Video Compacto -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -110,7 +98,6 @@ Aquí tienes el código completo de `home_content.xml`:
         
         <Button android:id="@+id/btnSplit" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:text="CORTAR CLIP" android:textColor="#FFFFFF" android:layout_marginTop="4dp" />
 
-        <!-- Conversión -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -130,5 +117,3 @@ Aquí tienes el código completo de `home_content.xml`:
             
     </LinearLayout>
 </LinearLayout>
-
-```
