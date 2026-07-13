@@ -337,86 +337,102 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
     private fun setupVideoListeners() {
-        binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
-        binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
-        binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) binding.homeContent.videoPlayer.seekTo(progress)
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-        binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
-            mp.seekTo(savedPosition)
-            mp.start()
-            binding.homeContent.videoSeekBar.max = mp.duration
-            binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
-        }
-        binding.homeContent.btnPrevVideo.setOnClickListener {
-            if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
-        }
-        binding.homeContent.btnRewindTime.setOnClickListener {
-            binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition - 5000).coerceAtLeast(0))
-        }
-        binding.homeContent.btnForwardTime.setOnClickListener {
-            binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration))
-        }
-        binding.homeContent.btnNextVideo.setOnClickListener {
-            if (currentIndex < videoPlaylist.size - 1) { currentIndex++; reproducirVideoActual() }
-        }
-        binding.homeContent.btnChooseFolder.setOnClickListener {
-            folderPickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
-        }
-        binding.homeContent.btnPlayPause.setOnClickListener {
-            val player = binding.homeContent.videoPlayer
-            if (player.isPlaying) {
-                player.pause()
-                binding.homeContent.btnPlayPause.text = "Play"
-            } else {
-                player.start()
-                binding.homeContent.btnPlayPause.text = "Pause"
-            }
-        }
-        binding.homeContent.btnMixVideo.setOnClickListener {
-            val subUri = selectedSubtitleUri
-            if (videoPlaylist.isNotEmpty() && subUri != null) {
-                createMkvWithSubtitles(videoPlaylist[currentIndex], subUri, selectedAudioUri)
-            } else {
-                Toast.makeText(requireContext(), "Selecciona video y subtítulos primero", Toast.LENGTH_SHORT).show()
-            }
-        }
-        binding.homeContent.btnFullscreen.setOnClickListener {
-            audioPickerLauncher.launch("audio/*")
-        }
-        // Listeners para Corte de Video
-        binding.homeContent.btnSetStart.setOnClickListener {
-            binding.homeContent.etStartTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
-        }
-        binding.homeContent.btnSetEnd.setOnClickListener {
-            binding.homeContent.etEndTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
-        }
-        binding.homeContent.btnSplit.setOnClickListener {
-            val startTime = binding.homeContent.etStartTime.text.toString()
-            val endTime = binding.homeContent.etEndTime.text.toString()
-            if (startTime.isNotEmpty() && endTime.isNotEmpty() && videoPlaylist.isNotEmpty()) {
-                splitVideo(videoPlaylist[currentIndex], startTime, endTime)
-            } else {
-                Toast.makeText(requireContext(), "Revisa los tiempos o selecciona un video", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // BOTÓN FUTURO en home_content.xml: btnHardcodeSubtitles
-        // Quema (burn-in) los subtítulos ya cargados con btnLoadSubtitles directamente en el video,
-        // a diferencia de btnMixVideo que solo agrega una pista de subtítulos separada al MKV.
-        // binding.homeContent.btnHardcodeSubtitles.setOnClickListener { hardcodearSubtitulos() }
-
-        // BOTÓN FUTURO en home_content.xml: btnCreateVideoFromPhotos
-        // binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener { photosPickerLauncher.launch("image/*") }
-
-        // NOTA: "Unir videos" ya funciona automáticamente al seleccionar 2+ videos con btnOpenFile
-        // (ver mostrarDialogoUnirVideos / unirVideos). No se agregó un botón dedicado para evitar duplicar
-        // el flujo; si prefieres un botón separado, avísame y lo desacoplamos del picker de reproducción.
+    // Selección de archivos y carpetas
+    binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
+    binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
+    binding.homeContent.btnChooseFolder.setOnClickListener {
+        folderPickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
     }
+    binding.homeContent.btnSelectAudio.setOnClickListener {
+        audioPickerLauncher.launch("audio/*")
+    }
+
+    // SeekBar
+    binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+            if (fromUser) binding.homeContent.videoPlayer.seekTo(progress)
+        }
+        override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+        override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+    })
+
+    // Reproducción
+    binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
+        mp.seekTo(savedPosition)
+        mp.start()
+        binding.homeContent.videoSeekBar.max = mp.duration
+        binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
+    }
+
+    binding.homeContent.btnPlayPause.setOnClickListener {
+        val player = binding.homeContent.videoPlayer
+        if (player.isPlaying) {
+            player.pause()
+            binding.homeContent.btnPlayPause.text = "PLAY"
+        } else {
+            player.start()
+            binding.homeContent.btnPlayPause.text = "PAUSE"
+        }
+    }
+
+    // Controles de navegación
+    binding.homeContent.btnPrevVideo.setOnClickListener {
+        if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
+    }
+    binding.homeContent.btnNextVideo.setOnClickListener {
+        if (currentIndex < videoPlaylist.size - 1) { currentIndex++; reproducirVideoActual() }
+    }
+    binding.homeContent.btnRewindTime.setOnClickListener {
+        binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition - 5000).coerceAtLeast(0))
+    }
+    binding.homeContent.btnForwardTime.setOnClickListener {
+        binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration))
+    }
+
+    // Herramientas FFmpeg
+    binding.homeContent.btnMixVideo.setOnClickListener { // MKV
+        val subUri = selectedSubtitleUri
+        if (videoPlaylist.isNotEmpty() && subUri != null) {
+            createMkvWithSubtitles(videoPlaylist[currentIndex], subUri, selectedAudioUri)
+        } else {
+            Toast.makeText(requireContext(), "Selecciona video y subtítulos", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    binding.homeContent.btnBurn.setOnClickListener { // BURN
+        val subUri = selectedSubtitleUri
+        if (videoPlaylist.isNotEmpty() && subUri != null) {
+            hardcodearSubtitulos()
+        } else {
+            Toast.makeText(requireContext(), "Carga un SRT primero", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    binding.homeContent.btnConvert.setOnClickListener { // A MP3
+        // Asumiendo que tienes una función para convertir audio
+        if (videoPlaylist.isNotEmpty()) {
+            convertirAudiosAMp3(listOf(videoPlaylist[currentIndex]))
+        }
+    }
+
+    // Corte de Video
+    binding.homeContent.btnSetStart.setOnClickListener {
+        binding.homeContent.etStartTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
+    }
+    binding.homeContent.btnSetEnd.setOnClickListener {
+        binding.homeContent.etEndTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
+    }
+    binding.homeContent.btnSplit.setOnClickListener {
+        val startTime = binding.homeContent.etStartTime.text.toString()
+        val endTime = binding.homeContent.etEndTime.text.toString()
+        if (startTime.isNotEmpty() && endTime.isNotEmpty() && videoPlaylist.isNotEmpty()) {
+            splitVideo(videoPlaylist[currentIndex], startTime, endTime)
+        } else {
+            Toast.makeText(requireContext(), "Define los tiempos de corte", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+
 
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
