@@ -9,7 +9,7 @@ fun interface ExecuteCallback {
 object FFmpegKit {
     init {
         try {
-            // Carga del motor nativo del APK de 189MB
+            // Carga el motor nativo del APK de 189MB
             System.loadLibrary("ffmpegkit")
         } catch (e: UnsatisfiedLinkError) {
             Log.e("FFmpegKit", "Error cargando binario nativo", e)
@@ -43,16 +43,25 @@ object FFmpegKit {
     }
 }
 
-// SOLUCIÓN AL CRASH JNI: Esta clase es obligatoria porque el binario de C++ 
-// la busca reflexivamente al arrancar (OnLoad) para registrar sus configuraciones de entorno.
 object FFmpegKitConfig {
     @JvmStatic
     fun init() {
-        // Inicializador de hook para C++
+        // Hook de inicialización
     }
 
     @JvmStatic
     fun getVersion(): String = "6.0"
+
+    // SOLUCIÓN AL CRASH DEFINITIVO: Firma JNI estricta que C++ requiere registrar en el arranque
+    @JvmStatic
+    fun enableNativeRedirection() {
+        // No necesita lógica interna, solo existir para que RegisterNatives de C++ no aborte
+    }
+
+    @JvmStatic
+    fun enableRedirection() {
+        // Firma complementaria segura
+    }
 }
 
 class FFmpegSession {
