@@ -82,6 +82,18 @@ object FFmpegKitConfig {
         // Puntero JNI complementario de telemetría
     }
 
+    // SOLUCIÓN AL CRASH SAF: Métodos estáticos inversos exigidos por GetStaticMethodID de C++
+    @JvmStatic
+    fun safOpen(fd: Int): Int {
+        // Satisface la firma (I)I que arrojó tu último error
+        return fd
+    }
+
+    @JvmStatic
+    fun safClose(fd: Int) {
+        // Satisface la firma (I)V complementaria de limpieza de descriptores
+    }
+
     // --- Métodos de compatibilidad requeridos por la UI ---
     @JvmStatic fun enableRedirection() {}
     @JvmStatic fun disableRedirection() {}
