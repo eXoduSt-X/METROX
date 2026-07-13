@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, Add-video ] # Añadida tu rama para que se dispare con tus commits actuales
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -36,6 +36,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
+      # =========================================================================
+      # SCRIPT DE AUDITORÍA JNI: Extrae la radiografía real de símbolos del .so
+      # =========================================================================
+      - name: Extraer y listar símbolos JNI reales del binario
+        run: |
+          echo "=== LISTANDO SÍMBOLOS JNI DE LA CLASE CONFIG ==="
+          mkdir -p temp_jnidump
+          unzip -q app/libs/ffmpeg-kit-16kb-full.aar -d temp_jnidump
+          find temp_jnidump -name "libffmpegkit.so" -path "*arm64-v8a*" -exec nm -D {} \; | grep "FFmpegKitConfig" || true
+          rm -rf temp_jnidump
+
       - name: Build
         run: ./gradlew app:assemble
 
