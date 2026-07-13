@@ -46,6 +46,7 @@ object FFmpegKitConfig {
 
     // =========================================================================
     //   MÉTODOS NATIVOS EXTERNAL (LLAMADAS DESDE KOTLIN HACIA C++)
+    //   100% Alineados con los Símbolos Exportados del binario
     // =========================================================================
     @JvmStatic external fun disableNativeRedirection()
     @JvmStatic external fun enableNativeRedirection()
@@ -63,8 +64,8 @@ object FFmpegKitConfig {
     @JvmStatic external fun setNativeLogLevel(level: Int)
 
     // =========================================================================
-    //   CALLBACKS OBLIGATORIOS (LLAMADAS DESDE C++ HACIA KOTLIN)
-    //   Alineación exacta de firmas primitivas contra la vtable de tu teléfono
+    //   CALLBACKS ENLAZADOS (LLAMADAS DESDE C++ HACIA KOTLIN)
+    //   100% Sincronizados con las Cadenas de Introspección del Servidor
     // =========================================================================
     @JvmStatic
     fun log(sessionId: Long, level: Int, messageBytes: ByteArray) {
@@ -74,24 +75,23 @@ object FFmpegKitConfig {
 
     @JvmStatic
     fun statistics(sessionId: Long, videoFrameNumber: Int, videoFps: Float, videoQuality: Float, size: Long, time: Double, bitrate: Double, speed: Double) {
-        // Mapeo exacto de la firma (JIFFJDDD)V que exige tu binario para no crashear
+        // Estructura (JIFFJDDD)V verificada en el log
     }
 
     @JvmStatic
     fun statisticsWithCallback(sessionId: Long, statisticsAddress: Long) {
-        // Puntero JNI complementario de telemetría
+        // Hook de puntero JNI complementario
     }
 
     @JvmStatic
     fun safOpen(fd: Int): Int {
+        // Firma (I)I verificada en el log
         return fd
     }
 
-    // CORRECCIÓN TÉCNICA CRÍTICA: Cambiado para que retorne un Int (0)
-    // Esto satisface de forma matemática la firma (I)I que exige tu binario
     @JvmStatic
-    fun safClose(fd: Int): Int {
-        return 0
+    fun safClose(fd: Int) {
+        // CORRECCIÓN FINAL: Firma (I)V (Void/Unit) verificada en el log de introspección
     }
 
     // --- Métodos de compatibilidad requeridos por la UI ---
