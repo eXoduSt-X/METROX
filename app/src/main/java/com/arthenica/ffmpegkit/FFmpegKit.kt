@@ -54,8 +54,8 @@ object FFmpegKitConfig {
     @JvmStatic external fun ignoreNativeSignal(signal: Int)
     @JvmStatic external fun messagesInTransmit(sessionId: Long): Int
     @JvmStatic external fun nativeFFmpegCancel(sessionId: Long)
-    @JvmStatic external fun nativeFFmpegExecute(sessionId: Long, command: String): Int
-    @JvmStatic external fun nativeFFprobeExecute(sessionId: Long, command: String): Int
+    @JvmStatic external fun nativeFFmpegExecute(sessionId: Long, arguments: Array<String>): Int
+    @JvmStatic external fun nativeFFprobeExecute(sessionId: Long, arguments: Array<String>): Int
     @JvmStatic external fun registerNewNativeFFmpegPipe(context: Any?): String
     @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
     @JvmStatic external fun setNativeLogLevel(level: Int)
