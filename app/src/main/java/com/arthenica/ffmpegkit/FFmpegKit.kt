@@ -51,7 +51,7 @@ object FFmpegKitConfig {
     @JvmStatic
     fun getVersion(): String = "6.0"
 
-    // --- TABLA JNI COMPLETA Y BLINDADA CONTRA CRASHES ---
+    // --- TABLA JNI COMPLETA ENLAZADA AL BINARIO DE C++ ---
     @JvmStatic
     external fun setNativeLogLevel(level: Int)
 
@@ -69,6 +69,10 @@ object FFmpegKitConfig {
 
     @JvmStatic
     external fun nativeIsLTS(): Boolean
+
+    // LA SOLUCIÓN AL CRASH ACTUAL: Firma nativa estricta exigida por RegisterNatives
+    @JvmStatic
+    external fun getNativeFFmpegVersion(): String
 
     // --- MÉTODOS DE COMPATIBILIDAD DE INTERFAZ ---
     @JvmStatic
