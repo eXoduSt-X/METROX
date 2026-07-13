@@ -18,7 +18,6 @@ object FFmpegKit {
     @JvmStatic
     fun execute(command: String): FFmpegSession {
         val session = FFmpegSession()
-        // Convertimos el String en el Array<String> que exige la vtable nativa
         val arguments = command.split(" ").toTypedArray()
         FFmpegKitConfig.nativeFFmpegExecute(session.sessionId, arguments)
         return session
@@ -28,7 +27,6 @@ object FFmpegKit {
     fun executeAsync(command: String, callback: ExecuteCallback): FFmpegSession {
         val session = FFmpegSession()
         Thread {
-            // Convertimos el String en el Array<String> que exige la vtable nativa
             val arguments = command.split(" ").toTypedArray()
             FFmpegKitConfig.nativeFFmpegExecute(session.sessionId, arguments)
             callback.apply(session)
@@ -47,7 +45,7 @@ object FFmpegKitConfig {
     fun getVersion(): String = "6.0"
 
     // =========================================================================
-    //   MAPA JNI REAL DEL BINARIO EXTRAÍDO DE GITHUB ACTIONS (100% ALINEADO)
+    //   MAPA JNI ABSOLUTO Y UNIFICADO CON LAS ENTRAÑAS DEL BINARIO DE C++
     // =========================================================================
     @JvmStatic external fun disableNativeRedirection()
     @JvmStatic external fun enableNativeRedirection()
@@ -60,7 +58,11 @@ object FFmpegKitConfig {
     @JvmStatic external fun nativeFFmpegCancel(sessionId: Long)
     @JvmStatic external fun nativeFFmpegExecute(sessionId: Long, arguments: Array<String>): Int
     @JvmStatic external fun nativeFFprobeExecute(sessionId: Long, arguments: Array<String>): Int
-    @JvmStatic external fun registerNewNativeFFmpegPipe(context: Any?): String
+    
+    // CORRECCIÓN TÉCNICA CRÍTICA: Cambiado de (Any?):String a (String):Int 
+    // Satisface la firma (Ljava/lang/String;)I que tiró tu último crash
+    @JvmStatic external fun registerNewNativeFFmpegPipe(pipeName: String): Int
+    
     @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
     @JvmStatic external fun setNativeLogLevel(level: Int)
 
