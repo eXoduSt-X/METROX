@@ -89,9 +89,10 @@ object FFmpegKitConfig {
         return fd
     }
 
+    // CORRECCIÓN TÉCNICA CRÍTICA: Cambiado obligatoriamente a : Int para satisfacer la firma (I)I
     @JvmStatic
-    fun safClose(fd: Int) {
-        // CORRECCIÓN FINAL: Firma (I)V (Void/Unit) verificada en el log de introspección
+    fun safClose(fd: Int): Int {
+        return 0
     }
 
     // --- Métodos de compatibilidad requeridos por la UI ---
