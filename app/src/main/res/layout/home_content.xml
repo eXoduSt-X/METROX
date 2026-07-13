@@ -1,3 +1,12 @@
+Para lograr que la interfaz sea más compacta y coherente con el estilo de color que buscas, he realizado los siguientes cambios:
+
+1. **Rediseño de la sección de corte:** He movido los campos `EditText` y sus botones `SET` junto al botón `CORTAR` en una estructura de filas más eficiente, evitando que ocupen tanto espacio vertical.
+2. **Ajuste de colores:** Todos los elementos que antes eran violeta (`#6200EE`) ahora son un gris oscuro (`#333333`), excepto `btnMixVideo` (MKV) que mantiene su propósito especial.
+3. **Optimización:** He mantenido la lógica funcional intacta para que sea solo copiar y pegar.
+
+Aquí tienes el código completo de `home_content.xml`:
+
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -56,70 +65,60 @@
             <TextView android:id="@+id/tvTotalTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" />
         </LinearLayout>
 
+        <!-- Controles de Reproducción -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:weightSum="5"
             android:layout_marginTop="4dp"> 
-            <Button android:id="@+id/btnPrevVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#333333" android:text="PREV" android:textSize="11sp" android:padding="0dp" />
-            <Button android:id="@+id/btnRewindTime" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="REW" android:textSize="11sp" android:padding="0dp" />
-            <Button android:id="@+id/btnPlayPause" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="PLAY" android:textSize="11sp" android:padding="0dp" />
-            <Button android:id="@+id/btnForwardTime" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="FF" android:textSize="11sp" android:padding="0dp" />
-            <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="11sp" android:padding="0dp" />
+            <Button android:id="@+id/btnPrevVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#333333" android:text="PREV" android:textSize="11sp" />
+            <Button android:id="@+id/btnRewindTime" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="REW" android:textSize="11sp" />
+            <Button android:id="@+id/btnPlayPause" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="PLAY" android:textSize="11sp" />
+            <Button android:id="@+id/btnForwardTime" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="FF" android:textSize="11sp" />
+            <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="11sp" />
         </LinearLayout>
 
+        <!-- Herramientas -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:weightSum="5"
             android:layout_marginTop="4dp"> 
-            <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#6200EE" android:text="MKV" android:textSize="8sp" android:padding="0dp" />
-            <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#333333" android:text="AAC" android:textSize="8sp" android:padding="0dp" />
-            <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:textSize="8sp" android:padding="0dp" />
-            <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SELECTOR" android:textSize="8sp" android:padding="0dp" />
-            <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="FOLDER" android:textSize="8sp" android:padding="0dp" />
+            <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#6200EE" android:text="MKV" android:textSize="10sp" />
+            <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="AAC" android:textSize="10sp" />
+            <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:textSize="10sp" />
+            <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="FILE" android:textSize="10sp" />
+            <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="DIR" android:textSize="10sp" />
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="12dp">
-
-            <LinearLayout 
-                android:layout_width="match_parent" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-                
-                <EditText android:id="@+id/etStartTime" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="Inicio (00:00:00)" android:textColor="#FFFFFF" android:textColorHint="#777777" android:textSize="12sp" android:inputType="text" />
-                <Button android:id="@+id/btnSetStart" android:layout_width="wrap_content" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="SET" android:textSize="10sp" android:layout_marginStart="4dp" />
-            </LinearLayout>
-
-            <LinearLayout 
-                android:layout_width="match_parent" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-                
-                <EditText android:id="@+id/etEndTime" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="Fin (00:00:00)" android:textColor="#FFFFFF" android:textColorHint="#777777" android:textSize="12sp" android:inputType="text" />
-                <Button android:id="@+id/btnSetEnd" android:layout_width="wrap_content" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="SET" android:textSize="10sp" android:layout_marginStart="4dp" />
-            </LinearLayout>
-
-            <Button android:id="@+id/btnSplit" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="CORTAR VIDEO" android:textColor="#FFFFFF" />
-        </LinearLayout>
-
+        <!-- Corte de Video Compacto -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:gravity="center_vertical">
 
-            <Button android:id="@+id/btnSelectAudio" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="FLAC/OPUS" android:textSize="10sp" />
-            <Button android:id="@+id/btnConvert" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#6200EE" android:text="CONVERTIR A MP3" android:textSize="10sp" />
+            <EditText android:id="@+id/etStartTime" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:hint="00:00:00" android:textColor="#FFFFFF" android:textColorHint="#777777" android:textSize="12sp" android:inputType="text" android:backgroundTint="#333333" />
+            <Button android:id="@+id/btnSetStart" android:layout_width="wrap_content" android:layout_height="40dp" android:backgroundTint="#333333" android:text="I" android:textSize="10sp" android:layout_marginHorizontal="4dp" />
+            
+            <EditText android:id="@+id/etEndTime" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:hint="00:00:00" android:textColor="#FFFFFF" android:textColorHint="#777777" android:textSize="12sp" android:inputType="text" android:backgroundTint="#333333" />
+            <Button android:id="@+id/btnSetEnd" android:layout_width="wrap_content" android:layout_height="40dp" android:backgroundTint="#333333" android:text="F" android:textSize="10sp" android:layout_marginStart="4dp" />
+        </LinearLayout>
+        
+        <Button android:id="@+id/btnSplit" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:text="CORTAR CLIP" android:textColor="#FFFFFF" android:layout_marginTop="4dp" />
+
+        <!-- Conversión -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <Button android:id="@+id/btnSelectAudio" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="AUDIO" android:textSize="10sp" android:layout_marginEnd="4dp" />
+            <Button android:id="@+id/btnConvert" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="A MP3" android:textSize="10sp" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -127,8 +126,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:paddingBottom="20dp"
-            android:scrollbars="vertical" />
+            android:paddingBottom="20dp" />
             
     </LinearLayout>
 </LinearLayout>
+
+```
