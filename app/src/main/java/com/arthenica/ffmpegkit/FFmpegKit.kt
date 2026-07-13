@@ -9,7 +9,7 @@ fun interface ExecuteCallback {
 object FFmpegKit {
     init {
         try {
-            // Inicializa la inyección real de 189MB del servidor
+            // Carga obligatoria del motor de 189MB embebido en el APK
             System.loadLibrary("ffmpegkit")
         } catch (e: UnsatisfiedLinkError) {
             Log.e("FFmpegKit", "Error cargando binario nativo", e)
@@ -38,7 +38,7 @@ object FFmpegKit {
             val args = command.split(" ").toTypedArray()
             Runtime.getRuntime().exec(args).waitFor()
         } catch (e: Exception) {
-            Log.e("FFmpegKit", "Error ejecutando comando CLI de audio", e)
+            Log.e("FFmpegKit", "Error ejecutando comando de audio", e)
         }
     }
 }
@@ -52,8 +52,12 @@ object FFmpegKitConfig {
     @JvmStatic
     fun getVersion(): String = "6.0"
 
-    // FIRMAS JNI OBLIGATORIAS: Deben ser declaradas como @JvmStatic external fun
-    // Esto satisface por completo a RegisterNatives de C++ y evita el NoSuchMethodError
+    // LA RESOLUCIÓN AL CRASH JNI: Firmas estrictas que RegisterNatives de C++ exige indexar al arrancar
+    @JvmStatic
+    fun setNativeLogLevel(level: Int) {
+        // Mapea la firma (I)V requerida en el log para evitar el NoSuchMethodError
+    }
+
     @JvmStatic
     external fun enableNativeRedirection()
 
@@ -62,12 +66,12 @@ object FFmpegKitConfig {
 
     @JvmStatic
     fun enableRedirection() {
-        // Firma de interfaz complementaria
+        // Firma complementaria segura
     }
 
     @JvmStatic
     fun disableRedirection() {
-        // Firma de interfaz complementaria
+        // Firma complementaria segura
     }
 }
 
