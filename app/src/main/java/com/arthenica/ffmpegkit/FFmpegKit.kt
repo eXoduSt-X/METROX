@@ -45,7 +45,7 @@ object FFmpegKitConfig {
     fun getVersion(): String = "6.0"
 
     // =========================================================================
-    //   MAPA JNI ABSOLUTO Y UNIFICADO CON LAS ENTRAÑAS DEL BINARIO DE C++
+    //   MÉTODOS NATIVOS EXTERNAL (LLAMADAS DESDE KOTLIN HACIA C++)
     // =========================================================================
     @JvmStatic external fun disableNativeRedirection()
     @JvmStatic external fun enableNativeRedirection()
@@ -58,15 +58,32 @@ object FFmpegKitConfig {
     @JvmStatic external fun nativeFFmpegCancel(sessionId: Long)
     @JvmStatic external fun nativeFFmpegExecute(sessionId: Long, arguments: Array<String>): Int
     @JvmStatic external fun nativeFFprobeExecute(sessionId: Long, arguments: Array<String>): Int
-    
-    // CORRECCIÓN TÉCNICA CRÍTICA: Cambiado de (Any?):String a (String):Int 
-    // Satisface la firma (Ljava/lang/String;)I que tiró tu último crash
     @JvmStatic external fun registerNewNativeFFmpegPipe(pipeName: String): Int
-    
     @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
     @JvmStatic external fun setNativeLogLevel(level: Int)
 
-    // --- Métodos de compatibilidad requeridos por el Fragment ---
+    // =========================================================================
+    //   SOLUCIÓN DEFINITIVA: CALLBACKS OBLIGATORIOS (LLAMADAS DESDE C++ HACIA KOTLIN)
+    //   Inyectamos las firmas exactas (GetStaticMethodID) que C++ exige registrar
+    // =========================================================================
+    @JvmStatic
+    fun log(sessionId: Long, level: Int, messageBytes: ByteArray) {
+        // Recibe los bytes de FFmpeg para que el OnLoad de C++ no lance NoSuchMethodError
+        val message = String(messageBytes)
+        Log.d("FFmpegKitNativo", "[$level] Sesión $sessionId: $message")
+    }
+
+    @JvmStatic
+    fun statistics(sessionId: Long, time: Int, bitrate: Float, speed: Float, videoFrameNumber: Int, videoQuality: Float, videoFps: Float) {
+        // Firma complementaria de estadísticas requerida por el empaquetado full
+    }
+
+    @JvmStatic
+    fun statisticsWithCallback(sessionId: Long, statisticsAddress: Long) {
+        // Firma complementaria de puntero JNI de estadísticas
+    }
+
+    // --- Métodos de compatibilidad requeridos por la UI ---
     @JvmStatic fun enableRedirection() {}
     @JvmStatic fun disableRedirection() {}
 }
