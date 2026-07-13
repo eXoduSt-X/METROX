@@ -60,30 +60,39 @@ object FFmpegKitConfig {
     @JvmStatic external fun nativeFFprobeExecute(sessionId: Long, arguments: Array<String>): Int
     @JvmStatic external fun registerNewNativeFFmpegPipe(pipeName: String): Int
     @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
+    @JvmStatic external fun setNativeEnvironmentVariable(variableName: String, variableValue: String): Int
     @JvmStatic external fun setNativeLogLevel(level: Int)
 
     // =========================================================================
-    //   SOLUCIÓN DEFINITIVA: CALLBACKS OBLIGATORIOS (LLAMADAS DESDE C++ HACIA KOTLIN)
-    //   Inyectamos las firmas exactas (GetStaticMethodID) que C++ exige registrar
+    //   CALLBACKS OBLIGATORIOS (LLAMADAS DESDE C++ HACIA KOTLIN)
     // =========================================================================
     @JvmStatic
     fun log(sessionId: Long, level: Int, messageBytes: ByteArray) {
-        // Recibe los bytes de FFmpeg para que el OnLoad de C++ no lance NoSuchMethodError
         val message = String(messageBytes)
         Log.d("FFmpegKitNativo", "[$level] Sesión $sessionId: $message")
     }
 
+    // CORRECCIÓN MATEMÁTICA EN LA RAM: Firma exacta para (JIFFJDDD)V
     @JvmStatic
-    fun statistics(sessionId: Long, time: Int, bitrate: Float, speed: Float, videoFrameNumber: Int, videoQuality: Float, videoFps: Float) {
-        // Firma complementaria de estadísticas requerida por el empaquetado full
+    fun statistics(
+        sessionId: Long,          // J
+        time: Int,                // I
+        bitrate: Float,           // F
+        speed: Float,             // F
+        videoFrameNumber: Long,   // J (Corregido de Int a Long)
+        videoQuality: Double,     // D
+        videoFps: Double,         // D
+        pts: Double               // D (Añadido el parámetro faltante del log)
+    ) {
+        Log.d("FFmpegKitNativo", "Telemetría recibida - Tiempo: $time ms, Velocidad: ${speed}x")
     }
 
     @JvmStatic
     fun statisticsWithCallback(sessionId: Long, statisticsAddress: Long) {
-        // Firma complementaria de puntero JNI de estadísticas
+        // Mapea la firma complementaria de puntero JNI de estadísticas
     }
 
-    // --- Métodos de compatibilidad requeridos por la UI ---
+    // --- Métodos de compatibilidad requeridos por el Fragment ---
     @JvmStatic fun enableRedirection() {}
     @JvmStatic fun disableRedirection() {}
 }
