@@ -9,7 +9,7 @@ fun interface ExecuteCallback {
 object FFmpegKit {
     init {
         try {
-            // Carga el motor nativo del APK de 189MB
+            // Carga obligatoria del motor de 189MB embebido en el APK
             System.loadLibrary("ffmpegkit")
         } catch (e: UnsatisfiedLinkError) {
             Log.e("FFmpegKit", "Error cargando binario nativo", e)
@@ -38,7 +38,7 @@ object FFmpegKit {
             val args = command.split(" ").toTypedArray()
             Runtime.getRuntime().exec(args).waitFor()
         } catch (e: Exception) {
-            Log.e("FFmpegKit", "Error ejecutando comando CLI de audio", e)
+            Log.e("FFmpegKit", "Error ejecutando comando de audio", e)
         }
     }
 }
@@ -46,17 +46,16 @@ object FFmpegKit {
 object FFmpegKitConfig {
     @JvmStatic
     fun init() {
-        // Hook de inicialización
+        // Hook de inicialización estándar
     }
 
     @JvmStatic
     fun getVersion(): String = "6.0"
 
-    // SOLUCIÓN AL CRASH DEFINITIVO: Firma JNI estricta que C++ requiere registrar en el arranque
+    // LA SOLUCIÓN AL CRASH: Declarada estrictamente como external fun y @JvmStatic
+    // Esto satisface el RegisterNatives del binario de C++ y evita el NoSuchMethodError
     @JvmStatic
-    fun enableNativeRedirection() {
-        // No necesita lógica interna, solo existir para que RegisterNatives de C++ no aborte
-    }
+    external fun enableNativeRedirection()
 
     @JvmStatic
     fun enableRedirection() {
