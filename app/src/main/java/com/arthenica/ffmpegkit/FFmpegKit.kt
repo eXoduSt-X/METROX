@@ -51,8 +51,12 @@ object FFmpegKitConfig {
     @JvmStatic
     fun getVersion(): String = "6.0"
 
+    // --- TABLA JNI COMPLETA Y BLINDADA CONTRA CRASHES ---
     @JvmStatic
     external fun setNativeLogLevel(level: Int)
+
+    @JvmStatic
+    external fun getNativeLogLevel(): Int
 
     @JvmStatic
     external fun enableNativeRedirection()
@@ -60,6 +64,13 @@ object FFmpegKitConfig {
     @JvmStatic
     external fun disableNativeRedirection()
 
+    @JvmStatic
+    external fun nativeGetLogLevel(): Int
+
+    @JvmStatic
+    external fun nativeIsLTS(): Boolean
+
+    // --- MÉTODOS DE COMPATIBILIDAD DE INTERFAZ ---
     @JvmStatic
     fun enableRedirection() {
         // Interfaz complementaria
