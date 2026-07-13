@@ -66,14 +66,24 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
 
     // Nuevo Launcher para selección múltiple de audio
-private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-    if (uris.isNotEmpty()) {
-        selectedAudioUris = uris.toMutableList()
-        Toast.makeText(requireContext(), "${uris.size} audios seleccionados", Toast.LENGTH_SHORT).show()
+    private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            selectedAudioUris = uris.toMutableList()
+            Toast.makeText(requireContext(), "${uris.size} audios seleccionados", Toast.LENGTH_SHORT).show()
+        }
     }
-}
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
+    }
+
+    // BOTÓN FUTURO en home_content.xml: btnCreateVideoFromPhotos
+    // binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener { photosPickerLauncher.launch("image/*") }
+    private val photosPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            crearVideoDesdeFotos(uris)
+        } else {
+            Toast.makeText(requireContext(), "Selecciona al menos una foto", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private val updateSubtitleTask = object : Runnable {
@@ -326,7 +336,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
         view.doOnLayout { adjustPlaylistButtons() }
     }
 
-        private fun setupVideoListeners() {
+    private fun setupVideoListeners() {
         binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
         binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
         binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -394,9 +404,20 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
                 Toast.makeText(requireContext(), "Revisa los tiempos o selecciona un video", Toast.LENGTH_SHORT).show()
             }
         }
-        // Listeners para Video desde Imágenes
-        }
-        
+
+        // BOTÓN FUTURO en home_content.xml: btnHardcodeSubtitles
+        // Quema (burn-in) los subtítulos ya cargados con btnLoadSubtitles directamente en el video,
+        // a diferencia de btnMixVideo que solo agrega una pista de subtítulos separada al MKV.
+        // binding.homeContent.btnHardcodeSubtitles.setOnClickListener { hardcodearSubtitulos() }
+
+        // BOTÓN FUTURO en home_content.xml: btnCreateVideoFromPhotos
+        // binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener { photosPickerLauncher.launch("image/*") }
+
+        // NOTA: "Unir videos" ya funciona automáticamente al seleccionar 2+ videos con btnOpenFile
+        // (ver mostrarDialogoUnirVideos / unirVideos). No se agregó un botón dedicado para evitar duplicar
+        // el flujo; si prefieres un botón separado, avísame y lo desacoplamos del picker de reproducción.
+    }
+
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
             savedPosition = 0
@@ -450,18 +471,18 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
             setSharedAxisYTransitions()
         }
         // Botón para seleccionar audios
-       binding.homeContent.btnSelectAudio.setOnClickListener {
-          multiaudioPickerLauncher.launch("audio/*")
+        binding.homeContent.btnSelectAudio.setOnClickListener {
+            multiaudioPickerLauncher.launch("audio/*")
         }
 
-// Botón para convertir
-       binding.homeContent.btnConvert.setOnClickListener {
-          if (selectedAudioUris.isNotEmpty()) {
-              convertirAudiosAMp3(selectedAudioUris)
-       } else {
-        Toast.makeText(requireContext(), "Selecciona audios primero", Toast.LENGTH_SHORT).show()
-    }
-}
+        // Botón para convertir
+        binding.homeContent.btnConvert.setOnClickListener {
+            if (selectedAudioUris.isNotEmpty()) {
+                convertirAudiosAMp3(selectedAudioUris)
+            } else {
+                Toast.makeText(requireContext(), "Selecciona audios primero", Toast.LENGTH_SHORT).show()
+            }
+        }
         binding.imageLayout.userImage.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
         }
@@ -607,8 +628,8 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
             val command = if (audioUri != null) {
                 val audioFile = cacheUriToFile(audioUri, "input_audio.mp3")
                 "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -i ${audioFile.absolutePath} " +
-                "-map 0:v -map 2:a -map 1:s " +
-                "-c copy -c:s srt -disposition:a:0 default -disposition:s:0 default ${outputFile.absolutePath}"
+                        "-map 0:v -map 2:a -map 1:s " +
+                        "-c copy -c:s srt -disposition:a:0 default -disposition:s:0 default ${outputFile.absolutePath}"
             } else {
                 "-i ${videoFile.absolutePath} -i ${subFile.absolutePath} -c copy -c:s srt -disposition:s:0 default ${outputFile.absolutePath}"
             }
@@ -636,7 +657,101 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
             }
         }
     }
-       private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
+
+    /**
+     * NUEVA FUNCIÓN: incrusta (quema) los subtítulos directamente en los píxeles del video,
+     * a diferencia de createMkvWithSubtitles que solo agrega una pista SRT separada.
+     * Usa el video actual del reproductor (videoPlaylist[currentIndex]) y el .srt cargado
+     * con btnLoadSubtitles (selectedSubtitleUri).
+     *
+     * Requiere que tu build de FFmpeg tenga libass compilado (la variante "full"/"full-gpl" lo trae).
+     * BOTÓN FUTURO sugerido: btnHardcodeSubtitles en home_content.xml.
+     */
+    private fun hardcodearSubtitulos() {
+        val subUri = selectedSubtitleUri
+        if (videoPlaylist.isEmpty() || subUri == null) {
+            Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(requireContext(), "Incrustando subtítulos, puede tardar...", Toast.LENGTH_LONG).show()
+
+        val videoUri = videoPlaylist[currentIndex]
+        Thread {
+            val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
+            val subFile = cacheUriToFile(subUri, "input_hardcode.srt")
+            val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
+            val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
+            if (outputFile.exists()) outputFile.delete()
+
+            // El filtro subtitles= exige escapar los dos puntos y comillas de la ruta absoluta
+            val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
+            val command = "-i ${videoFile.absolutePath} -vf subtitles='$rutaEscapada' -c:a copy ${outputFile.absolutePath}"
+
+            FFmpegKit.executeAsync(command) { session ->
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, fileName, "video/mp4")
+                } else {
+                    android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                videoFile.delete()
+                subFile.delete()
+                if (outputFile.exists()) outputFile.delete()
+            }
+        }.start()
+    }
+
+    /**
+     * NUEVA FUNCIÓN: crea un video tipo diapositivas a partir de una lista de fotos.
+     * 3 segundos por foto, 720p, con relleno (pad) para fotos de distinta proporción.
+     * BOTÓN FUTURO sugerido: btnCreateVideoFromPhotos en home_content.xml.
+     */
+    private fun crearVideoDesdeFotos(uris: List<Uri>) {
+        Toast.makeText(requireContext(), "Creando video desde ${uris.size} fotos...", Toast.LENGTH_LONG).show()
+
+        Thread {
+            try {
+                val carpetaTemp = File(requireContext().cacheDir, "slideshow_${System.currentTimeMillis()}").apply { mkdirs() }
+                uris.forEachIndexed { index, uri ->
+                    val destino = File(carpetaTemp, "img%03d.jpg".format(index))
+                    requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                        FileOutputStream(destino).use { output -> input.copyTo(output) }
+                    }
+                }
+
+                val fileName = "Slideshow_${System.currentTimeMillis()}.mp4"
+                val outputFile = File(requireContext().cacheDir, "output_slideshow.mp4")
+                if (outputFile.exists()) outputFile.delete()
+
+                // 3 segundos por foto (1/3 fps de entrada), escalado a 720p con relleno
+                val command = "-framerate 1/3 -i ${carpetaTemp.absolutePath}/img%03d.jpg " +
+                        "-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30 " +
+                        "-c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+
+                FFmpegKit.executeAsync(command) { session ->
+                    if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                        saveToDownloads(outputFile, fileName, "video/mp4")
+                    } else {
+                        android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
+                        requireActivity().runOnUiThread {
+                            Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    carpetaTemp.deleteRecursively()
+                    if (outputFile.exists()) outputFile.delete()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("FFmpegSlideshow", "Error preparando fotos: ${e.message}")
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error preparando las fotos", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
         val videoFile = cacheUriToFile(videoUri, "input_split.mp4")
         val fileName = "Clip_${System.currentTimeMillis()}.mp4"
 
@@ -660,7 +775,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
 
         if (destUri != null) {
             val outputFile = File(requireContext().cacheDir, "output_split.mp4")
-            
+
             // 2. Comando FFmpeg
             val command = "-i ${videoFile.absolutePath} -ss $startTime -to $endTime -c copy ${outputFile.absolutePath}"
 
@@ -689,7 +804,7 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
         }
     }
 
-    
+
     private fun cacheUriToFile(uri: Uri, name: String): File {
         val file = File(requireContext().cacheDir, name)
         if (file.exists()) file.delete()
@@ -704,74 +819,74 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
         }
         return file
     }
-// --- PEGA saveToDownloads AQUÍ ---
-   private fun saveToDownloads(file: File, fileName: String, mimeType: String = "video/mp4") {
-    val contentValues = android.content.ContentValues().apply {
-        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-        put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
-        }
-    }
 
-    val isAudio = mimeType.startsWith("audio/")
-    val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        MediaStore.Downloads.EXTERNAL_CONTENT_URI
-    } else if (isAudio) {
-        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-    } else {
-        MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-    }
-
-    val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
-
-    if (uri != null) {
-        try {
-            requireContext().contentResolver.openOutputStream(uri)?.use { out ->
-                file.inputStream().use { input -> input.copyTo(out) }
+    private fun saveToDownloads(file: File, fileName: String, mimeType: String = "video/mp4") {
+        val contentValues = android.content.ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
             }
+        }
+
+        val isAudio = mimeType.startsWith("audio/")
+        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        } else if (isAudio) {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val uri = requireContext().contentResolver.insert(collectionUri, contentValues)
+
+        if (uri != null) {
+            try {
+                requireContext().contentResolver.openOutputStream(uri)?.use { out ->
+                    file.inputStream().use { input -> input.copyTo(out) }
+                }
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Guardado en Descargas: $fileName", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SaveToDownloads", "Error copiando $fileName: ${e.message}")
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al guardar $fileName", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            android.util.Log.e("SaveToDownloads", "insert() devolvió null para $fileName (mime=$mimeType)")
             requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "Guardado en Descargas: $fileName", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "No se pudo crear $fileName en Descargas", Toast.LENGTH_SHORT).show()
             }
-        } catch (e: Exception) {
-            android.util.Log.e("SaveToDownloads", "Error copiando $fileName: ${e.message}")
-            requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "Error al guardar $fileName", Toast.LENGTH_SHORT).show()
-            }
-        }
-    } else {
-        android.util.Log.e("SaveToDownloads", "insert() devolvió null para $fileName (mime=$mimeType)")
-        requireActivity().runOnUiThread {
-            Toast.makeText(requireContext(), "No se pudo crear $fileName en Descargas", Toast.LENGTH_SHORT).show()
         }
     }
-}
     // --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
     private fun getFFmpegFromDownloads(context: android.content.Context): String? {
-    // CAMBIA ESTA LÍNEA: de filesDir a codeCacheDir
-    val destinationFile = File(context.codeCacheDir, "ffmpeg") 
-    
-    if (destinationFile.exists() && destinationFile.canExecute()) {
-        return destinationFile.absolutePath
-    }
+        // CAMBIA ESTA LÍNEA: de filesDir a codeCacheDir
+        val destinationFile = File(context.codeCacheDir, "ffmpeg")
 
-    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-    val sourceFile = File(downloadsDir, "ffmpeg")
-
-    if (sourceFile.exists()) {
-        sourceFile.inputStream().use { input ->
-            destinationFile.outputStream().use { output -> input.copyTo(output) }
+        if (destinationFile.exists() && destinationFile.canExecute()) {
+            return destinationFile.absolutePath
         }
-        
-        // Es vital intentar darle permisos de ejecución
-        destinationFile.setExecutable(true, false) // false significa que es para todos
-        
-        return destinationFile.absolutePath
+
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val sourceFile = File(downloadsDir, "ffmpeg")
+
+        if (sourceFile.exists()) {
+            sourceFile.inputStream().use { input ->
+                destinationFile.outputStream().use { output -> input.copyTo(output) }
+            }
+
+            // Es vital intentar darle permisos de ejecución
+            destinationFile.setExecutable(true, false) // false significa que es para todos
+
+            return destinationFile.absolutePath
+        }
+        return null
     }
-    return null
-    }   
-            
+
     private fun runManualFFmpeg(commandArgs: String, onComplete: (Boolean, String) -> Unit) {
         val binaryPath = getFFmpegFromDownloads(requireContext())
         if (binaryPath == null) {
@@ -802,45 +917,45 @@ private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultC
     }
 
     private fun convertirAudiosAMp3(uris: List<Uri>) {
-    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
 
-    Thread {
-        var exitosos = 0
-        var fallidos = 0
+        Thread {
+            var exitosos = 0
+            var fallidos = 0
 
-        uris.forEachIndexed { index, uri ->
-            val fileName = "MP3_${System.currentTimeMillis()}_$index.mp3"
-            val inputFile = cacheUriToFile(uri, "temp_input_audio_$index.tmp")
+            uris.forEachIndexed { index, uri ->
+                val fileName = "MP3_${System.currentTimeMillis()}_$index.mp3"
+                val inputFile = cacheUriToFile(uri, "temp_input_audio_$index.tmp")
 
-            if (!inputFile.exists() || inputFile.length() == 0L) {
-                android.util.Log.e("ConvertMp3", "Archivo de entrada vacío o inexistente: $uri")
-                fallidos++
-                return@forEachIndexed
+                if (!inputFile.exists() || inputFile.length() == 0L) {
+                    android.util.Log.e("ConvertMp3", "Archivo de entrada vacío o inexistente: $uri")
+                    fallidos++
+                    return@forEachIndexed
+                }
+
+                val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
+                if (outputFile.exists()) outputFile.delete()
+
+                val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
+                val session = FFmpegKit.execute(command)
+
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, fileName, "audio/mpeg")
+                    exitosos++
+                } else {
+                    fallidos++
+                    android.util.Log.e("ConvertMp3", "FALLÓ para $uri: ${session.allLogsAsString}")
+                }
+
+                if (inputFile.exists()) inputFile.delete()
+                if (outputFile.exists()) outputFile.delete()
             }
 
-            val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
-            if (outputFile.exists()) outputFile.delete()
-
-            val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
-            val session = FFmpegKit.execute(command)
-
-            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                saveToDownloads(outputFile, fileName, "audio/mpeg")
-                exitosos++
-            } else {
-                fallidos++
-                android.util.Log.e("ConvertMp3", "FALLÓ para $uri: ${session.allLogsAsString}")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "Conversión: $exitosos ok, $fallidos fallidos", Toast.LENGTH_LONG).show()
             }
-
-            if (inputFile.exists()) inputFile.delete()
-            if (outputFile.exists()) outputFile.delete()
-        }
-
-        requireActivity().runOnUiThread {
-            Toast.makeText(requireContext(), "Conversión: $exitosos ok, $fallidos fallidos", Toast.LENGTH_LONG).show()
-        }
-    }.start()
-}
+        }.start()
+    }
 
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
