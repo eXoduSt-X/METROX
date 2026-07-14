@@ -703,7 +703,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
         
         // CORRECCIÓN MÁGICA: Cambiado libx264 por mpeg4 con calidad alta (-q:v 2) y copia de audio directa
-        val command = "-y -i ${videoFile.absolutePath} -vf subtitles='$rutaEscapada' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        val command = "-y -i ${videoFile.absolutePath} " +
+                "-vf \"subtitles='$rutaEscapada':fontsdir=/system/fonts:force_style='FontName=DroidSans,FontSize=24,PrimaryColour=&H00FFFFFF'\" " +
+                "-c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
 
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
