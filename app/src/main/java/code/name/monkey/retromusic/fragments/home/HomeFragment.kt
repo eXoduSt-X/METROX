@@ -684,41 +684,43 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
      * BOTÓN FUTURO sugerido: btnHardcodeSubtitles en home_content.xml.
      */
     private fun hardcodearSubtitulos() {
-        val subUri = selectedSubtitleUri
-        if (videoPlaylist.isEmpty() || subUri == null) {
-            Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
-            return
-        }
-        Toast.makeText(requireContext(), "Incrustando subtítulos, puede tardar...", Toast.LENGTH_LONG).show()
-
-        val videoUri = videoPlaylist[currentIndex]
-        Thread {
-            val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
-            val subFile = cacheUriToFile(subUri, "input_hardcode.srt")
-            val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
-            val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
-            if (outputFile.exists()) outputFile.delete()
-
-            // El filtro subtitles= exige escapar los dos puntos y comillas de la ruta absoluta
-            val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
-            // Cambiamos el comando por uno que garantiza calidad y compatibilidad
-            val command = "-i ${videoFile.absolutePath} -vf \"subtitles='$rutaEscapada'\" -c:v libx264 -crf 18 -preset medium -c:a copy ${outputFile.absolutePath}"
-
-            FFmpegKit.executeAsync(command) { session ->
-                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                    saveToDownloads(outputFile, fileName, "video/mp4")
-                } else {
-                    android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                videoFile.delete()
-                subFile.delete()
-                if (outputFile.exists()) outputFile.delete()
-            }
-        }.start()
+    val subUri = selectedSubtitleUri
+    if (videoPlaylist.isEmpty() || subUri == null) {
+        Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
+        return
     }
+    Toast.makeText(requireContext(), "Incrustando subtítulos, puede tardar...", Toast.LENGTH_LONG).show()
+
+    val videoUri = videoPlaylist[currentIndex]
+    Thread {
+        val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
+        val subFile = cacheUriToFile(subUri, "input_hardcode.srt")
+        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
+        val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
+        if (outputFile.exists()) outputFile.delete()
+
+        // El filtro subtitles= exige escapar los dos puntos y comillas de la ruta absoluta
+        val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
+        
+        // CORRECCIÓN MÁGICA: Cambiado libx264 por mpeg4 con calidad alta (-q:v 2) y copia de audio directa
+        val command = "-y -i ${videoFile.absolutePath} -vf subtitles='$rutaEscapada' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "video/mp4")
+            } else {
+                android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                }
+            }
+            videoFile.delete()
+            subFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }
+    }.start()
+}
+
 
     /**
      * NUEVA FUNCIÓN: crea un video tipo diapositivas a partir de una lista de fotos.
