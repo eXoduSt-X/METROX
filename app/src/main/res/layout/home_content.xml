@@ -97,14 +97,24 @@
         </LinearLayout>
         
         <Button android:id="@+id/btnSplit" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:text="CORTAR CLIP" android:textColor="#FFFFFF" android:layout_marginTop="4dp" />
-
+        
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:layout_marginTop="8dp">
-            <Button android:id="@+id/btnSelectAudio" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="AUDIO" android:textSize="10sp" android:layout_marginEnd="4dp" />
-            <Button android:id="@+id/btnConvert" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="A MP3" android:textSize="10sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button android:id="@+id/btnSelectAudio" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="AUDIO" android:textSize="10sp" android:layout_marginEnd="4dp" />
+                <Button android:id="@+id/btnConvert" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="A MP3" android:textSize="10sp" />
+            </LinearLayout>
+
+            <Button android:id="@+id/btnHardcodeSubtitles" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginTop="4dp" android:text="INCRUSTAR SUBTITULOS" android:textSize="10sp" />
+            <Button android:id="@+id/btnCreateVideoFromPhotos" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginTop="4dp" android:text="CREAR VIDEO DESDE FOTOS" android:textSize="10sp" />
+            <Button android:id="@+id/btnMergeVideos" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginTop="4dp" android:text="UNIR MULTIPLES VIDEOS" android:textSize="10sp" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
