@@ -718,12 +718,12 @@ private fun setupVideoListeners() {
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
-        // El filtro subtitles= exige escapar los dos puntos y comillas de la ruta absoluta
-        val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
+        // El filtro subtitles= exige escapar los dos puntos de la ruta absoluta de Android
+        val rutaEscapada = subFile.absolutePath.replace(":", "\\:")
         
-        // CORRECCIÓN FINAL DE SINTAXIS: Usamos comillas simples estrictas para la ruta.
-        // Esto le permite a libass abrir el archivo en el sandbox sin interpretar comillas como caracteres
-        val command = "-y -i ${videoFile.absolutePath} -vf subtitles='filename=$rutaEscapada:fontsdir=/system/fonts:force_style=FontName=DroidSans,FontSize=22,PrimaryColour=&H00FFFFFF' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        // CORRECCIÓN DE SINTAXIS PURA: El parámetro se pasa sin comillas internas en filename
+        // Esto obliga a FFmpeg a abrir y leer los bytes del texto del .srt directamente del caché
+        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=$rutaEscapada:fontsdir=/system/fonts:force_style='FontName=DroidSans,FontSize=22,PrimaryColour=&H00FFFFFF' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
 
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
