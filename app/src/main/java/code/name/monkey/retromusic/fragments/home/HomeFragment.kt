@@ -435,10 +435,14 @@ private fun setupVideoListeners() {
     // =========================================================================
     //   CONEXIÓN DE LOS NUEVOS BOTONES DE VIDEO AVANZADOS (PARCHE INTEGRADO)
     // =========================================================================
+    // Abre el explorador para elegir el .srt e inicia el quemado con el video actual del reproductor
     binding.homeContent.btnHardcodeSubtitles.setOnClickListener {
-        subtitlePickerLauncher.launch("*/*")
+        if (videoPlaylist.isNotEmpty()) {
+            subtitlePickerLauncher.launch("*/*")
+        } else {
+            Toast.makeText(requireContext(), "Primero carga un video en el reproductor", Toast.LENGTH_SHORT).show()
+        }
     }
-
     binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener {
         photosPickerLauncher.launch("image/*")
     }
