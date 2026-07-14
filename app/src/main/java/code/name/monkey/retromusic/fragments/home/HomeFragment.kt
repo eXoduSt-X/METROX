@@ -702,9 +702,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         // El filtro subtitles= exige escapar los dos puntos y comillas de la ruta absoluta
         val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
         
-        // CORRECCIÓN MÁGICA: Cambiado libx264 por mpeg4 con calidad alta (-q:v 2) y copia de audio directa
+        // CORRECCIÓN DE PARSEO: Estructuración limpia de argumentos usando comillas simples 
+        // estrictas para delimitar las propiedades internas de libass
         val command = "-y -i ${videoFile.absolutePath} " +
-                "-vf \"subtitles='$rutaEscapada':fontsdir=/system/fonts:force_style='FontName=DroidSans,FontSize=24,PrimaryColour=&H00FFFFFF'\" " +
+                "-vf subtitles=filename='$rutaEscapada':fontsdir='/system/fonts':force_style='FontName=DroidSans,FontSize=22,PrimaryColour=&H00FFFFFF' " +
                 "-c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
 
         FFmpegKit.executeAsync(command) { session ->
