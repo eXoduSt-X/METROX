@@ -336,7 +336,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         view.doOnLayout { adjustPlaylistButtons() }
     }
 
-    private fun setupVideoListeners() {
+private fun setupVideoListeners() {
     // Selección de archivos y carpetas
     binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
     binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
@@ -430,6 +430,21 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         } else {
             Toast.makeText(requireContext(), "Define los tiempos de corte", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // =========================================================================
+    //   CONEXIÓN DE LOS NUEVOS BOTONES DE VIDEO AVANZADOS (PARCHE INTEGRADO)
+    // =========================================================================
+    binding.homeContent.btnHardcodeSubtitles.setOnClickListener {
+        subtitlePickerLauncher.launch("*/*")
+    }
+
+    binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener {
+        photosPickerLauncher.launch("image/*")
+    }
+
+    binding.homeContent.btnMergeVideos.setOnClickListener {
+        videoPickerLauncher.launch("video/*")
     }
 }
 
@@ -704,9 +719,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         
         // CORRECCIÓN DEFINITIVA DE COMILLAS: Envolvemos la ruta del .srt en comillas dobles internas (\"...\")
         // Esto le prohíbe a FFmpeg escapar las diagonales de la ruta interna de Android.
-        val command = "-y -i ${videoFile.absolutePath} " +
-                "-vf subtitles=filename=\"$rutaEscapada\":fontsdir='/system/fonts':force_style='FontName=DroidSans,FontSize=22,PrimaryColour=&H00FFFFFF' " +
-                "-c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=\"$rutaEscapada\":fontsdir='/system/fonts':force_style='FontName=DroidSans,FontSize=22,PrimaryColour=&H00FFFFFF' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
 
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
