@@ -64,6 +64,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var selectedAudioUri: Uri? = null
     private var selectedAudioUris = mutableListOf<Uri>()
 
+    // NUEVO: indica si el próximo srt seleccionado debe disparar el burn automáticamente
+    private var pendingHardcodeBurn = false
+
 
     // Nuevo Launcher para selección múltiple de audio
     private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
@@ -119,6 +122,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             try {
                 requireContext().contentResolver.openInputStream(it)?.use { stream -> parseSrt(stream) }
                 Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
+
+                // NUEVO: si veníamos del botón "incrustar subtítulos" y todavía no había srt,
+                // arrancamos el burn apenas se elige el archivo.
+                if (pendingHardcodeBurn) {
+                    pendingHardcodeBurn = false
+                    hardcodearSubtitulos()
+                }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
             }
@@ -435,12 +445,19 @@ private fun setupVideoListeners() {
     // =========================================================================
     //   CONEXIÓN DE LOS NUEVOS BOTONES DE VIDEO AVANZADOS (PARCHE INTEGRADO)
     // =========================================================================
-    // Abre el explorador para elegir el .srt e inicia el quemado con el video actual del reproductor
+    // Botón "incrustar subtítulos": si ya hay un srt cargado, quema directo.
+    // Si no hay ninguno, lo pide y el picker se encarga de disparar el burn
+    // automáticamente en cuanto el usuario elige el archivo (ver pendingHardcodeBurn).
     binding.homeContent.btnHardcodeSubtitles.setOnClickListener {
-        if (videoPlaylist.isNotEmpty()) {
-            subtitlePickerLauncher.launch("*/*")
-        } else {
+        if (videoPlaylist.isEmpty()) {
             Toast.makeText(requireContext(), "Primero carga un video en el reproductor", Toast.LENGTH_SHORT).show()
+            return@setOnClickListener
+        }
+        if (selectedSubtitleUri != null) {
+            hardcodearSubtitulos()
+        } else {
+            pendingHardcodeBurn = true
+            subtitlePickerLauncher.launch("*/*")
         }
     }
     binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener {
@@ -700,9 +717,11 @@ private fun setupVideoListeners() {
      * con btnLoadSubtitles (selectedSubtitleUri).
      *
      * Requiere que tu build de FFmpeg tenga libass compilado (la variante "full"/"full-gpl" lo trae).
-     * BOTÓN FUTURO sugerido: btnHardcodeSubtitles en home_content.xml.
+     * Se dispara desde btnHardcodeSubtitles (directo si ya hay srt, o vía pendingHardcodeBurn
+     * apenas se selecciona uno) y también desde btnBurn.
      */
     private fun hardcodearSubtitulos() {
+    android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
     val subUri = selectedSubtitleUri
     if (videoPlaylist.isEmpty() || subUri == null) {
         Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
