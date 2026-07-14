@@ -701,7 +701,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
             // El filtro subtitles= exige escapar los dos puntos y comillas de la ruta absoluta
             val rutaEscapada = subFile.absolutePath.replace(":", "\\:").replace("'", "\\'")
-            val command = "-i ${videoFile.absolutePath} -vf subtitles='$rutaEscapada' -c:a copy ${outputFile.absolutePath}"
+            // Cambiamos el comando por uno que garantiza calidad y compatibilidad
+            val command = "-i ${videoFile.absolutePath} -vf \"subtitles='$rutaEscapada'\" -c:v libx264 -crf 18 -preset medium -c:a copy ${outputFile.absolutePath}"
 
             FFmpegKit.executeAsync(command) { session ->
                 if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
