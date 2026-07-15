@@ -892,8 +892,7 @@ private fun setupVideoListeners() {
 
         // 4. Comando optimizado
         // -vf filter_script=... es la forma correcta de cargar filtros complejos
-        val command = "-y -i \"${videoFile.absolutePath}\" -vf \"filter_script=${filterScriptFile.absolutePath}\" -c:v mpeg4 -q:v 2 -c:a copy \"${outputFile.absolutePath}\""
-        
+       val command = "-y -i \"${videoFile.absolutePath}\" -filter_complex \"[0:v]filter_script=${filterScriptFile.absolutePath}[v]\" -map \"[v]\" -map 0:a -c:v mpeg4 -q:v 2 -c:a copy \"${outputFile.absolutePath}\""        
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
 
         FFmpegKit.executeAsync(command) { session ->
