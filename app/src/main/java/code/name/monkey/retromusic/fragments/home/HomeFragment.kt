@@ -865,66 +865,51 @@ private fun setupVideoListeners() {
      * Usa la fuente embebida en res/raw/roboto_regular.ttf, copiada a una carpeta
      * de caché exclusiva vía getFontDir().
      */
-   private fun hardcodearSubtitulos() {
-    android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
+  private fun hardcodearSubtitulos() {
+    android.util.Log.d("HardcodeDebug", "Iniciando proceso...")
     val subUri = selectedSubtitleUri
     if (videoPlaylist.isEmpty() || subUri == null) {
-        Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Selecciona video y SRT", Toast.LENGTH_SHORT).show()
         return
     }
-    Toast.makeText(requireContext(), "Incrustando subtítulos, puede tardar...", Toast.LENGTH_LONG).show()
 
     val videoUri = videoPlaylist[currentIndex]
     Thread {
         val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
-        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
+        // 1. Asegurar ruta de fuente limpia
         val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
-            .replace("\\", "\\\\")
-            .replace(":", "\\:")
-            .replace("'", "\\'")
-
+        
+        // 2. Construir filtro
         val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile)
+        if (drawtextFilter.isBlank()) return@Thread
 
-        if (drawtextFilter.isBlank()) {
-            android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
-            requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
-            }
-            videoFile.delete()
-            return@Thread
-        }
-
-        // --- CAMBIO AQUÍ: Crear archivo para el filtro ---
-        val filterScriptFile = File(requireContext().cacheDir, "drawtext_filter.txt")
+        // 3. Escribir filtro a archivo (evita errores de parseo de comandos largos)
+        val filterScriptFile = File(requireContext().cacheDir, "filter.txt")
         filterScriptFile.writeText(drawtextFilter)
 
-        // Usamos -filter_script:v para que FFmpeg lea el filtro desde el archivo y no se confunda con los espacios del texto
-        val command = "-y -i ${videoFile.absolutePath} -filter_script:v ${filterScriptFile.absolutePath} -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        // 4. Comando optimizado
+        // -vf filter_script=... es la forma correcta de cargar filtros complejos
+        val command = "-y -i \"${videoFile.absolutePath}\" -vf \"filter_script=${filterScriptFile.absolutePath}\" -c:v mpeg4 -q:v 2 -c:a copy \"${outputFile.absolutePath}\""
+        
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
 
         FFmpegKit.executeAsync(command) { session ->
-            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                saveToDownloads(outputFile, fileName, "video/mp4")
+            val returnCode = session.returnCode
+            if (ReturnCode.isSuccess(returnCode)) {
+                saveToDownloads(outputFile, "Video_Subtitulado_${System.currentTimeMillis()}.mp4", "video/mp4")
             } else {
-                android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
-                }
+                android.util.Log.e("FFmpegHardcode", "Error: ${session.allLogsAsString}")
             }
-            requireActivity().runOnUiThread {
-                clearSubtitles()
-            }
+            // Limpieza
             videoFile.delete()
-            // BORRAMOS EL ARCHIVO TEMPORAL DEL FILTRO AQUÍ
-            if (filterScriptFile.exists()) filterScriptFile.delete() 
-            if (outputFile.exists()) outputFile.delete()
+            filterScriptFile.delete()
+            requireActivity().runOnUiThread { clearSubtitles() }
         }
     }.start()
 }
-
     /**
      * NUEVA FUNCIÓN: crea un video tipo diapositivas a partir de una lista de fotos.
      * 3 segundos por foto, 720p, con relleno (pad) para fotos de distinta proporción.
