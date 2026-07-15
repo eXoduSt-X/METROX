@@ -709,7 +709,17 @@ private fun setupVideoListeners() {
             }
         }
     }
-
+private fun getFontDir(): File {
+    val fontDir = File(requireContext().cacheDir, "subtitle_fonts")
+    if (!fontDir.exists()) fontDir.mkdirs()
+    val fontFile = File(fontDir, "roboto_regular.ttf")
+    if (!fontFile.exists()) {
+        resources.openRawResource(R.font.roboto_regular).use { input ->
+            fontFile.outputStream().use { output -> input.copyTo(output) }
+        }
+    }
+    return fontDir
+}
     /**
      * NUEVA FUNCIÓN: incrusta (quema) los subtítulos directamente en los píxeles del video,
      * a diferencia de createMkvWithSubtitles que solo agrega una pista SRT separada.
@@ -741,9 +751,12 @@ private fun setupVideoListeners() {
         val rutaEscapada = subFile.absolutePath.replace(":", "\\:")
         
         // CORRECCIÓN DE SINTAXIS PURA: El parámetro se pasa sin comillas internas en filename
-        // Esto obliga a FFmpeg a abrir y leer los bytes del texto del .srt directamente del caché
-        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=$rutaEscapada:fontsdir=/system/fonts:force_style='FontName=DroidSans,FontSize=22,PrimaryColour=&H00FFFFFF' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        val fontDir = getFontDir().absolutePath
+        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=$rutaEscapada:fontsdir=$fontDir:force_style='FontSize=22,PrimaryColour=&H00FFFFFF,Outline=2,BorderStyle=1' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"      
 
+        android.util.Log.d("FFmpegHardcode", "Comando: $command")
+
+        
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "video/mp4")
