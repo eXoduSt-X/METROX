@@ -607,22 +607,22 @@ private fun setupVideoListeners() {
      * encadenados por comas) para quemar el texto directamente en los píxeles
      * del video, sin depender de libass/fontselect.
      */
-    private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): String {
-    // Usamos .joinToString(",") pero el truco es asegurarse que la sintaxis
-    // de los parámetros sea absoluta y no contenga caracteres que rompan el parser.
+private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): String {
     return subtitles.joinToString(",") { sub ->
         val safeText = sub.text
             .replace("\\", "\\\\")
-            .replace("'", "\\'")
+            .replace("'", "\u2019") // comilla tipográfica en vez de escapar la simple:
+                                     // evita el bug del parser con \' vía filter_script
             .replace(":", "\\:")
             .replace(",", "\\,")
-            .replace("%", "\\%") // Asegúrate de escapar también los guiones si usas
-        
+            .replace("[", "\\[")
+            .replace("]", "\\]")
+            .replace("%", "\\%")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
         val startSec = sub.startTime / 1000.0
         val endSec = sub.endTime / 1000.0
-        
-        // Es vital que no haya espacios en blanco en la cadena del filtro
-       "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+        "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
     }
 }
 
