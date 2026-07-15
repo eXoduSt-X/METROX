@@ -745,16 +745,15 @@ private fun getFontDir(): File {
         val subFile = cacheUriToFile(subUri, "input_hardcode.srt")
         val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
-        if (outputFile.exists()) outputFile.delete()
+if (outputFile.exists()) outputFile.delete()
 
-        // El filtro subtitles= exige escapar los dos puntos de la ruta absoluta de Android
-        val rutaEscapada = subFile.absolutePath.replace(":", "\\:")
-        
-        // CORRECCIÓN DE SINTAXIS PURA: El parámetro se pasa sin comillas internas en filename
-        val fontDir = getFontDir().absolutePath
-        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=$rutaEscapada:fontsdir=$fontDir:original_size=624x360:force_style='FontSize=22,PrimaryColour=&H00FFFFFF,Outline=2,BorderStyle=1' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        // drawtext no depende de libass ni de escanear fuentes del sistema,
+        // usa directamente el .ttf que copiamos a cache
+        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
+        val drawtextFilter = buildDrawtextFilters(subtitleList).replace("drawtext=", "drawtext=fontfile=$fontFile:")
+
+        val command = "-y -i ${videoFile.absolutePath} -vf \"$drawtextFilter\" -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
-
         
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
