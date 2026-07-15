@@ -71,6 +71,7 @@
 
         <!-- Herramientas: se quitó BURN (redundante con INCRUSTAR SUBTITULOS, misma función) -->
         <LinearLayout
+            android:id="@+id/toolsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -85,6 +86,7 @@
 
         <!-- Corte de video: campos de tiempo + I + F + CORTAR CLIP, todo en una sola línea -->
         <LinearLayout
+            android:id="@+id/cutRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -145,6 +147,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/extraActionsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
