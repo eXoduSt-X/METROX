@@ -479,18 +479,51 @@ private fun setupVideoListeners() {
         }
     }
 
-private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
-    return subtitleList.joinToString(",") { sub ->
-        val safeText = sub.text
-            .replace("\\", "\\\\")
-            .replace("'", "\\'")
-            .replace(":", "\\:")
-            .replace(",", "\\,")
-        val startSec = sub.startTime / 1000.0
-        val endSec = sub.endTime / 1000.0
-        "drawtext=text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+    /**
+     * NUEVA: copia la fuente embebida (res/raw/roboto_regular.ttf) a una carpeta
+     * privada de caché que contiene ÚNICAMENTE esa fuente. Usada por el filtro
+     * drawtext en lugar del filtro subtitles=/libass, para evitar depender del
+     * escaneo/fuzzy-matching de las ~300 fuentes de /system/fonts en Android
+     * (que en este dispositivo estaba fallando silenciosamente al seleccionar
+     * la fuente correcta durante el burn).
+     */
+    private fun getFontDir(): File {
+        val fontDir = File(requireContext().cacheDir, "subtitle_fonts")
+        if (!fontDir.exists()) fontDir.mkdirs()
+        val fontFile = File(fontDir, "roboto_regular.ttf")
+        if (!fontFile.exists()) {
+            resources.openRawResource(R.raw.roboto_regular).use { input ->
+                fontFile.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+        return fontDir
     }
-}
+
+    /**
+     * Construye la cadena de filtros drawtext (uno por cada línea de subtítulo,
+     * encadenados por comas) para quemar el texto directamente en los píxeles
+     * del video, sin depender de libass/fontselect.
+     *
+     * fontFile ya debe venir con los caracteres especiales de ruta escapados
+     * (ver llamada en hardcodearSubtitulos).
+     */
+    private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): String {
+        return subtitles.joinToString(",") { sub ->
+            val safeText = sub.text
+                .replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace(":", "\\:")
+                .replace(",", "\\,")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("%", "\\%")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+            val startSec = sub.startTime / 1000.0
+            val endSec = sub.endTime / 1000.0
+            "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+        }
+    }
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -713,26 +746,13 @@ private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
             }
         }
     }
-private fun getFontDir(): File {
-    val fontDir = File(requireContext().cacheDir, "subtitle_fonts")
-    if (!fontDir.exists()) fontDir.mkdirs()
-    val fontFile = File(fontDir, "roboto_regular.ttf")
-    if (!fontFile.exists()) {
-        resources.openRawResource(R.raw.roboto_regular).use { input ->
-            fontFile.outputStream().use { output -> input.copyTo(output) }
-        }
-    }
-    return fontDir
-}
+
     /**
-     * NUEVA FUNCIÓN: incrusta (quema) los subtítulos directamente en los píxeles del video,
-     * a diferencia de createMkvWithSubtitles que solo agrega una pista SRT separada.
-     * Usa el video actual del reproductor (videoPlaylist[currentIndex]) y el .srt cargado
-     * con btnLoadSubtitles (selectedSubtitleUri).
-     *
-     * Requiere que tu build de FFmpeg tenga libass compilado (la variante "full"/"full-gpl" lo trae).
-     * Se dispara desde btnHardcodeSubtitles (directo si ya hay srt, o vía pendingHardcodeBurn
-     * apenas se selecciona uno) y también desde btnBurn.
+     * Incrusta (quema) los subtítulos directamente en los píxeles del video usando
+     * el filtro drawtext (uno por línea de subtítulo), en lugar de subtitles=/libass.
+     * Usa la fuente embebida en res/raw/roboto_regular.ttf, copiada a una carpeta
+     * de caché exclusiva vía getFontDir() para evitar cualquier ambigüedad de
+     * selección de fuente en el escaneo de /system/fonts.
      */
     private fun hardcodearSubtitulos() {
     android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
@@ -746,25 +766,29 @@ private fun getFontDir(): File {
     val videoUri = videoPlaylist[currentIndex]
     Thread {
         val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
-        val subFile = cacheUriToFile(subUri, "input_hardcode.srt")
         val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
-if (outputFile.exists()) outputFile.delete()
+        if (outputFile.exists()) outputFile.delete()
 
-        // drawtext no depende de libass ni de escanear fuentes del sistema,
-        // usa directamente el .ttf que copiamos a cache
-        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
-        val drawtextFilter = buildDrawtextFilters(subtitleList).replace("drawtext=", "drawtext=fontfile=$fontFile:")
-if (drawtextFilter.isBlank()) {
-    android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro")
-    requireActivity().runOnUiThread {
-        Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
-    }
-    return@Thread
-}
-        val command = "-y -i ${videoFile.absolutePath} -vf \"$drawtextFilter\" -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
+            .replace("\\", "\\\\")
+            .replace(":", "\\:")
+            .replace("'", "\\'")
+
+        val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile)
+
+        if (drawtextFilter.isBlank()) {
+            android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
+            }
+            videoFile.delete()
+            return@Thread
+        }
+
+        val command = "-y -i ${videoFile.absolutePath} -vf $drawtextFilter -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
-        
+
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "video/mp4")
@@ -775,7 +799,6 @@ if (drawtextFilter.isBlank()) {
                 }
             }
             videoFile.delete()
-            subFile.delete()
             if (outputFile.exists()) outputFile.delete()
         }
     }.start()
