@@ -752,8 +752,7 @@ private fun getFontDir(): File {
         
         // CORRECCIÓN DE SINTAXIS PURA: El parámetro se pasa sin comillas internas en filename
         val fontDir = getFontDir().absolutePath
-        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=$rutaEscapada:fontsdir=$fontDir:force_style='FontSize=22,PrimaryColour=&H00FFFFFF,Outline=2,BorderStyle=1' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"      
-
+        val command = "-y -i ${videoFile.absolutePath} -vf subtitles=filename=$rutaEscapada:fontsdir=$fontDir:original_size=624x360:force_style='FontSize=22,PrimaryColour=&H00FFFFFF,Outline=2,BorderStyle=1' -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
 
         
