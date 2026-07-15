@@ -883,8 +883,7 @@ private fun hardcodearSubtitulos() {
 
         // Comando de diagnóstico: Ignora el archivo temporal y prueba un drawtext directo
         val testText = "Hola Mundo"
-        val command = "-y -i \"${videoFile.absolutePath}\" -vf \"drawtext=text='${testText}':fontcolor=white:fontsize=24:x=10:y=10\" -c:v mpeg4 -q:v 2 -c:a copy \"${outputFile.absolutePath}\""
-
+val command = "-y -i \"${videoFile.absolutePath}\" -vf \"format=yuv420p,drawtext=text='HolaMundo':fontcolor=white:fontsize=24:x=10:y=10\" -c:v libx264 -preset ultrafast -c:a copy \"${outputFile.absolutePath}\""
         android.util.Log.d("FFmpegHardcode", "Comando de prueba: $command")
 
         FFmpegKit.executeAsync(command) { session ->
