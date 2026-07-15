@@ -865,7 +865,7 @@ private fun setupVideoListeners() {
      * Usa la fuente embebida en res/raw/roboto_regular.ttf, copiada a una carpeta
      * de caché exclusiva vía getFontDir().
      */
-    private fun hardcodearSubtitulos() {
+   private fun hardcodearSubtitulos() {
     android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
     val subUri = selectedSubtitleUri
     if (videoPlaylist.isEmpty() || subUri == null) {
@@ -897,7 +897,12 @@ private fun setupVideoListeners() {
             return@Thread
         }
 
-        val command = "-y -i ${videoFile.absolutePath} -vf $drawtextFilter -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        // --- CAMBIO AQUÍ: Crear archivo para el filtro ---
+        val filterScriptFile = File(requireContext().cacheDir, "drawtext_filter.txt")
+        filterScriptFile.writeText(drawtextFilter)
+
+        // Usamos -filter_script:v para que FFmpeg lea el filtro desde el archivo y no se confunda con los espacios del texto
+        val command = "-y -i ${videoFile.absolutePath} -filter_script:v ${filterScriptFile.absolutePath} -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
 
         FFmpegKit.executeAsync(command) { session ->
@@ -913,11 +918,12 @@ private fun setupVideoListeners() {
                 clearSubtitles()
             }
             videoFile.delete()
+            // BORRAMOS EL ARCHIVO TEMPORAL DEL FILTRO AQUÍ
+            if (filterScriptFile.exists()) filterScriptFile.delete() 
             if (outputFile.exists()) outputFile.delete()
         }
     }.start()
 }
-
 
     /**
      * NUEVA FUNCIÓN: crea un video tipo diapositivas a partir de una lista de fotos.
