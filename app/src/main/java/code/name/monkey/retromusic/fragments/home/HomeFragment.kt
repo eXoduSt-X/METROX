@@ -608,22 +608,23 @@ private fun setupVideoListeners() {
      * del video, sin depender de libass/fontselect.
      */
     private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): String {
-        return subtitles.joinToString(",") { sub ->
-            val safeText = sub.text
-                .replace("\\", "\\\\")
-                .replace("'", "\\'")
-                .replace(":", "\\:")
-                .replace(",", "\\,")
-                .replace("[", "\\[")
-                .replace("]", "\\]")
-                .replace("%", "\\%")
-                .replace("{", "\\{")
-                .replace("}", "\\}")
-            val startSec = sub.startTime / 1000.0
-            val endSec = sub.endTime / 1000.0
-            "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
-        }
+    // Usamos .joinToString(",") pero el truco es asegurarse que la sintaxis
+    // de los parámetros sea absoluta y no contenga caracteres que rompan el parser.
+    return subtitles.joinToString(",") { sub ->
+        val safeText = sub.text
+            .replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace(":", "\\:")
+            .replace(",", "\\,")
+            .replace("%", "\\%") // Asegúrate de escapar también los guiones si usas
+        
+        val startSec = sub.startTime / 1000.0
+        val endSec = sub.endTime / 1000.0
+        
+        // Es vital que no haya espacios en blanco en la cadena del filtro
+        "drawtext=fontfile='$fontFile':text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
     }
+}
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -865,7 +866,7 @@ private fun setupVideoListeners() {
      * Usa la fuente embebida en res/raw/roboto_regular.ttf, copiada a una carpeta
      * de caché exclusiva vía getFontDir().
      */
-  private fun hardcodearSubtitulos() {
+private fun hardcodearSubtitulos() {
     android.util.Log.d("HardcodeDebug", "Iniciando proceso...")
     val subUri = selectedSubtitleUri
     if (videoPlaylist.isEmpty() || subUri == null) {
@@ -876,41 +877,33 @@ private fun setupVideoListeners() {
     val videoUri = videoPlaylist[currentIndex]
     Thread {
         val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
+        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
-        // 1. Asegurar ruta de fuente limpia
-        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
-        
-        // 2. Construir filtro
-        val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile)
-        if (drawtextFilter.isBlank()) return@Thread
+        // Comando de diagnóstico: Ignora el archivo temporal y prueba un drawtext directo
+        val testText = "Hola Mundo"
+        val command = "-y -i \"${videoFile.absolutePath}\" -vf \"drawtext=text='${testText}':fontcolor=white:fontsize=24:x=10:y=10\" -c:v mpeg4 -q:v 2 -c:a copy \"${outputFile.absolutePath}\""
 
-        // 3. Escribir filtro a archivo (evita errores de parseo de comandos largos)
-        val filterScriptFile = File(requireContext().cacheDir, "filter.txt")
-        filterScriptFile.writeText(drawtextFilter)
-
-        // 4. Comando optimizado
-        // -vf filter_script=... es la forma correcta de cargar filtros complejos
-// ... después de definir videoFile y outputFile ...
-
-// Comando de diagnóstico: Ignora el archivo temporal y prueba un drawtext directo
-val testText = "Hola Mundo"
-val command = "-y -i \"${videoFile.absolutePath}\" -vf \"drawtext=text='${testText}':fontcolor=white:fontsize=24:x=10:y=10\" -c:v mpeg4 -q:v 2 -c:a copy \"${outputFile.absolutePath}\""
-
-android.util.Log.d("FFmpegHardcode", "Comando de prueba: $command")
+        android.util.Log.d("FFmpegHardcode", "Comando de prueba: $command")
 
         FFmpegKit.executeAsync(command) { session ->
-            val returnCode = session.returnCode
-            if (ReturnCode.isSuccess(returnCode)) {
-                saveToDownloads(outputFile, "Video_Subtitulado_${System.currentTimeMillis()}.mp4", "video/mp4")
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "video/mp4")
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "¡Prueba exitosa! Revisa descargas", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 android.util.Log.e("FFmpegHardcode", "Error: ${session.allLogsAsString}")
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error en prueba (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                }
             }
-            // Limpieza
+            requireActivity().runOnUiThread {
+                clearSubtitles()
+            }
             videoFile.delete()
-            filterScriptFile.delete()
-            requireActivity().runOnUiThread { clearSubtitles() }
+            if (outputFile.exists()) outputFile.delete()
         }
     }.start()
 }
