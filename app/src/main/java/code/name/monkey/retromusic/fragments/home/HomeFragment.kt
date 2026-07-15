@@ -479,14 +479,18 @@ private fun setupVideoListeners() {
         }
     }
 
-    private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
-        return subtitleList.joinToString(",") { sub ->
-            val safeText = sub.text.replace("'", "\\'").replace(":", "\\:")
-            val startSec = sub.startTime / 1000
-            val endSec = sub.endTime / 1000
-            "drawtext=text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
-        }
+private fun buildDrawtextFilters(subtitleList: List<Subtitle>): String {
+    return subtitleList.joinToString(",") { sub ->
+        val safeText = sub.text
+            .replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace(":", "\\:")
+            .replace(",", "\\,")
+        val startSec = sub.startTime / 1000.0
+        val endSec = sub.endTime / 1000.0
+        "drawtext=text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
     }
+}
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -751,7 +755,13 @@ if (outputFile.exists()) outputFile.delete()
         // usa directamente el .ttf que copiamos a cache
         val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
         val drawtextFilter = buildDrawtextFilters(subtitleList).replace("drawtext=", "drawtext=fontfile=$fontFile:")
-
+if (drawtextFilter.isBlank()) {
+    android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro")
+    requireActivity().runOnUiThread {
+        Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
+    }
+    return@Thread
+}
         val command = "-y -i ${videoFile.absolutePath} -vf \"$drawtextFilter\" -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
         
