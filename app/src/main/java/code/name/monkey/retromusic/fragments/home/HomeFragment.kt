@@ -714,7 +714,7 @@ private fun getFontDir(): File {
     if (!fontDir.exists()) fontDir.mkdirs()
     val fontFile = File(fontDir, "roboto_regular.ttf")
     if (!fontFile.exists()) {
-        resources.openRawResource(R.font.roboto_regular).use { input ->
+        resources.openRawResource(R.raw.roboto_regular).use { input ->
             fontFile.outputStream().use { output -> input.copyTo(output) }
         }
     }
