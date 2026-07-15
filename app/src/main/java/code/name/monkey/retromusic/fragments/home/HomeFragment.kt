@@ -622,7 +622,7 @@ private fun setupVideoListeners() {
         val endSec = sub.endTime / 1000.0
         
         // Es vital que no haya espacios en blanco en la cadena del filtro
-        "drawtext=fontfile='$fontFile':text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+       "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
     }
 }
 
@@ -867,12 +867,13 @@ private fun setupVideoListeners() {
      * de caché exclusiva vía getFontDir().
      */
 private fun hardcodearSubtitulos() {
-    android.util.Log.d("HardcodeDebug", "Iniciando proceso...")
+    android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
     val subUri = selectedSubtitleUri
     if (videoPlaylist.isEmpty() || subUri == null) {
-        Toast.makeText(requireContext(), "Selecciona video y SRT", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
         return
     }
+    Toast.makeText(requireContext(), "Incrustando subtítulos, puede tardar...", Toast.LENGTH_LONG).show()
 
     val videoUri = videoPlaylist[currentIndex]
     Thread {
@@ -881,27 +882,46 @@ private fun hardcodearSubtitulos() {
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
-        // Comando de diagnóstico: Ignora el archivo temporal y prueba un drawtext directo
-        val testText = "Hola Mundo"
-val command = "-y -i \"${videoFile.absolutePath}\" -vf \"format=yuv420p,drawtext=text='HolaMundo':fontcolor=white:fontsize=24:x=10:y=10\" -c:v libx264 -preset ultrafast -c:a copy \"${outputFile.absolutePath}\""
-        android.util.Log.d("FFmpegHardcode", "Comando de prueba: $command")
+        // fontFile SIN comillas alrededor: solo escapamos los dos puntos,
+        // que es lo único que el filtro drawtext necesita escapado en la ruta.
+        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
+            .replace(":", "\\:")
+
+        val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile)
+
+        if (drawtextFilter.isBlank()) {
+            android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
+            }
+            videoFile.delete()
+            return@Thread
+        }
+
+        // Escribimos el filtro a un archivo: así el -vf nunca contiene espacios
+        // ni comillas dentro del comando, sin importar cuánto texto tenga el srt.
+        val filterScriptFile = File(requireContext().cacheDir, "drawtext_filter.txt")
+        filterScriptFile.writeText(drawtextFilter)
+
+        // SIN comillas de ningún tipo en ninguna parte del comando.
+        val command = "-y -i ${videoFile.absolutePath} -filter_script:v ${filterScriptFile.absolutePath} -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
+        android.util.Log.d("FFmpegHardcode", "Comando: $command")
+        android.util.Log.d("FFmpegHardcode", "Contenido del filtro: $drawtextFilter")
 
         FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "video/mp4")
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "¡Prueba exitosa! Revisa descargas", Toast.LENGTH_SHORT).show()
-                }
             } else {
-                android.util.Log.e("FFmpegHardcode", "Error: ${session.allLogsAsString}")
+                android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
                 requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error en prueba (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
                 }
             }
             requireActivity().runOnUiThread {
                 clearSubtitles()
             }
             videoFile.delete()
+            filterScriptFile.delete()
             if (outputFile.exists()) outputFile.delete()
         }
     }.start()
