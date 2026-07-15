@@ -460,17 +460,21 @@ private fun setupVideoListeners() {
         videoPickerLauncher.launch("video/*")
     }
 }
-
+private fun clearSubtitles() {
+    selectedSubtitleUri = null
+    subtitleList.clear()
+    _binding?.homeContent?.tvSubtitleOverlay?.text = ""
+}
 
     private fun reproducirVideoActual() {
-        if (videoPlaylist.isNotEmpty()) {
-            savedPosition = 0
-            binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
-            binding.homeContent.videoPlayer.start()
-            binding.homeContent.btnPlayPause.text = "Pause"
-        }
+    if (videoPlaylist.isNotEmpty()) {
+        clearSubtitles()
+        savedPosition = 0
+        binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
+        binding.homeContent.videoPlayer.start()
+        binding.homeContent.btnPlayPause.text = "Pause"
     }
-
+}
     /**
      * NUEVA: copia la fuente embebida (res/raw/roboto_regular.ttf) a una carpeta
      * privada de caché que contiene ÚNICAMENTE esa fuente. Usada por el filtro
@@ -746,7 +750,7 @@ private fun setupVideoListeners() {
      * de caché exclusiva vía getFontDir() para evitar cualquier ambigüedad de
      * selección de fuente en el escaneo de /system/fonts.
      */
-    private fun hardcodearSubtitulos() {
+private fun hardcodearSubtitulos() {
     android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
     val subUri = selectedSubtitleUri
     if (videoPlaylist.isEmpty() || subUri == null) {
@@ -790,12 +794,14 @@ private fun setupVideoListeners() {
                     Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
                 }
             }
+            requireActivity().runOnUiThread {
+                clearSubtitles()
+            }
             videoFile.delete()
             if (outputFile.exists()) outputFile.delete()
         }
     }.start()
 }
-
 
     /**
      * NUEVA FUNCIÓN: crea un video tipo diapositivas a partir de una lista de fotos.
