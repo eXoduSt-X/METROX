@@ -215,7 +215,19 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             // 4. Comando FFmpeg usando el demuxer concat
             val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
 
-            FFmpegKit.executeAsync(command, { session ->
+            // 1. Activar callback global de estadísticas
+            FFmpegKit.enableStatisticsCallback { statistics ->
+                if (durationMs > 0) {
+                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                    actualizarProgreso(pct)
+                }
+            }
+
+            // 2. Ejecutar con 2 parámetros
+            FFmpegKit.executeAsync(command) { session ->
+                // 3. Limpiar callback global al finalizar
+                FFmpegKit.enableStatisticsCallback(null)
+
                 if (ReturnCode.isSuccess(session.returnCode)) {
                     // 5. Guardar en Downloads vía MediaStore
                     val contentValues = android.content.ContentValues().apply {
@@ -250,12 +262,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                     }
                 }
                 ocultarProgreso()
-            }, {}, { statistics ->
-                if (durationMs > 0) {
-                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                    actualizarProgreso(pct)
-                }
-            })
+            }
         } catch (e: Exception) {
             android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
             requireActivity().runOnUiThread {
@@ -265,7 +272,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }.start()
 }
-
    private fun parseSrt(inputStream: java.io.InputStream) {
     subtitleList.clear()
     val lines = inputStream.bufferedReader().readLines()
@@ -950,10 +956,7 @@ private fun hardcodearSubtitulos() {
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
-        // fontFile SIN comillas alrededor: solo escapamos los dos puntos
-        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
-            .replace(":", "\\:")
-
+        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
         val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile)
 
         if (drawtextFilter.isBlank()) {
@@ -970,11 +973,20 @@ private fun hardcodearSubtitulos() {
         filterScriptFile.writeText(drawtextFilter)
 
         val command = "-y -i ${videoFile.absolutePath} -filter_script:v ${filterScriptFile.absolutePath} -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
-        android.util.Log.d("FFmpegHardcode", "Comando: $command")
-        
         val durationMs = getDurationMs(videoFile)
 
-        FFmpegKit.executeAsync(command, { session ->
+        // Configuración del callback de progreso global
+        FFmpegKit.enableStatisticsCallback { statistics ->
+            if (durationMs > 0) {
+                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                actualizarProgreso(pct)
+            }
+        }
+
+        FFmpegKit.executeAsync(command) { session ->
+            // Limpiar callback al finalizar
+            FFmpegKit.enableStatisticsCallback(null)
+
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "video/mp4")
             } else {
@@ -990,12 +1002,7 @@ private fun hardcodearSubtitulos() {
             videoFile.delete()
             filterScriptFile.delete()
             if (outputFile.exists()) outputFile.delete()
-        }, {}, { statistics ->
-            if (durationMs > 0) {
-                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                actualizarProgreso(pct)
-            }
-        })
+        }
     }.start()
 }
     /**
@@ -1038,11 +1045,20 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
             filterScriptFile.writeText(filterComplex.toString())
 
             val command = "-y $inputArgs-filter_complex_script ${filterScriptFile.absolutePath} -map [outv] -c:v mpeg4 -q:v 3 ${outputFile.absolutePath}"
-            android.util.Log.d("FFmpegSlideshow", "Comando: $command")
-
+            
             val durationMs = uris.size * 3000L
 
-            FFmpegKit.executeAsync(command, { session ->
+            // 1. Activar callback global de estadísticas
+            FFmpegKit.enableStatisticsCallback { statistics ->
+                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                actualizarProgreso(pct)
+            }
+
+            // 2. Ejecutar con 2 parámetros
+            FFmpegKit.executeAsync(command) { session ->
+                // 3. Limpiar callback al finalizar
+                FFmpegKit.enableStatisticsCallback(null)
+
                 if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                     saveToDownloads(outputFile, fileName, "video/mp4")
                 } else {
@@ -1055,10 +1071,7 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
                 carpetaTemp.deleteRecursively()
                 filterScriptFile.delete()
                 if (outputFile.exists()) outputFile.delete()
-            }, {}, { statistics ->
-                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                actualizarProgreso(pct)
-            })
+            }
         } catch (e: Exception) {
             android.util.Log.e("FFmpegSlideshow", "Error preparando fotos: ${e.message}")
             requireActivity().runOnUiThread {
@@ -1312,7 +1325,19 @@ private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480
         
         val durationMs = getDurationMs(videoFile)
 
-        FFmpegKit.executeAsync(command, { session ->
+        // 1. Activar callback global antes de ejecutar
+        FFmpegKit.enableStatisticsCallback { statistics ->
+            if (durationMs > 0) {
+                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                actualizarProgreso(pct)
+            }
+        }
+
+        // 2. Ejecutar con 2 parámetros
+        FFmpegKit.executeAsync(command) { session ->
+            // 3. Limpiar callback global al finalizar
+            FFmpegKit.enableStatisticsCallback(null)
+
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "image/gif")
             } else {
@@ -1325,12 +1350,7 @@ private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480
             videoFile.delete()
             filterScriptFile.delete()
             if (outputFile.exists()) outputFile.delete()
-        }, {}, { statistics ->
-            if (durationMs > 0) {
-                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                actualizarProgreso(pct)
-            }
-        })
+        }
     }.start()
 }
     companion object {
