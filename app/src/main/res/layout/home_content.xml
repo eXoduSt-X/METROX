@@ -171,7 +171,7 @@
 
     <!-- NUEVO BOTÓN GIF -->
     <Button
-        android:id="@+id/btn_convertir_gif"
+        android:id="@+id/btnCreateGif"
         android:layout_width="0dp"
         android:layout_weight="1.0"
         android:layout_height="40dp"
