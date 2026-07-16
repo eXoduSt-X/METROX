@@ -45,7 +45,30 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp" />
-
+         <LinearLayout
+    android:id="@+id/progressContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:layout_marginTop="4dp"
+    android:visibility="gone">
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:max="100" />
+    <TextView
+        android:id="@+id/tvProgressPercent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="0%"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp" />
+</LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -135,15 +158,28 @@
                 android:textSize="10sp"
                 android:layout_marginStart="3dp"
                 android:layout_marginEnd="3dp" />
-            <Button
-                android:id="@+id/btnSplit"
-                android:layout_width="0dp"
-                android:layout_weight="1.8"
-                android:layout_height="40dp"
-                android:backgroundTint="#333333"
-                android:text="CORTAR"
-                android:textColor="#FFFFFF"
-                android:textSize="9sp" />
+            <!-- Reducimos el peso de CORTAR de 1.8 a 1.2 para dar espacio al GIF -->
+    <Button
+        android:id="@+id/btnSplit"
+        android:layout_width="0dp"
+        android:layout_weight="1.2"
+        android:layout_height="40dp"
+        android:backgroundTint="#333333"
+        android:text="CORTAR"
+        android:textColor="#FFFFFF"
+        android:textSize="9sp" />
+
+    <!-- NUEVO BOTÓN GIF -->
+    <Button
+        android:id="@+id/btn_convertir_gif"
+        android:layout_width="0dp"
+        android:layout_weight="1.0"
+        android:layout_height="40dp"
+        android:layout_marginStart="3dp"
+        android:backgroundTint="#6200EE" 
+        android:text="GIF"
+        android:textColor="#FFFFFF"
+        android:textSize="9sp" />
         </LinearLayout>
 
         <LinearLayout
