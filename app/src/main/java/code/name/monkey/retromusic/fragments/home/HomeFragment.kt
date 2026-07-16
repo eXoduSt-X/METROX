@@ -179,28 +179,30 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             .show()
     }
 
-    private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
-        Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
-        mostrarProgreso()
+   private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
+    Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
+    mostrarProgreso()
 
-        Thread {
-            try {
-                val archivos = uris.mapIndexed { i, uri ->
-                    cacheUriToFile(uri, "merge_input_$i.mp4")
-                }
+    Thread {
+        try {
+            val archivos = uris.mapIndexed { i, uri ->
+                cacheUriToFile(uri, "merge_input_$i.mp4")
+            }
 
-                val listaFile = File(requireContext().cacheDir, "merge_list.txt")
-                listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
+            val listaFile = File(requireContext().cacheDir, "merge_list.txt")
+            listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
 
-                val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
-                val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
-                if (outputFile.exists()) outputFile.delete()
+            val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
+            val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
+            if (outputFile.exists()) outputFile.delete()
 
-                val durationMs = archivos.sumOf { getDurationMs(it) }
+            val durationMs = archivos.sumOf { getDurationMs(it) }
 
-                val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
+            val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
 
-                FFmpegKit.executeAsync(command, { session ->
+            FFmpegKit.executeAsyncWithStatistics(
+                command,
+                { session ->
                     if (ReturnCode.isSuccess(session.returnCode)) {
                         val contentValues = android.content.ContentValues().apply {
                             put(MediaStore.MediaColumns.DISPLAY_NAME, nombreSalida)
@@ -233,21 +235,23 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                         }
                     }
                     ocultarProgreso()
-                }, {}, { statistics ->
+                },
+                { statistics ->
                     if (durationMs > 0) {
                         val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
                         actualizarProgreso(pct)
                     }
-                })
-            } catch (e: Exception) {
-                android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error preparando los archivos", Toast.LENGTH_SHORT).show()
                 }
-                ocultarProgreso()
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "Error preparando los archivos", Toast.LENGTH_SHORT).show()
             }
-        }.start()
-    }
+            ocultarProgreso()
+        }
+    }.start()
+}
 
    private fun parseSrt(inputStream: java.io.InputStream) {
     subtitleList.clear()
@@ -621,34 +625,36 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         }
     }
 
-    private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
-        Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
-        mostrarProgreso()
+   private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
+    Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
+    mostrarProgreso()
 
-        Thread {
-            val videoFile = cacheUriToFile(videoUri, "input_gif.mp4")
-            val originalName = requireContext().contentResolver.query(
-                videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-            )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-                ?: "Video_${System.currentTimeMillis()}"
-            val baseName = originalName.substringBeforeLast(".")
-            val fileName = "$baseName.gif"
+    Thread {
+        val videoFile = cacheUriToFile(videoUri, "input_gif.mp4")
+        val originalName = requireContext().contentResolver.query(
+            videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+            ?: "Video_${System.currentTimeMillis()}"
+        val baseName = originalName.substringBeforeLast(".")
+        val fileName = "$baseName.gif"
 
-            val outputFile = File(requireContext().cacheDir, "output_gif.gif")
-            if (outputFile.exists()) outputFile.delete()
+        val outputFile = File(requireContext().cacheDir, "output_gif.gif")
+        if (outputFile.exists()) outputFile.delete()
 
-            val durationMs = getDurationMs(videoFile)
+        val durationMs = getDurationMs(videoFile)
 
-            val filterComplex = "[0:v]fps=$fps,scale=$anchoMax:-1:flags=lanczos,split[a][b];" +
-                    "[a]palettegen[p];[b][p]paletteuse"
+        val filterComplex = "[0:v]fps=$fps,scale=$anchoMax:-1:flags=lanczos,split[a][b];" +
+                "[a]palettegen[p];[b][p]paletteuse"
 
-            val filterScriptFile = File(requireContext().cacheDir, "gif_filter.txt")
-            filterScriptFile.writeText(filterComplex)
+        val filterScriptFile = File(requireContext().cacheDir, "gif_filter.txt")
+        filterScriptFile.writeText(filterComplex)
 
-            val command = "-y -i ${videoFile.absolutePath} -filter_complex_script ${filterScriptFile.absolutePath} ${outputFile.absolutePath}"
-            android.util.Log.d("FFmpegGif", "Comando: $command")
+        val command = "-y -i ${videoFile.absolutePath} -filter_complex_script ${filterScriptFile.absolutePath} ${outputFile.absolutePath}"
+        android.util.Log.d("FFmpegGif", "Comando: $command")
 
-            FFmpegKit.executeAsync(command, { session ->
+        FFmpegKit.executeAsyncWithStatistics(
+            command,
+            { session ->
                 if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                     saveToDownloads(outputFile, fileName, "image/gif")
                 } else {
@@ -661,14 +667,16 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
                 videoFile.delete()
                 filterScriptFile.delete()
                 if (outputFile.exists()) outputFile.delete()
-            }, {}, { statistics ->
+            },
+            { statistics ->
                 if (durationMs > 0) {
                     val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
                     actualizarProgreso(pct)
                 }
-            })
-        }.start()
-    }
+            }
+        )
+    }.start()
+}
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -911,15 +919,15 @@ private fun hardcodearSubtitulos() {
 
     val videoUri = videoPlaylist[currentIndex]
     Thread {
- val originalName = requireContext().contentResolver.query(
-    videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-    ?: "Video_${System.currentTimeMillis()}"
+        val originalName = requireContext().contentResolver.query(
+            videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+            ?: "Video_${System.currentTimeMillis()}"
 
-val baseName = originalName.substringBeforeLast(".")
-val fileName = "${baseName}_sub.mp4"
+        val baseName = originalName.substringBeforeLast(".")
+        val fileName = "${baseName}_sub.mp4"
 
-val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
+        val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
@@ -947,31 +955,34 @@ val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
         android.util.Log.d("FFmpegHardcode", "Contenido del filtro: $drawtextFilter")
 
-        FFmpegKit.executeAsync(command, { session ->
-            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                saveToDownloads(outputFile, fileName, "video/mp4")
-            } else {
-                android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
+        FFmpegKit.executeAsyncWithStatistics(
+            command,
+            { session ->
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, fileName, "video/mp4")
+                } else {
+                    android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                    clearSubtitles()
+                }
+                ocultarProgreso()
+                videoFile.delete()
+                filterScriptFile.delete()
+                if (outputFile.exists()) outputFile.delete()
+            },
+            { statistics ->
+                if (durationMs > 0) {
+                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                    actualizarProgreso(pct)
                 }
             }
-            requireActivity().runOnUiThread {
-                clearSubtitles()
-            }
-            ocultarProgreso()
-            videoFile.delete()
-            filterScriptFile.delete()
-            if (outputFile.exists()) outputFile.delete()
-        }, {}, { statistics ->
-            if (durationMs > 0) {
-                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                actualizarProgreso(pct)
-            }
-        })
+        )
     }.start()
 }
-
     private fun crearVideoDesdeFotos(uris: List<Uri>) {
     Toast.makeText(requireContext(), "Creando video desde ${uris.size} fotos...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
@@ -1011,23 +1022,27 @@ val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
             val command = "-y $inputArgs-filter_complex_script ${filterScriptFile.absolutePath} -map [outv] -c:v mpeg4 -q:v 3 ${outputFile.absolutePath}"
             android.util.Log.d("FFmpegSlideshow", "Comando: $command")
 
-            FFmpegKit.executeAsync(command, { session ->
-                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                    saveToDownloads(outputFile, fileName, "video/mp4")
-                } else {
-                    android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
+            FFmpegKit.executeAsyncWithStatistics(
+                command,
+                { session ->
+                    if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                        saveToDownloads(outputFile, fileName, "video/mp4")
+                    } else {
+                        android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
+                        requireActivity().runOnUiThread {
+                            Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
+                        }
                     }
+                    ocultarProgreso()
+                    carpetaTemp.deleteRecursively()
+                    filterScriptFile.delete()
+                    if (outputFile.exists()) outputFile.delete()
+                },
+                { statistics ->
+                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                    actualizarProgreso(pct)
                 }
-                ocultarProgreso()
-                carpetaTemp.deleteRecursively()
-                filterScriptFile.delete()
-                if (outputFile.exists()) outputFile.delete()
-            }, {}, { statistics ->
-                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                actualizarProgreso(pct)
-            })
+            )
         } catch (e: Exception) {
             android.util.Log.e("FFmpegSlideshow", "Error preparando fotos: ${e.message}")
             requireActivity().runOnUiThread {
@@ -1037,7 +1052,6 @@ val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
         }
     }.start()
 }
-
     private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
         val videoFile = cacheUriToFile(videoUri, "input_split.mp4")
         val fileName = "Clip_${System.currentTimeMillis()}.mp4"
