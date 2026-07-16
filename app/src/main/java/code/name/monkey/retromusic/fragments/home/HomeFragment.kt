@@ -364,7 +364,18 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             fullscreenGestureDetector.onTouchEvent(event)
             true
         }
-
+        // Simplemente añade esto usando la forma en la que ya accedes a tus vistas:
+       val btnCreateGif: Button = binding.homeContent.root.findViewById(R.id.btn_convertir_gif) 
+        btnCreateGif.setOnClickListener {
+           if (videoPlaylist.isNotEmpty()) {
+              btnCreateGif.isEnabled = false
+            convertirVideoAGif(videoPlaylist[currentIndex])
+        // Reactivación simple tras 5 segundos
+             btnCreateGif.postDelayed({ btnCreateGif.isEnabled = true }, 5000)
+         } else {
+             Toast.makeText(requireContext(), "No hay video seleccionado", Toast.LENGTH_SHORT).show()
+         }
+      }
         binding.imageLayout.titleWelcome.text = String.format("%s", userName)
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
@@ -1218,7 +1229,47 @@ val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
         }
     }.start()
 }
+private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
+    Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
 
+    Thread {
+        val videoFile = cacheUriToFile(videoUri, "input_gif.mp4")
+        val originalName = requireContext().contentResolver.query(
+            videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+            ?: "Video_${System.currentTimeMillis()}"
+        val baseName = originalName.substringBeforeLast(".")
+        val fileName = "$baseName.gif"
+
+        val outputFile = File(requireContext().cacheDir, "output_gif.gif")
+        if (outputFile.exists()) outputFile.delete()
+
+        // Filtro de 2 pasos: genera una paleta óptima de colores y la usa para
+        // codificar el gif, evitando el banding feo de convertir directo a gif.
+        val filterComplex = "[0:v]fps=$fps,scale=$anchoMax:-1:flags=lanczos,split[a][b];" +
+                "[a]palettegen[p];[b][p]paletteuse"
+
+        val filterScriptFile = File(requireContext().cacheDir, "gif_filter.txt")
+        filterScriptFile.writeText(filterComplex)
+
+        val command = "-y -i ${videoFile.absolutePath} -filter_complex_script ${filterScriptFile.absolutePath} ${outputFile.absolutePath}"
+        android.util.Log.d("FFmpegGif", "Comando: $command")
+
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "image/gif")
+            } else {
+                android.util.Log.e("FFmpegGif", session.allLogsAsString)
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al crear GIF (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                }
+            }
+            videoFile.delete()
+            filterScriptFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }
+    }.start()
+}
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
         const val TAG: String = "BannerHomeFragment"
