@@ -51,22 +51,6 @@ import android.view.MotionEvent
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import android.widget.Button
-import java.io.InputStream
-import java.io.OutputStream
-
-// Falta para el acceso a MediaStore y nombres de archivos
-import android.provider.OpenableColumns 
-
-// Falta para el manejo de las transiciones de Material Design
-import com.google.android.material.transition.MaterialFadeThrough
-
-// Falta para las extensiones de View (doOnLayout, doOnPreDraw)
-import androidx.core.view.doOnLayout
-import androidx.core.view.doOnPreDraw
-
-// Falta para asegurar el acceso a FFmpegKit (ReturnCode ya lo tienes, pero a veces es necesario el log)
-import com.arthenica.ffmpegkit.FFmpegSession
 
 data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
 
@@ -85,15 +69,12 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var selectedAudioUri: Uri? = null
     private var selectedAudioUris = mutableListOf<Uri>()
 
-    // NUEVO: indica si el próximo srt seleccionado debe disparar el burn automáticamente
     private var pendingHardcodeBurn = false
 
-    // NUEVO: estado y detector de gestos para el fullscreen del reproductor
     private var isFullscreen = false
     private lateinit var fullscreenGestureDetector: GestureDetector
 
 
-    // Nuevo Launcher para selección múltiple de audio
     private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             selectedAudioUris = uris.toMutableList()
@@ -104,8 +85,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
     }
 
-    // BOTÓN FUTURO en home_content.xml: btnCreateVideoFromPhotos
-    // binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener { photosPickerLauncher.launch("image/*") }
     private val photosPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             crearVideoDesdeFotos(uris)
@@ -148,8 +127,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 requireContext().contentResolver.openInputStream(it)?.use { stream -> parseSrt(stream) }
                 Toast.makeText(requireContext(), "Subtítulos cargados", Toast.LENGTH_SHORT).show()
 
-                // NUEVO: si veníamos del botón "incrustar subtítulos" y todavía no había srt,
-                // arrancamos el burn apenas se elige el archivo.
                 if (pendingHardcodeBurn) {
                     pendingHardcodeBurn = false
                     hardcodearSubtitulos()
@@ -170,16 +147,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }
 
-    // Picker de videos para UNIR — selección múltiple
     private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
-            // Reproducir el primero en el player
             videoPlaylist.clear()
             videoPlaylist.addAll(uris)
             currentIndex = 0
             reproducirVideoActual()
 
-            // Si seleccionó más de uno, preguntar si desea unirlos
             if (uris.size > 1) {
                 mostrarDialogoUnirVideos(uris)
             }
@@ -205,37 +179,29 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             .show()
     }
 
-  private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
-    Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
-    mostrarProgreso()
+    private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
+        Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
+        mostrarProgreso()
 
-    Thread {
-        try {
-            // 1. Copiar cada video a caché
-            val archivos = uris.mapIndexed { i, uri ->
-                cacheUriToFile(uri, "merge_input_$i.mp4")
-            }
+        Thread {
+            try {
+                val archivos = uris.mapIndexed { i, uri ->
+                    cacheUriToFile(uri, "merge_input_$i.mp4")
+                }
 
-            // Calculamos la duración total antes de empezar el proceso
-            val durationMs = archivos.sumOf { getDurationMs(it) }
+                val listaFile = File(requireContext().cacheDir, "merge_list.txt")
+                listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
 
-            // 2. Crear el archivo de lista para FFmpeg (formato concat)
-            val listaFile = File(requireContext().cacheDir, "merge_list.txt")
-            listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
+                val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
+                val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
+                if (outputFile.exists()) outputFile.delete()
 
-            // 3. Archivo de salida en caché
-            val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
-            val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
-            if (outputFile.exists()) outputFile.delete()
+                val durationMs = archivos.sumOf { getDurationMs(it) }
 
-            // 4. Comando FFmpeg usando el demuxer concat
-            val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
+                val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
 
-            FFmpegKit.executeAsync(
-                command,
-                { session ->
+                FFmpegKit.executeAsync(command, { session ->
                     if (ReturnCode.isSuccess(session.returnCode)) {
-                        // 5. Guardar en Downloads vía MediaStore
                         val contentValues = android.content.ContentValues().apply {
                             put(MediaStore.MediaColumns.DISPLAY_NAME, nombreSalida)
                             put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
@@ -257,37 +223,32 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                                 Toast.makeText(requireContext(), "✓ Video unido guardado en Downloads", Toast.LENGTH_LONG).show()
                             }
                         }
+                        archivos.forEach { it.delete() }
+                        listaFile.delete()
+                        outputFile.delete()
                     } else {
                         android.util.Log.e("FFmpegMerge", session.allLogsAsString)
                         requireActivity().runOnUiThread {
                             Toast.makeText(requireContext(), "Error al unir videos. Revisa Logcat.", Toast.LENGTH_SHORT).show()
                         }
                     }
-                    // Limpiar caché
-                    archivos.forEach { it.delete() }
-                    listaFile.delete()
-                    outputFile.delete()
                     ocultarProgreso()
-                },
-                { log -> 
-                    // Callback de log
-                },
-                { statistics ->
+                }, {}, { statistics ->
                     if (durationMs > 0) {
                         val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
                         actualizarProgreso(pct)
                     }
+                })
+            } catch (e: Exception) {
+                android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error preparando los archivos", Toast.LENGTH_SHORT).show()
                 }
-            )
-        } catch (e: Exception) {
-            android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
-            requireActivity().runOnUiThread {
                 ocultarProgreso()
-                Toast.makeText(requireContext(), "Error preparando los archivos", Toast.LENGTH_SHORT).show()
             }
-        }
-    }.start()
-}
+        }.start()
+    }
+
    private fun parseSrt(inputStream: java.io.InputStream) {
     subtitleList.clear()
     val lines = inputStream.bufferedReader().readLines()
@@ -386,7 +347,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         setupListeners()
         setupVideoListeners()
 
-        // NUEVO: gesto de doble tap sobre el video para entrar/salir de fullscreen
         fullscreenGestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 toggleFullscreen()
@@ -397,19 +357,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             fullscreenGestureDetector.onTouchEvent(event)
             true
         }
-         // Integración del botón de GIF
-    val btnCreateGif: Button = binding.homeContent.root.findViewById(R.id.btn_convertir_gif)
-    btnCreateGif.setOnClickListener {
-        if (videoPlaylist.isNotEmpty()) {
-            btnCreateGif.isEnabled = false // Evita doble ejecución
-            convertirVideoAGif(videoPlaylist[currentIndex])
-            
-            // Reactivación del botón tras un tiempo prudente
-            btnCreateGif.postDelayed({ btnCreateGif.isEnabled = true }, 3000)
-        } else {
-            Toast.makeText(requireContext(), "No hay video seleccionado", Toast.LENGTH_SHORT).show()
-        }
-    }
+
         binding.imageLayout.titleWelcome.text = String.format("%s", userName)
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
@@ -425,15 +373,12 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 
 private fun setupVideoListeners() {
-    // Selección de archivos y carpetas
     binding.homeContent.btnOpenFile.setOnClickListener { videoPickerLauncher.launch("video/*") }
     binding.homeContent.btnLoadSubtitles.setOnClickListener { subtitlePickerLauncher.launch("*/*") }
     binding.homeContent.btnChooseFolder.setOnClickListener {
         folderPickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
     }
 
-
-    // SeekBar
     binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
         override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
             if (fromUser) binding.homeContent.videoPlayer.seekTo(progress)
@@ -442,7 +387,6 @@ private fun setupVideoListeners() {
         override fun onStopTrackingTouch(seekBar: SeekBar?) {}
     })
 
-    // Reproducción
     binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
         mp.seekTo(savedPosition)
         mp.start()
@@ -461,7 +405,6 @@ private fun setupVideoListeners() {
         }
     }
 
-    // Controles de navegación
     binding.homeContent.btnPrevVideo.setOnClickListener {
         if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
     }
@@ -475,8 +418,7 @@ private fun setupVideoListeners() {
         binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration))
     }
 
-    // Herramientas FFmpeg
-    binding.homeContent.btnMixVideo.setOnClickListener { // MKV
+    binding.homeContent.btnMixVideo.setOnClickListener {
         val subUri = selectedSubtitleUri
         if (videoPlaylist.isNotEmpty() && subUri != null) {
             createMkvWithSubtitles(videoPlaylist[currentIndex], subUri, selectedAudioUri)
@@ -485,12 +427,10 @@ private fun setupVideoListeners() {
         }
     }
 
-    // NUEVO: el botón que antes era "AAC"/fullscreen (sin uso real) ahora limpia caché temporal
     binding.homeContent.btnFullscreen.setOnClickListener {
         limpiarCacheTemporal()
     }
 
-    // Corte de Video
     binding.homeContent.btnSetStart.setOnClickListener {
         binding.homeContent.etStartTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
     }
@@ -507,12 +447,6 @@ private fun setupVideoListeners() {
         }
     }
 
-    // =========================================================================
-    //   CONEXIÓN DE LOS NUEVOS BOTONES DE VIDEO AVANZADOS (PARCHE INTEGRADO)
-    // =========================================================================
-    // Botón "incrustar subtítulos": si ya hay un srt cargado, quema directo.
-    // Si no hay ninguno, lo pide y el picker se encarga de disparar el burn
-    // automáticamente en cuanto el usuario elige el archivo (ver pendingHardcodeBurn).
     binding.homeContent.btnHardcodeSubtitles.setOnClickListener {
         if (videoPlaylist.isEmpty()) {
             Toast.makeText(requireContext(), "Primero carga un video en el reproductor", Toast.LENGTH_SHORT).show()
@@ -532,26 +466,24 @@ private fun setupVideoListeners() {
     binding.homeContent.btnMergeVideos.setOnClickListener {
         videoPickerLauncher.launch("video/*")
     }
+
+    // NUEVO: exportar el video actual del reproductor a GIF.
+    // Requiere un botón con id "btnCreateGif" en home_content.xml.
+    binding.homeContent.btnCreateGif.setOnClickListener {
+        if (videoPlaylist.isNotEmpty()) {
+            convertirVideoAGif(videoPlaylist[currentIndex])
+        } else {
+            Toast.makeText(requireContext(), "Carga un video primero", Toast.LENGTH_SHORT).show()
+        }
+    }
 }
 
-    /**
-     * NUEVA: limpia el .srt actualmente cargado (selectedSubtitleUri, subtitleList)
-     * y el overlay visible del reproductor. Se llama cada vez que cambia el video
-     * (reproducirVideoActual) y al terminar el proceso de burn (éxito o error),
-     * para evitar que subtítulos de una sesión anterior sigan "pegados".
-     */
     private fun clearSubtitles() {
         selectedSubtitleUri = null
         subtitleList.clear()
         _binding?.homeContent?.tvSubtitleOverlay?.text = ""
     }
 
-    /**
-     * NUEVA: alterna el modo fullscreen del reproductor. Bloquea orientación
-     * landscape, oculta las barras del sistema y oculta el resto de la UI
-     * (toolbar, playlists, filas de herramientas, lista de descargas), dejando
-     * solo el video + sus controles de reproducción a pantalla completa.
-     */
     private fun toggleFullscreen() {
         isFullscreen = !isFullscreen
         val activity = requireActivity()
@@ -568,13 +500,6 @@ private fun setupVideoListeners() {
         setUiVisibilityForFullscreen(isFullscreen)
     }
 
-    /**
-     * NUEVA: muestra/oculta los bloques de UI que no son el reproductor cuando
-     * se activa/desactiva el modo fullscreen. Requiere que en home_content.xml
-     * la fila de herramientas tenga id "toolsRow", la fila de corte tenga id
-     * "cutRow", y el contenedor vertical de las 3 acciones extra tenga id
-     * "extraActionsContainer" (ver mensaje anterior con los ids agregados).
-     */
     private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
         val visibility = if (fullscreen) View.GONE else View.VISIBLE
         binding.appBarLayout.visibility = visibility
@@ -592,12 +517,6 @@ private fun setupVideoListeners() {
         binding.homeContent.videoContainer.requestLayout()
     }
 
-    /**
-     * NUEVA: borra todos los archivos/carpetas temporales de cacheDir generados
-     * por las funciones de FFmpeg (inputs/outputs de burn, split, merge, mkv, etc.),
-     * conservando la carpeta "subtitle_fonts" (caché intencional de la fuente
-     * usada por drawtext). Conectada al botón que antes era "AAC".
-     */
     private fun limpiarCacheTemporal() {
         Thread {
             var espacioLiberado = 0L
@@ -621,39 +540,7 @@ private fun setupVideoListeners() {
             }
         }.start()
     }
-private fun mostrarProgreso() {
-    requireActivity().runOnUiThread {
-        binding.homeContent.progressContainer.visibility = View.VISIBLE
-        binding.homeContent.progressBar.progress = 0
-        binding.homeContent.tvProgressPercent.text = "0%"
-    }
-}
 
-private fun ocultarProgreso() {
-    requireActivity().runOnUiThread {
-        binding.homeContent.progressContainer.visibility = View.GONE
-    }
-}
-
-private fun actualizarProgreso(porcentaje: Int) {
-    requireActivity().runOnUiThread {
-        binding.homeContent.progressBar.progress = porcentaje.coerceIn(0, 100)
-        binding.homeContent.tvProgressPercent.text = "$porcentaje%"
-    }
-}
-
-// Duración del archivo en milisegundos, usada como referencia de 100% para el progreso
-private fun getDurationMs(file: File): Long {
-    return try {
-        val retriever = android.media.MediaMetadataRetriever()
-        retriever.setDataSource(file.absolutePath)
-        val duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-        retriever.release()
-        duration
-    } catch (e: Exception) {
-        0L
-    }
-}
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
             clearSubtitles()
@@ -664,12 +551,6 @@ private fun getDurationMs(file: File): Long {
         }
     }
 
-    /**
-     * NUEVA: copia la fuente embebida (res/raw/roboto_regular.ttf) a una carpeta
-     * privada de caché que contiene ÚNICAMENTE esa fuente. Usada por el filtro
-     * drawtext en lugar del filtro subtitles=/libass, para evitar depender del
-     * escaneo/fuzzy-matching de las ~300 fuentes de /system/fonts en Android.
-     */
     private fun getFontDir(): File {
         val fontDir = File(requireContext().cacheDir, "subtitle_fonts")
         if (!fontDir.exists()) fontDir.mkdirs()
@@ -682,17 +563,11 @@ private fun getDurationMs(file: File): Long {
         return fontDir
     }
 
-    /**
-     * Construye la cadena de filtros drawtext (uno por cada línea de subtítulo,
-     * encadenados por comas) para quemar el texto directamente en los píxeles
-     * del video, sin depender de libass/fontselect.
-     */
 private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): String {
     return subtitles.joinToString(",") { sub ->
         val safeText = sub.text
             .replace("\\", "\\\\")
-            .replace("'", "\u2019") // comilla tipográfica en vez de escapar la simple:
-                                     // evita el bug del parser con \' vía filter_script
+            .replace("'", "\u2019")
             .replace(":", "\\:")
             .replace(",", "\\,")
             .replace("[", "\\[")
@@ -705,6 +580,95 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
     }
 }
+
+    // =========================================================================
+    //   BARRA DE PROGRESO PARA OPERACIONES PESADAS (burn, gif, slideshow, merge)
+    // =========================================================================
+    // Requiere en home_content.xml un contenedor "progressContainer" (visibility
+    // gone por defecto) con un "progressBar" (ProgressBar horizontal, max=100)
+    // y un "tvProgressPercent" (TextView) dentro.
+
+    private fun mostrarProgreso() {
+        requireActivity().runOnUiThread {
+            _binding?.homeContent?.progressContainer?.visibility = View.VISIBLE
+            _binding?.homeContent?.progressBar?.progress = 0
+            _binding?.homeContent?.tvProgressPercent?.text = "0%"
+        }
+    }
+
+    private fun ocultarProgreso() {
+        requireActivity().runOnUiThread {
+            _binding?.homeContent?.progressContainer?.visibility = View.GONE
+        }
+    }
+
+    private fun actualizarProgreso(porcentaje: Int) {
+        requireActivity().runOnUiThread {
+            _binding?.homeContent?.progressBar?.progress = porcentaje.coerceIn(0, 100)
+            _binding?.homeContent?.tvProgressPercent?.text = "$porcentaje%"
+        }
+    }
+
+    private fun getDurationMs(file: File): Long {
+        return try {
+            val retriever = android.media.MediaMetadataRetriever()
+            retriever.setDataSource(file.absolutePath)
+            val duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            retriever.release()
+            duration
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
+    private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
+        Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
+        mostrarProgreso()
+
+        Thread {
+            val videoFile = cacheUriToFile(videoUri, "input_gif.mp4")
+            val originalName = requireContext().contentResolver.query(
+                videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                ?: "Video_${System.currentTimeMillis()}"
+            val baseName = originalName.substringBeforeLast(".")
+            val fileName = "$baseName.gif"
+
+            val outputFile = File(requireContext().cacheDir, "output_gif.gif")
+            if (outputFile.exists()) outputFile.delete()
+
+            val durationMs = getDurationMs(videoFile)
+
+            val filterComplex = "[0:v]fps=$fps,scale=$anchoMax:-1:flags=lanczos,split[a][b];" +
+                    "[a]palettegen[p];[b][p]paletteuse"
+
+            val filterScriptFile = File(requireContext().cacheDir, "gif_filter.txt")
+            filterScriptFile.writeText(filterComplex)
+
+            val command = "-y -i ${videoFile.absolutePath} -filter_complex_script ${filterScriptFile.absolutePath} ${outputFile.absolutePath}"
+            android.util.Log.d("FFmpegGif", "Comando: $command")
+
+            FFmpegKit.executeAsync(command, { session ->
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, fileName, "image/gif")
+                } else {
+                    android.util.Log.e("FFmpegGif", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al crear GIF (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                ocultarProgreso()
+                videoFile.delete()
+                filterScriptFile.delete()
+                if (outputFile.exists()) outputFile.delete()
+            }, {}, { statistics ->
+                if (durationMs > 0) {
+                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                    actualizarProgreso(pct)
+                }
+            })
+        }.start()
+    }
 
     private fun formatTime(millis: Int): String {
         val seconds = (millis / 1000) % 60
@@ -740,12 +704,10 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
             findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
             setSharedAxisYTransitions()
         }
-        // Botón para seleccionar audios
         binding.homeContent.btnSelectAudio.setOnClickListener {
             multiaudioPickerLauncher.launch("audio/*")
         }
 
-        // Botón para convertir
         binding.homeContent.btnConvert.setOnClickListener {
             if (selectedAudioUris.isNotEmpty()) {
                 convertirAudiosAMp3(selectedAudioUris)
@@ -861,8 +823,6 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
     }
 
     override fun onDestroyView() {
-        // NUEVO: si salimos de la pantalla estando en fullscreen, restauramos
-        // orientación y barras del sistema para no dejar la Activity "atascada"
         if (isFullscreen) {
             requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             WindowCompat.getInsetsController(requireActivity().window, requireActivity().window.decorView)
@@ -931,7 +891,6 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
                         Toast.makeText(requireContext(), "Error en FFmpeg", Toast.LENGTH_SHORT).show()
                     }
                 }
-                // Limpieza de temporales de esta función (antes no se borraban)
                 videoFile.delete()
                 subFile.delete()
                 audioUri?.let { File(requireContext().cacheDir, "input_audio.mp3").delete() }
@@ -940,12 +899,6 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         }
     }
 
-    /**
-     * Incrusta (quema) los subtítulos directamente en los píxeles del video usando
-     * el filtro drawtext (uno por línea de subtítulo), en lugar de subtitles=/libass.
-     * Usa la fuente embebida en res/raw/roboto_regular.ttf, copiada a una carpeta
-     * de caché exclusiva vía getFontDir().
-     */
 private fun hardcodearSubtitulos() {
     android.util.Log.d("HardcodeDebug", "hardcodearSubtitulos() llamada")
     val subUri = selectedSubtitleUri
@@ -953,26 +906,25 @@ private fun hardcodearSubtitulos() {
         Toast.makeText(requireContext(), "Selecciona un video y carga un .srt primero (SRT)", Toast.LENGTH_SHORT).show()
         return
     }
-    
     Toast.makeText(requireContext(), "Incrustando subtítulos, puede tardar...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
-    
+
     val videoUri = videoPlaylist[currentIndex]
-    
     Thread {
-        val originalName = requireContext().contentResolver.query(
-            videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-            ?: "Video_${System.currentTimeMillis()}"
+ val originalName = requireContext().contentResolver.query(
+    videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+    ?: "Video_${System.currentTimeMillis()}"
 
-        val baseName = originalName.substringBeforeLast(".")
-        val fileName = "${baseName}_sub.mp4"
+val baseName = originalName.substringBeforeLast(".")
+val fileName = "${baseName}_sub.mp4"
 
-        val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
+val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
-        // fontFile SIN comillas alrededor: solo escapamos los dos puntos
+        val durationMs = getDurationMs(videoFile)
+
         val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
             .replace(":", "\\:")
 
@@ -982,8 +934,8 @@ private fun hardcodearSubtitulos() {
             android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
             requireActivity().runOnUiThread {
                 Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
-                ocultarProgreso()
             }
+            ocultarProgreso()
             videoFile.delete()
             return@Thread
         }
@@ -993,46 +945,34 @@ private fun hardcodearSubtitulos() {
 
         val command = "-y -i ${videoFile.absolutePath} -filter_script:v ${filterScriptFile.absolutePath} -c:v mpeg4 -q:v 2 -c:a copy ${outputFile.absolutePath}"
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
-        
-        val durationMs = getDurationMs(videoFile)
+        android.util.Log.d("FFmpegHardcode", "Contenido del filtro: $drawtextFilter")
 
-        FFmpegKit.executeAsync(
-            command, 
-            { session ->
-                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                    saveToDownloads(outputFile, fileName, "video/mp4")
-                } else {
-                    android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
-                    }
-                }
+        FFmpegKit.executeAsync(command, { session ->
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "video/mp4")
+            } else {
+                android.util.Log.e("FFmpegHardcode", session.allLogsAsString)
                 requireActivity().runOnUiThread {
-                    clearSubtitles()
-                }
-                ocultarProgreso()
-                videoFile.delete()
-                filterScriptFile.delete()
-                if (outputFile.exists()) outputFile.delete()
-            }, 
-            { log -> 
-                // Callback de log explícito para evitar el error "Cannot infer a type"
-            }, 
-            { statistics ->
-                if (durationMs > 0) {
-                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                    actualizarProgreso(pct)
+                    Toast.makeText(requireContext(), "Error al incrustar subtítulos (revisa Logcat)", Toast.LENGTH_SHORT).show()
                 }
             }
-        )
+            requireActivity().runOnUiThread {
+                clearSubtitles()
+            }
+            ocultarProgreso()
+            videoFile.delete()
+            filterScriptFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }, {}, { statistics ->
+            if (durationMs > 0) {
+                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                actualizarProgreso(pct)
+            }
+        })
     }.start()
 }
-    /**
-     * NUEVA FUNCIÓN: crea un video tipo diapositivas a partir de una lista de fotos.
-     * 3 segundos por foto, 720p, con relleno (pad) para fotos de distinta proporción.
-     * BOTÓN FUTURO sugerido: btnCreateVideoFromPhotos en home_content.xml.
-     */
-private fun crearVideoDesdeFotos(uris: List<Uri>) {
+
+    private fun crearVideoDesdeFotos(uris: List<Uri>) {
     Toast.makeText(requireContext(), "Creando video desde ${uris.size} fotos...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
 
@@ -1044,11 +984,14 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
                 requireContext().contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(destino).use { output -> input.copyTo(output) }
                 }
+                android.util.Log.d("FFmpegSlideshow", "img%03d.jpg".format(index) + " -> ${destino.length()} bytes")
             }
 
             val fileName = "Slideshow_${System.currentTimeMillis()}.mp4"
             val outputFile = File(requireContext().cacheDir, "output_slideshow.mp4")
             if (outputFile.exists()) outputFile.delete()
+
+            val durationMs = uris.size * 3000L
 
             val inputArgs = StringBuilder()
             val filterComplex = StringBuilder()
@@ -1066,46 +1009,39 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
             filterScriptFile.writeText(filterComplex.toString())
 
             val command = "-y $inputArgs-filter_complex_script ${filterScriptFile.absolutePath} -map [outv] -c:v mpeg4 -q:v 3 ${outputFile.absolutePath}"
-            val durationMs = uris.size * 3000L
+            android.util.Log.d("FFmpegSlideshow", "Comando: $command")
 
-            FFmpegKit.executeAsync(
-                command,
-                { session ->
-                    if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                        saveToDownloads(outputFile, fileName, "video/mp4")
-                    } else {
-                        android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
-                        }
+            FFmpegKit.executeAsync(command, { session ->
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, fileName, "video/mp4")
+                } else {
+                    android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
                     }
-                    ocultarProgreso()
-                    carpetaTemp.deleteRecursively()
-                    filterScriptFile.delete()
-                    if (outputFile.exists()) outputFile.delete()
-                },
-                { log -> 
-                    // Callback de log
-                },
-                { statistics ->
-                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                    actualizarProgreso(pct)
                 }
-            )
+                ocultarProgreso()
+                carpetaTemp.deleteRecursively()
+                filterScriptFile.delete()
+                if (outputFile.exists()) outputFile.delete()
+            }, {}, { statistics ->
+                val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
+                actualizarProgreso(pct)
+            })
         } catch (e: Exception) {
             android.util.Log.e("FFmpegSlideshow", "Error preparando fotos: ${e.message}")
             requireActivity().runOnUiThread {
-                ocultarProgreso()
                 Toast.makeText(requireContext(), "Error preparando las fotos", Toast.LENGTH_SHORT).show()
             }
+            ocultarProgreso()
         }
     }.start()
 }
+
     private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
         val videoFile = cacheUriToFile(videoUri, "input_split.mp4")
         val fileName = "Clip_${System.currentTimeMillis()}.mp4"
 
-        // 1. Configurar los valores para guardarlo en Descargas (Downloads)
         val contentValues = android.content.ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
@@ -1126,12 +1062,10 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
         if (destUri != null) {
             val outputFile = File(requireContext().cacheDir, "output_split.mp4")
 
-            // 2. Comando FFmpeg
             val command = "-i ${videoFile.absolutePath} -ss $startTime -to $endTime -c copy ${outputFile.absolutePath}"
 
             FFmpegKit.executeAsync(command) { session ->
                 if (ReturnCode.isSuccess(session.returnCode)) {
-                    // 3. Copiar el archivo desde caché a la URI de Descargas
                     try {
                         resolver.openOutputStream(destUri)?.use { outputStream ->
                             outputFile.inputStream().use { inputStream ->
@@ -1150,7 +1084,6 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
                         Toast.makeText(requireContext(), "Error al cortar", Toast.LENGTH_SHORT).show()
                     }
                 }
-                // Limpieza de temporales de esta función (antes no se borraban)
                 videoFile.delete()
                 if (outputFile.exists()) outputFile.delete()
             }
@@ -1183,10 +1116,13 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
         }
 
         val isAudio = mimeType.startsWith("audio/")
+        val isImage = mimeType.startsWith("image/")
         val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Downloads.EXTERNAL_CONTENT_URI
         } else if (isAudio) {
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        } else if (isImage) {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         } else {
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         }
@@ -1214,10 +1150,8 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
             }
         }
     }
-    // --- NUEVAS FUNCIONES PARA BINARIO ESTÁTICO ---
 
     private fun getFFmpegFromDownloads(context: android.content.Context): String? {
-        // CAMBIA ESTA LÍNEA: de filesDir a codeCacheDir
         val destinationFile = File(context.codeCacheDir, "ffmpeg")
 
         if (destinationFile.exists() && destinationFile.canExecute()) {
@@ -1232,8 +1166,7 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
                 destinationFile.outputStream().use { output -> input.copyTo(output) }
             }
 
-            // Es vital intentar darle permisos de ejecución
-            destinationFile.setExecutable(true, false) // false significa que es para todos
+            destinationFile.setExecutable(true, false)
 
             return destinationFile.absolutePath
         }
@@ -1296,8 +1229,6 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
             val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
             if (outputFile.exists()) outputFile.delete()
 
-            // -map_metadata 0 copia título/artista/álbum/etc. del archivo original
-            // -id3v2_version 3 asegura que queden como tags ID3v2 legibles en el mp3
             val command = "-i ${inputFile.absolutePath} -map_metadata 0 -id3v2_version 3 -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
             val session = FFmpegKit.execute(command)
 
@@ -1318,61 +1249,7 @@ private fun crearVideoDesdeFotos(uris: List<Uri>) {
         }
     }.start()
 }
-private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
-    Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
-    mostrarProgreso()
 
-    Thread {
-        val videoFile = cacheUriToFile(videoUri, "input_gif.mp4")
-        val originalName = requireContext().contentResolver.query(
-            videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-            ?: "Video_${System.currentTimeMillis()}"
-        
-        val baseName = originalName.substringBeforeLast(".")
-        val fileName = "$baseName.gif"
-        val outputFile = File(requireContext().cacheDir, "output_gif.gif")
-        if (outputFile.exists()) outputFile.delete()
-
-        val filterComplex = "[0:v]fps=$fps,scale=$anchoMax:-1:flags=lanczos,split[a][b];" +
-                "[a]palettegen[p];[b][p]paletteuse"
-        
-        val filterScriptFile = File(requireContext().cacheDir, "gif_filter.txt")
-        filterScriptFile.writeText(filterComplex)
-
-        val command = "-y -i ${videoFile.absolutePath} -filter_complex_script ${filterScriptFile.absolutePath} ${outputFile.absolutePath}"
-        android.util.Log.d("FFmpegGif", "Comando: $command")
-        
-        val durationMs = getDurationMs(videoFile)
-
-        FFmpegKit.executeAsync(
-            command, 
-            { session ->
-                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                    saveToDownloads(outputFile, fileName, "image/gif")
-                } else {
-                    android.util.Log.e("FFmpegGif", session.allLogsAsString)
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Error al crear GIF (revisa Logcat)", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                ocultarProgreso()
-                videoFile.delete()
-                filterScriptFile.delete()
-                if (outputFile.exists()) outputFile.delete()
-            }, 
-            { log -> 
-                // Callback de log
-            }, 
-            { statistics ->
-                if (durationMs > 0) {
-                    val pct = ((statistics.time.toLong() * 100) / durationMs).toInt()
-                    actualizarProgreso(pct)
-                }
-            }
-        )
-    }.start()
-}
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
         const val TAG: String = "BannerHomeFragment"
