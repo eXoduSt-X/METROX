@@ -409,14 +409,7 @@ private fun setupVideoListeners() {
         }
     }
 
-    binding.homeContent.btnBurn.setOnClickListener { // BURN
-        val subUri = selectedSubtitleUri
-        if (videoPlaylist.isNotEmpty() && subUri != null) {
-            hardcodearSubtitulos()
-        } else {
-            Toast.makeText(requireContext(), "Carga un SRT primero", Toast.LENGTH_SHORT).show()
-        }
-    }
+
 
     binding.homeContent.btnConvert.setOnClickListener { // A MP3
         // Asumiendo que tienes una función para convertir audio
