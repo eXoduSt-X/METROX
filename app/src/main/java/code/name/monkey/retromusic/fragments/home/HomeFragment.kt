@@ -255,18 +255,30 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }.start()
     }
 
-    private fun parseSrt(inputStream: java.io.InputStream) {
-        subtitleList.clear()
-        val lines = inputStream.bufferedReader().readLines()
-        for (i in lines.indices) {
-            if (lines[i].contains("-->")) {
-                val times = lines[i].split(" --> ")
-                val start = parseTimeToMillis(times[0].trim())
-                val end = parseTimeToMillis(times[1].trim())
-                if (i + 1 < lines.size) subtitleList.add(Subtitle(start, end, lines[i + 1]))
+   private fun parseSrt(inputStream: java.io.InputStream) {
+    subtitleList.clear()
+    val lines = inputStream.bufferedReader().readLines()
+    var i = 0
+    while (i < lines.size) {
+        if (lines[i].contains("-->")) {
+            val times = lines[i].split(" --> ")
+            val start = parseTimeToMillis(times[0].trim())
+            val end = parseTimeToMillis(times[1].trim())
+            val textLines = mutableListOf<String>()
+            var j = i + 1
+            while (j < lines.size && lines[j].isNotBlank()) {
+                textLines.add(lines[j])
+                j++
             }
+            if (textLines.isNotEmpty()) {
+                subtitleList.add(Subtitle(start, end, textLines.joinToString("\n")))
+            }
+            i = j
+        } else {
+            i++
         }
     }
+}
 
     private fun parseTimeToMillis(time: String): Long {
         val parts = time.replace(",", ":").split(":")
@@ -374,9 +386,7 @@ private fun setupVideoListeners() {
     binding.homeContent.btnChooseFolder.setOnClickListener {
         folderPickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
     }
-    binding.homeContent.btnSelectAudio.setOnClickListener {
-        audioPickerLauncher.launch("audio/*")
-    }
+
 
     // SeekBar
     binding.homeContent.videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -433,13 +443,6 @@ private fun setupVideoListeners() {
     // NUEVO: el botón que antes era "AAC"/fullscreen (sin uso real) ahora limpia caché temporal
     binding.homeContent.btnFullscreen.setOnClickListener {
         limpiarCacheTemporal()
-    }
-
-    binding.homeContent.btnConvert.setOnClickListener { // A MP3
-        // Asumiendo que tienes una función para convertir audio
-        if (videoPlaylist.isNotEmpty()) {
-            convertirAudiosAMp3(listOf(videoPlaylist[currentIndex]))
-        }
     }
 
     // Corte de Video
@@ -877,8 +880,15 @@ private fun hardcodearSubtitulos() {
 
     val videoUri = videoPlaylist[currentIndex]
     Thread {
-        val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
-        val fileName = "Video_Subtitulado_${System.currentTimeMillis()}.mp4"
+ val originalName = requireContext().contentResolver.query(
+    videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+    ?: "Video_${System.currentTimeMillis()}"
+
+val baseName = originalName.substringBeforeLast(".")
+val fileName = "${baseName}_sub.mp4"
+
+val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
@@ -949,9 +959,9 @@ private fun hardcodearSubtitulos() {
                 if (outputFile.exists()) outputFile.delete()
 
                 // 3 segundos por foto (1/3 fps de entrada), escalado a 720p con relleno
-                val command = "-framerate 1/3 -i ${carpetaTemp.absolutePath}/img%03d.jpg " +
-                        "-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30 " +
-                        "-c:v libx264 -pix_fmt yuv420p ${outputFile.absolutePath}"
+               val command = "-framerate 1/3 -i ${carpetaTemp.absolutePath}/img%03d.jpg " +
+        "-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30 " +
+        "-c:v mpeg4 -q:v 3 -pix_fmt yuv420p ${outputFile.absolutePath}"
 
                 FFmpegKit.executeAsync(command) { session ->
                     if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
@@ -1143,45 +1153,54 @@ private fun hardcodearSubtitulos() {
     }
 
     private fun convertirAudiosAMp3(uris: List<Uri>) {
-        Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
+    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
 
-        Thread {
-            var exitosos = 0
-            var fallidos = 0
+    Thread {
+        var exitosos = 0
+        var fallidos = 0
 
-            uris.forEachIndexed { index, uri ->
-                val fileName = "MP3_${System.currentTimeMillis()}_$index.mp3"
-                val inputFile = cacheUriToFile(uri, "temp_input_audio_$index.tmp")
+        uris.forEachIndexed { index, uri ->
+            val originalName = requireContext().contentResolver.query(
+                uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                ?: "Audio_${System.currentTimeMillis()}_$index"
 
-                if (!inputFile.exists() || inputFile.length() == 0L) {
-                    android.util.Log.e("ConvertMp3", "Archivo de entrada vacío o inexistente: $uri")
-                    fallidos++
-                    return@forEachIndexed
-                }
+            val baseName = originalName.substringBeforeLast(".")
+            val fileName = "$baseName.mp3"
 
-                val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
-                if (outputFile.exists()) outputFile.delete()
+            val inputFile = cacheUriToFile(uri, "temp_input_audio_$index.tmp")
 
-                val command = "-i ${inputFile.absolutePath} -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
-                val session = FFmpegKit.execute(command)
-
-                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                    saveToDownloads(outputFile, fileName, "audio/mpeg")
-                    exitosos++
-                } else {
-                    fallidos++
-                    android.util.Log.e("ConvertMp3", "FALLÓ para $uri: ${session.allLogsAsString}")
-                }
-
-                if (inputFile.exists()) inputFile.delete()
-                if (outputFile.exists()) outputFile.delete()
+            if (!inputFile.exists() || inputFile.length() == 0L) {
+                android.util.Log.e("ConvertMp3", "Archivo de entrada vacío o inexistente: $uri")
+                fallidos++
+                return@forEachIndexed
             }
 
-            requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "Conversión: $exitosos ok, $fallidos fallidos", Toast.LENGTH_LONG).show()
+            val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
+            if (outputFile.exists()) outputFile.delete()
+
+            // -map_metadata 0 copia título/artista/álbum/etc. del archivo original
+            // -id3v2_version 3 asegura que queden como tags ID3v2 legibles en el mp3
+            val command = "-i ${inputFile.absolutePath} -map_metadata 0 -id3v2_version 3 -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
+            val session = FFmpegKit.execute(command)
+
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "audio/mpeg")
+                exitosos++
+            } else {
+                fallidos++
+                android.util.Log.e("ConvertMp3", "FALLÓ para $uri: ${session.allLogsAsString}")
             }
-        }.start()
-    }
+
+            if (inputFile.exists()) inputFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }
+
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "Conversión: $exitosos ok, $fallidos fallidos", Toast.LENGTH_LONG).show()
+        }
+    }.start()
+}
 
     companion object {
         const val PREF_SELECTED_FOLDER_URI = "pref_selected_folder_uri"
