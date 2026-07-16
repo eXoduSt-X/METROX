@@ -942,47 +942,64 @@ val videoFile = cacheUriToFile(videoUri, "input_hardcode.mp4")
      * BOTÓN FUTURO sugerido: btnCreateVideoFromPhotos en home_content.xml.
      */
     private fun crearVideoDesdeFotos(uris: List<Uri>) {
-        Toast.makeText(requireContext(), "Creando video desde ${uris.size} fotos...", Toast.LENGTH_LONG).show()
+    Toast.makeText(requireContext(), "Creando video desde ${uris.size} fotos...", Toast.LENGTH_LONG).show()
 
-        Thread {
-            try {
-                val carpetaTemp = File(requireContext().cacheDir, "slideshow_${System.currentTimeMillis()}").apply { mkdirs() }
-                uris.forEachIndexed { index, uri ->
-                    val destino = File(carpetaTemp, "img%03d.jpg".format(index))
-                    requireContext().contentResolver.openInputStream(uri)?.use { input ->
-                        FileOutputStream(destino).use { output -> input.copyTo(output) }
-                    }
+    Thread {
+        try {
+            val carpetaTemp = File(requireContext().cacheDir, "slideshow_${System.currentTimeMillis()}").apply { mkdirs() }
+            uris.forEachIndexed { index, uri ->
+                val destino = File(carpetaTemp, "img%03d.jpg".format(index))
+                requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(destino).use { output -> input.copyTo(output) }
                 }
-
-                val fileName = "Slideshow_${System.currentTimeMillis()}.mp4"
-                val outputFile = File(requireContext().cacheDir, "output_slideshow.mp4")
-                if (outputFile.exists()) outputFile.delete()
-
-                // 3 segundos por foto (1/3 fps de entrada), escalado a 720p con relleno
-               val command = "-framerate 1/3 -i ${carpetaTemp.absolutePath}/img%03d.jpg " +
-        "-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30 " +
-        "-c:v mpeg4 -q:v 3 -pix_fmt yuv420p ${outputFile.absolutePath}"
-
-                FFmpegKit.executeAsync(command) { session ->
-                    if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                        saveToDownloads(outputFile, fileName, "video/mp4")
-                    } else {
-                        android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    carpetaTemp.deleteRecursively()
-                    if (outputFile.exists()) outputFile.delete()
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("FFmpegSlideshow", "Error preparando fotos: ${e.message}")
-                requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), "Error preparando las fotos", Toast.LENGTH_SHORT).show()
-                }
+                android.util.Log.d("FFmpegSlideshow", "img%03d.jpg".format(index) + " -> ${destino.length()} bytes")
             }
-        }.start()
-    }
+
+            val fileName = "Slideshow_${System.currentTimeMillis()}.mp4"
+            val outputFile = File(requireContext().cacheDir, "output_slideshow.mp4")
+            if (outputFile.exists()) outputFile.delete()
+
+            // Cada imagen se carga y normaliza por separado (en vez de usar image2+framerate),
+            // así una imagen con formato interno distinto (croma, color, etc.) no afecta a las demás.
+            val inputArgs = StringBuilder()
+            val filterComplex = StringBuilder()
+            uris.forEachIndexed { index, _ ->
+                val imgPath = File(carpetaTemp, "img%03d.jpg".format(index)).absolutePath
+                inputArgs.append("-loop 1 -t 3 -i $imgPath ")
+                filterComplex.append("[$index:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p,fps=30[v$index];")
+            }
+            for (index in uris.indices) {
+                filterComplex.append("[v$index]")
+            }
+            filterComplex.append("concat=n=${uris.size}:v=1:a=0[outv]")
+
+            val filterScriptFile = File(requireContext().cacheDir, "slideshow_filter.txt")
+            filterScriptFile.writeText(filterComplex.toString())
+
+            val command = "-y $inputArgs-filter_complex_script ${filterScriptFile.absolutePath} -map [outv] -c:v mpeg4 -q:v 3 ${outputFile.absolutePath}"
+            android.util.Log.d("FFmpegSlideshow", "Comando: $command")
+
+            FFmpegKit.executeAsync(command) { session ->
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, fileName, "video/mp4")
+                } else {
+                    android.util.Log.e("FFmpegSlideshow", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al crear el video desde fotos", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                carpetaTemp.deleteRecursively()
+                filterScriptFile.delete()
+                if (outputFile.exists()) outputFile.delete()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FFmpegSlideshow", "Error preparando fotos: ${e.message}")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "Error preparando las fotos", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }.start()
+}
 
     private fun splitVideo(videoUri: Uri, startTime: String, endTime: String) {
         val videoFile = cacheUriToFile(videoUri, "input_split.mp4")
