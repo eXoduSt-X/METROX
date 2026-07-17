@@ -469,6 +469,8 @@ private fun setupVideoListeners() {
 
 private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     val visibility = if (fullscreen) View.GONE else View.VISIBLE
+    
+    // Ocultar elementos de la interfaz
     binding.appBarLayout.visibility = visibility
     binding.imageLayout.visibility = visibility
     binding.homeContent.absPlaylists.root.visibility = visibility
@@ -477,39 +479,48 @@ private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     binding.homeContent.extraActionsContainer.visibility = visibility
     binding.homeContent.rvDownloads.visibility = visibility
 
+    // Eliminar padding en fullscreen para quitar el marco
     val padding = if (fullscreen) 0 else (16 * resources.displayMetrics.density).toInt()
     binding.homeContent.contentPadding.setPadding(padding, padding, padding, padding)
 
-    binding.homeContent.videoContainer.layoutParams.height = if (fullscreen) {
-        ViewGroup.LayoutParams.MATCH_PARENT
-    } else {
-        (250 * resources.displayMetrics.density).toInt()
-    }
+    // Ajustar contenedor del video para ocupar toda la pantalla
+    val videoParams = binding.homeContent.videoContainer.layoutParams
+    videoParams.height = if (fullscreen) ViewGroup.LayoutParams.MATCH_PARENT else (250 * resources.displayMetrics.density).toInt()
+    videoParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+    binding.homeContent.videoContainer.layoutParams = videoParams
+
+    // Cambiar fondo a negro para eliminar el marco gris del layout padre
+    binding.homeContent.root.setBackgroundColor(if (fullscreen) android.graphics.Color.BLACK else android.graphics.Color.parseColor("#1E1E1E"))
+
+    // Bloquear el scroll del NestedScrollView al estar en pantalla completa
+    binding.container.isNestedScrollingEnabled = !fullscreen
+    
     binding.homeContent.videoContainer.requestLayout()
 }
-    private fun limpiarCacheTemporal() {
-        Thread {
-            var espacioLiberado = 0L
-            try {
-                requireContext().cacheDir.listFiles()?.forEach { file ->
-                    if (file.name == "subtitle_fonts") return@forEach
-                    if (file.isFile) {
-                        espacioLiberado += file.length()
-                        file.delete()
-                    } else if (file.isDirectory) {
-                        espacioLiberado += file.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-                        file.deleteRecursively()
-                    }
+
+private fun limpiarCacheTemporal() {
+    Thread {
+        var espacioLiberado = 0L
+        try {
+            requireContext().cacheDir.listFiles()?.forEach { file ->
+                if (file.name == "subtitle_fonts") return@forEach
+                if (file.isFile) {
+                    espacioLiberado += file.length()
+                    file.delete()
+                } else if (file.isDirectory) {
+                    espacioLiberado += file.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                    file.deleteRecursively()
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("LimpiarCache", "Error: ${e.message}")
             }
-            val mb = espacioLiberado / (1024.0 * 1024.0)
-            requireActivity().runOnUiThread {
-                Toast.makeText(requireContext(), "Caché limpiada: %.1f MB liberados".format(mb), Toast.LENGTH_LONG).show()
-            }
-        }.start()
-    }
+        } catch (e: Exception) {
+            android.util.Log.e("LimpiarCache", "Error: ${e.message}")
+        }
+        val mb = espacioLiberado / (1024.0 * 1024.0)
+        requireActivity().runOnUiThread {
+            Toast.makeText(requireContext(), "Caché limpiada: %.1f MB liberados".format(mb), Toast.LENGTH_LONG).show()
+        }
+    }.start()
+}
 
     private fun reproducirVideoActual() {
         if (videoPlaylist.isNotEmpty()) {
