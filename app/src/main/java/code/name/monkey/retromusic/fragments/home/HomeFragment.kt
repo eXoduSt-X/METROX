@@ -458,9 +458,11 @@ private fun setupVideoListeners() {
             activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
             insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            mainActivity.setBottomNavVisibility(visible = false, hideBottomSheet = true)
         } else {
             activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             insetsController.show(WindowInsetsCompat.Type.systemBars())
+            mainActivity.setBottomNavVisibility(visible = true, hideBottomSheet = false)
         }
         setUiVisibilityForFullscreen(isFullscreen)
     }
@@ -481,7 +483,6 @@ private fun setupVideoListeners() {
         }
         binding.homeContent.videoContainer.requestLayout()
     }
-
     private fun limpiarCacheTemporal() {
         Thread {
             var espacioLiberado = 0L
@@ -777,11 +778,12 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         exitTransition = null
     }
 
-    override fun onDestroyView() {
+override fun onDestroyView() {
         if (isFullscreen) {
             requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             WindowCompat.getInsetsController(requireActivity().window, requireActivity().window.decorView)
                 .show(WindowInsetsCompat.Type.systemBars())
+            mainActivity.setBottomNavVisibility(visible = true, hideBottomSheet = false)
         }
         if (binding.homeContent.videoPlayer.isPlaying) {
             savedPosition = binding.homeContent.videoPlayer.currentPosition
