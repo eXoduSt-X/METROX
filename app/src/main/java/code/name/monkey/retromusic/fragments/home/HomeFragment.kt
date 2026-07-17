@@ -585,6 +585,24 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
             0L
         }
     }
+private fun mostrarProgreso() {
+    requireActivity().runOnUiThread {
+        // Mostramos la barra
+        binding.progressBar.visibility = View.VISIBLE
+        
+        // Cambiamos el texto para informar al usuario (usando el overlay que ya tienes)
+        binding.tvSubtitleOverlay.text = "Procesando archivo..."
+        binding.tvSubtitleOverlay.visibility = View.VISIBLE
+    }
+}
+
+private fun ocultarProgreso() {
+    requireActivity().runOnUiThread {
+        binding.progressBar.visibility = View.GONE
+        binding.tvSubtitleOverlay.text = ""
+        binding.tvSubtitleOverlay.visibility = View.GONE
+    }
+}
 
    private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
     Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
