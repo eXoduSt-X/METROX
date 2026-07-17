@@ -470,7 +470,7 @@ private fun setupVideoListeners() {
 private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     val visibility = if (fullscreen) View.GONE else View.VISIBLE
     binding.appBarLayout.visibility = visibility
-    (binding.imageLayout.titleWelcome.parent as? View)?.visibility = visibility
+    binding.imageLayout.visibility = visibility
     binding.homeContent.absPlaylists.root.visibility = visibility
     binding.homeContent.toolsRow.visibility = visibility
     binding.homeContent.cutRow.visibility = visibility
