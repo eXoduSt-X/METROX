@@ -28,15 +28,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_gravity="center" />
-<!-- AGREGA ESTO AQUÍ ABAJO -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminate="true"
-        android:indeterminateTint="#00BFFF"
-        android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:indeterminateTint="#00BFFF"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tvSubtitleOverlay"
                 android:layout_width="match_parent"
@@ -53,30 +54,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp" />
-         <LinearLayout
-    android:id="@+id/progressContainer"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:layout_marginTop="4dp"
-    android:visibility="gone">
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="0dp"
-        android:layout_weight="1"
-        android:layout_height="wrap_content"
-        android:max="100" />
-    <TextView
-        android:id="@+id/tvProgressPercent"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="0%"
-        android:textColor="#FFFFFF"
-        android:textSize="12sp" />
-</LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -100,7 +78,6 @@
             <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Herramientas: se quitó BURN (redundante con INCRUSTAR SUBTITULOS, misma función) -->
         <LinearLayout
             android:id="@+id/toolsRow"
             android:layout_width="match_parent"
@@ -115,7 +92,6 @@
             <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="DIR" android:textSize="9sp" />
         </LinearLayout>
 
-        <!-- Corte de video: campos de tiempo + I + F + CORTAR CLIP, todo en una sola línea -->
         <LinearLayout
             android:id="@+id/cutRow"
             android:layout_width="match_parent"
@@ -166,28 +142,25 @@
                 android:textSize="10sp"
                 android:layout_marginStart="3dp"
                 android:layout_marginEnd="3dp" />
-            <!-- Reducimos el peso de CORTAR de 1.8 a 1.2 para dar espacio al GIF -->
-    <Button
-        android:id="@+id/btnSplit"
-        android:layout_width="0dp"
-        android:layout_weight="1.2"
-        android:layout_height="40dp"
-        android:backgroundTint="#333333"
-        android:text="CORTAR"
-        android:textColor="#FFFFFF"
-        android:textSize="9sp" />
-
-    <!-- NUEVO BOTÓN GIF -->
-    <Button
-        android:id="@+id/btnCreateGif"
-        android:layout_width="0dp"
-        android:layout_weight="1.0"
-        android:layout_height="40dp"
-        android:layout_marginStart="3dp"
-        android:backgroundTint="#6200EE" 
-        android:text="GIF"
-        android:textColor="#FFFFFF"
-        android:textSize="9sp" />
+            <Button
+                android:id="@+id/btnSplit"
+                android:layout_width="0dp"
+                android:layout_weight="1.2"
+                android:layout_height="40dp"
+                android:backgroundTint="#333333"
+                android:text="CORTAR"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp" />
+            <Button
+                android:id="@+id/btnCreateGif"
+                android:layout_width="0dp"
+                android:layout_weight="1.0"
+                android:layout_height="40dp"
+                android:layout_marginStart="3dp"
+                android:backgroundTint="#6200EE" 
+                android:text="GIF"
+                android:textColor="#FFFFFF"
+                android:textSize="9sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -196,7 +169,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_marginTop="8dp">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -205,7 +177,6 @@
                 <Button android:id="@+id/btnConvert" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:backgroundTint="#333333" android:text="A MP3" android:textSize="10sp" />
             </LinearLayout>
 
-            <!-- Incrustar subtítulos, crear video desde fotos y unir videos: una sola línea -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
