@@ -554,23 +554,32 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
     // y un "tvProgressPercent" (TextView) dentro.
 
     private fun mostrarProgreso() {
+        private fun mostrarProgreso() {
         requireActivity().runOnUiThread {
-            _binding?.homeContent?.progressContainer?.visibility = View.VISIBLE
-            _binding?.homeContent?.progressBar?.progress = 0
-            _binding?.homeContent?.tvProgressPercent?.text = "0%"
+            // Mostramos la bolita de progreso que dejamos en el XML
+            _binding?.homeContent?.progressBar?.visibility = View.VISIBLE
+            
+            // Usamos el overlay de subtítulos para informar al usuario (ya que no hay % ahora)
+            _binding?.homeContent?.tvSubtitleOverlay?.text = "Procesando archivo..."
+            _binding?.homeContent?.tvSubtitleOverlay?.visibility = View.VISIBLE
         }
     }
 
     private fun ocultarProgreso() {
         requireActivity().runOnUiThread {
-            _binding?.homeContent?.progressContainer?.visibility = View.GONE
+            // Ocultamos ambos elementos
+            _binding?.homeContent?.progressBar?.visibility = View.GONE
+            _binding?.homeContent?.tvSubtitleOverlay?.text = ""
+            _binding?.homeContent?.tvSubtitleOverlay?.visibility = View.GONE
         }
     }
 
+    // Esta función ya no es necesaria si solo usas la bolita, 
+    // pero si la necesitas para que el código no dé error en otras partes:
     private fun actualizarProgreso(porcentaje: Int) {
+        // Al no tener barra horizontal, solo actualizamos el texto del overlay
         requireActivity().runOnUiThread {
-            _binding?.homeContent?.progressBar?.progress = porcentaje.coerceIn(0, 100)
-            _binding?.homeContent?.tvProgressPercent?.text = "$porcentaje%"
+            _binding?.homeContent?.tvSubtitleOverlay?.text = "Procesando... $porcentaje%"
         }
     }
 
@@ -585,23 +594,7 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
             0L
         }
     }
-private fun mostrarProgreso() {
-    requireActivity().runOnUiThread {
-        // Mostramos la barra
-        binding.progressBar.visibility = View.VISIBLE
-        
-        // Cambiamos el texto para informar al usuario (usando el overlay que ya tienes)
-        binding.tvSubtitleOverlay.text = "Procesando archivo..."
-        binding.tvSubtitleOverlay.visibility = View.VISIBLE
-    }
-}
 
-private fun ocultarProgreso() {
-    requireActivity().runOnUiThread {
-        binding.progressBar.visibility = View.GONE
-        binding.tvSubtitleOverlay.text = ""
-        binding.tvSubtitleOverlay.visibility = View.GONE
-    }
 }
 
    private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
