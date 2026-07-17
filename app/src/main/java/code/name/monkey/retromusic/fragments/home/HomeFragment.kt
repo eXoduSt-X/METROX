@@ -546,20 +546,16 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
     }
 }
 
+// =========================================================================
+    //   BARRA DE PROGRESO PARA OPERACIONES PESADAS
     // =========================================================================
-    //   BARRA DE PROGRESO PARA OPERACIONES PESADAS (burn, gif, slideshow, merge)
-    // =========================================================================
-    // Requiere en home_content.xml un contenedor "progressContainer" (visibility
-    // gone por defecto) con un "progressBar" (ProgressBar horizontal, max=100)
-    // y un "tvProgressPercent" (TextView) dentro.
 
     private fun mostrarProgreso() {
-        private fun mostrarProgreso() {
         requireActivity().runOnUiThread {
             // Mostramos la bolita de progreso que dejamos en el XML
             _binding?.homeContent?.progressBar?.visibility = View.VISIBLE
             
-            // Usamos el overlay de subtítulos para informar al usuario (ya que no hay % ahora)
+            // Usamos el overlay de subtítulos para informar al usuario
             _binding?.homeContent?.tvSubtitleOverlay?.text = "Procesando archivo..."
             _binding?.homeContent?.tvSubtitleOverlay?.visibility = View.VISIBLE
         }
@@ -574,10 +570,7 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         }
     }
 
-    // Esta función ya no es necesaria si solo usas la bolita, 
-    // pero si la necesitas para que el código no dé error en otras partes:
     private fun actualizarProgreso(porcentaje: Int) {
-        // Al no tener barra horizontal, solo actualizamos el texto del overlay
         requireActivity().runOnUiThread {
             _binding?.homeContent?.tvSubtitleOverlay?.text = "Procesando... $porcentaje%"
         }
@@ -594,9 +587,6 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
             0L
         }
     }
-
-}
-
    private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
     Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
