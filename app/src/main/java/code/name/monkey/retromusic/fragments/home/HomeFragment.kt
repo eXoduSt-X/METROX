@@ -468,21 +468,25 @@ private fun setupVideoListeners() {
     }
 
     private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
-        val visibility = if (fullscreen) View.GONE else View.VISIBLE
-        binding.appBarLayout.visibility = visibility
-        binding.homeContent.absPlaylists.root.visibility = visibility
-        binding.homeContent.toolsRow.visibility = visibility
-        binding.homeContent.cutRow.visibility = visibility
-        binding.homeContent.extraActionsContainer.visibility = visibility
-        binding.homeContent.rvDownloads.visibility = visibility
+    val visibility = if (fullscreen) View.GONE else View.VISIBLE
+    binding.appBarLayout.visibility = visibility
+    binding.imageLayout.root.visibility = visibility
+    binding.homeContent.absPlaylists.root.visibility = visibility
+    binding.homeContent.toolsRow.visibility = visibility
+    binding.homeContent.cutRow.visibility = visibility
+    binding.homeContent.extraActionsContainer.visibility = visibility
+    binding.homeContent.rvDownloads.visibility = visibility
 
-        binding.homeContent.videoContainer.layoutParams.height = if (fullscreen) {
-            ViewGroup.LayoutParams.MATCH_PARENT
-        } else {
-            (250 * resources.displayMetrics.density).toInt()
-        }
-        binding.homeContent.videoContainer.requestLayout()
+    val padding = if (fullscreen) 0 else (16 * resources.displayMetrics.density).toInt()
+    binding.homeContent.contentPadding.setPadding(padding, padding, padding, padding)
+
+    binding.homeContent.videoContainer.layoutParams.height = if (fullscreen) {
+        ViewGroup.LayoutParams.MATCH_PARENT
+    } else {
+        (250 * resources.displayMetrics.density).toInt()
     }
+    binding.homeContent.videoContainer.requestLayout()
+}
     private fun limpiarCacheTemporal() {
         Thread {
             var espacioLiberado = 0L
