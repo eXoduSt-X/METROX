@@ -470,7 +470,6 @@ private fun setupVideoListeners() {
 private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     val visibility = if (fullscreen) View.GONE else View.VISIBLE
     
-    // Ocultar elementos de la interfaz
     binding.appBarLayout.visibility = visibility
     binding.imageLayout.visibility = visibility
     binding.homeContent.absPlaylists.root.visibility = visibility
@@ -479,20 +478,21 @@ private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     binding.homeContent.extraActionsContainer.visibility = visibility
     binding.homeContent.rvDownloads.visibility = visibility
 
-    // Eliminar padding en fullscreen para quitar el marco
     val padding = if (fullscreen) 0 else (16 * resources.displayMetrics.density).toInt()
     binding.homeContent.contentPadding.setPadding(padding, padding, padding, padding)
 
-    // Ajustar contenedor del video para ocupar toda la pantalla
     val videoParams = binding.homeContent.videoContainer.layoutParams
-    videoParams.height = if (fullscreen) ViewGroup.LayoutParams.MATCH_PARENT else (250 * resources.displayMetrics.density).toInt()
+    videoParams.height = if (fullscreen) {
+        resources.displayMetrics.heightPixels
+    } else {
+        (250 * resources.displayMetrics.density).toInt()
+    }
     videoParams.width = ViewGroup.LayoutParams.MATCH_PARENT
     binding.homeContent.videoContainer.layoutParams = videoParams
 
-    // Cambiar fondo a negro para eliminar el marco gris del layout padre
+    binding.root.setBackgroundColor(if (fullscreen) android.graphics.Color.BLACK else android.graphics.Color.parseColor("#1E1E1E"))
     binding.homeContent.root.setBackgroundColor(if (fullscreen) android.graphics.Color.BLACK else android.graphics.Color.parseColor("#1E1E1E"))
 
-    // Bloquear el scroll del NestedScrollView al estar en pantalla completa
     binding.container.isNestedScrollingEnabled = !fullscreen
     
     binding.homeContent.videoContainer.requestLayout()
