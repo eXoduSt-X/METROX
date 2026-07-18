@@ -483,11 +483,11 @@ private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     binding.homeContent.contentPadding.setPadding(padding, padding, padding, padding)
 
     val videoParams = binding.homeContent.videoContainer.layoutParams
-    videoParams.height = if (fullscreen) {
-        resources.displayMetrics.heightPixels
-    } else {
-        (250 * resources.displayMetrics.density).toInt()
-    }
+videoParams.height = if (fullscreen) {
+    (resources.displayMetrics.heightPixels * 0.5).toInt()
+} else {
+    (250 * resources.displayMetrics.density).toInt()
+}
     videoParams.width = ViewGroup.LayoutParams.MATCH_PARENT
     binding.homeContent.videoContainer.layoutParams = videoParams
 
