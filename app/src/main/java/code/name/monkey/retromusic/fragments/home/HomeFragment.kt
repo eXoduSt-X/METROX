@@ -290,6 +290,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentHomeBinding.bind(view)
+        binding.imageLayout.visibility = View.GONE
         binding.homeContent.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
 
         val savedUri = loadSavedFolderUri()
@@ -474,7 +475,7 @@ private fun setUiVisibilityForFullscreen(fullscreen: Boolean) {
     val visibility = if (fullscreen) View.GONE else View.VISIBLE
     
     binding.appBarLayout.visibility = visibility
-    binding.imageLayout.visibility = visibility
+    //binding.imageLayout.visibility = visibility
     binding.homeContent.absPlaylists.root.visibility = visibility
     binding.homeContent.toolsRow.visibility = visibility
     binding.homeContent.cutRow.visibility = visibility
