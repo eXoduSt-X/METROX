@@ -24,7 +24,7 @@
             android:layout_height="250dp"
             android:background="#000000">
 
-            <VideoView
+            <code.name.monkey.retromusic.fragments.home.StretchVideoView
                 android:id="@+id/videoPlayer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
