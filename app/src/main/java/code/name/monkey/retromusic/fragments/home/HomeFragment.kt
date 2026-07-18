@@ -755,18 +755,23 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         val isLandscape = newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val visibility = if (isLandscape) View.GONE else View.VISIBLE
         binding.appBarLayout.visibility = visibility
-        binding.homeContent.videoSeekBar.visibility = visibility
-        binding.homeContent.btnPrevVideo.visibility = visibility
-        binding.homeContent.btnRewindTime.visibility = visibility
-        binding.homeContent.btnForwardTime.visibility = visibility
-        binding.homeContent.btnNextVideo.visibility = visibility
-        binding.homeContent.btnPlayPause.visibility = visibility
-        binding.homeContent.btnFullscreen.visibility = visibility
         binding.homeContent.btnOpenFile.visibility = visibility
         binding.homeContent.btnLoadSubtitles.visibility = visibility
-        binding.homeContent.tvCurrentTime.visibility = visibility
-        binding.homeContent.tvTotalTime.visibility = visibility
         binding.homeContent.btnChooseFolder.visibility = visibility
+
+        // Los controles de reproducción se mantienen visibles en nuestro
+        // modo fullscreen manual, aunque estemos en landscape.
+        val playbackVisibility = if (isLandscape && !isFullscreen) View.GONE else View.VISIBLE
+        binding.homeContent.videoSeekBar.visibility = playbackVisibility
+        binding.homeContent.btnPrevVideo.visibility = playbackVisibility
+        binding.homeContent.btnRewindTime.visibility = playbackVisibility
+        binding.homeContent.btnForwardTime.visibility = playbackVisibility
+        binding.homeContent.btnNextVideo.visibility = playbackVisibility
+        binding.homeContent.btnPlayPause.visibility = playbackVisibility
+        binding.homeContent.btnFullscreen.visibility = playbackVisibility
+        binding.homeContent.tvCurrentTime.visibility = playbackVisibility
+        binding.homeContent.tvTotalTime.visibility = playbackVisibility
+
         if (!isFullscreen) {
             binding.homeContent.videoContainer.layoutParams.height = if (isLandscape) {
                 ViewGroup.LayoutParams.MATCH_PARENT
