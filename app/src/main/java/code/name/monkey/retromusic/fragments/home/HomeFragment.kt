@@ -59,6 +59,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
     private var savedPosition: Int = 0
+    private var wasPlayingBeforePause = false
     private var selectedFolderUri: Uri? = null
     private val videoPlaylist = mutableListOf<Uri>()
     private var currentIndex = 0
