@@ -794,13 +794,28 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         super.onPrepareMenu(menu)
         ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.appBarLayout.toolbar)
     }
-
-    override fun onResume() {
-        super.onResume()
-        checkForMargins()
-        exitTransition = null
+override fun onPause() {
+    super.onPause()
+    if (_binding != null) {
+        val player = binding.homeContent.videoPlayer
+        wasPlayingBeforePause = player.isPlaying
+        savedPosition = player.currentPosition
+        if (player.isPlaying) player.pause()
     }
-
+}
+   override fun onResume() {
+    super.onResume()
+    checkForMargins()
+    exitTransition = null
+    if (_binding != null && videoPlaylist.isNotEmpty() && savedPosition > 0) {
+        val player = binding.homeContent.videoPlayer
+        player.seekTo(savedPosition)
+        if (wasPlayingBeforePause) {
+            player.start()
+            binding.homeContent.btnPlayPause.text = "Pause"
+        }
+    }
+}
 override fun onDestroyView() {
         if (isFullscreen) {
             requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
