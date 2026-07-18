@@ -323,8 +323,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             fullscreenGestureDetector.onTouchEvent(event)
             true
         }
-
-        binding.imageLayout.titleWelcome.text = String.format("%s", userName)
+       
+        //binding.imageLayout.titleWelcome.text = String.format("%s", userName)
+        binding.imageLayout.titleWelcome.text = "mkv,mp4,flac,opus,gif"
         enterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
         reenterTransition = MaterialFadeThrough().addTarget(binding.contentContainer)
 
@@ -695,7 +696,7 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
 
     private fun setupTitle() {
         binding.appBarLayout.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.appBarLayout.title = getString(R.string.app_name)
+        binding.appBarLayout.title = "VIDEO EDITOR"
     }
 
     private fun loadProfile() {
