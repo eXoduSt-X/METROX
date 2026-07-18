@@ -767,10 +767,12 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         binding.homeContent.tvCurrentTime.visibility = visibility
         binding.homeContent.tvTotalTime.visibility = visibility
         binding.homeContent.btnChooseFolder.visibility = visibility
-        binding.homeContent.videoContainer.layoutParams.height = if (isLandscape) {
-            ViewGroup.LayoutParams.MATCH_PARENT
-        } else {
-            (250 * resources.displayMetrics.density).toInt()
+        if (!isFullscreen) {
+            binding.homeContent.videoContainer.layoutParams.height = if (isLandscape) {
+                ViewGroup.LayoutParams.MATCH_PARENT
+            } else {
+                (250 * resources.displayMetrics.density).toInt()
+            }
         }
     }
 
