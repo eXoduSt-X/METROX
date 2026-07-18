@@ -459,6 +459,7 @@ private fun setupVideoListeners() {
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
             insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             mainActivity.setBottomNavVisibility(visible = false, hideBottomSheet = true)
+            scrollToTop()
         } else {
             activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             insetsController.show(WindowInsetsCompat.Type.systemBars())
