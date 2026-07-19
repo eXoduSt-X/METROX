@@ -66,18 +66,18 @@
             <TextView android:id="@+id/tvTotalTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" />
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="5"
-            android:layout_marginTop="4dp"> 
-            <Button android:id="@+id/btnPrevVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#333333" android:text="PREV" android:textSize="11sp" />
-            <Button android:id="@+id/btnRewindTime" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="REW" android:textSize="11sp" />
-            <Button android:id="@+id/btnPlayPause" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="PLAY" android:textSize="11sp" />
-            <Button android:id="@+id/btnForwardTime" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="FF" android:textSize="11sp" />
-            <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="11sp" />
-        </LinearLayout>
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:weightSum="5"
+    android:layout_marginTop="4dp"> 
+    <Button android:id="@+id/btnPrevVideo" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#333333" android:text="PREV" android:textSize="8sp" android:drawableTop="@drawable/ic_skip_previous" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
+    <Button android:id="@+id/btnRewindTime" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="REW" android:textSize="8sp" android:drawableTop="@drawable/ic_skip_previous" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
+    <Button android:id="@+id/btnPlayPause" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="PLAY" android:textSize="8sp" android:drawableTop="@drawable/ic_play_arrow" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
+    <Button android:id="@+id/btnForwardTime" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="FF" android:textSize="8sp" android:drawableTop="@drawable/ic_skip_next" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
+    <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="8sp" android:drawableTop="@drawable/ic_skip_next" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
+</LinearLayout>
 
         <LinearLayout
             android:id="@+id/toolsRow"
