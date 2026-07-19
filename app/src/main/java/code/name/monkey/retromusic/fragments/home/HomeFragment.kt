@@ -364,29 +364,64 @@ private fun setupVideoListeners() {
 
     binding.homeContent.btnPlayPause.setOnClickListener {
     val player = binding.homeContent.videoPlayer
+    val sizePx = (20 * resources.displayMetrics.density).toInt()
     if (player.isPlaying) {
         player.pause()
         binding.homeContent.btnPlayPause.text = "PLAY"
-        binding.homeContent.btnPlayPause.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_play_arrow, 0, 0)
+        val icon = resources.getDrawable(R.drawable.ic_play_arrow, null)
+        icon.setBounds(0, 0, sizePx, sizePx)
+        binding.homeContent.btnPlayPause.setCompoundDrawables(null, icon, null, null)
     } else {
         player.start()
         binding.homeContent.btnPlayPause.text = "PAUSE"
-        binding.homeContent.btnPlayPause.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_pause, 0, 0)
+        val icon = resources.getDrawable(R.drawable.ic_pause, null)
+        icon.setBounds(0, 0, sizePx, sizePx)
+        binding.homeContent.btnPlayPause.setCompoundDrawables(null, icon, null, null)
     }
 }
 
-    binding.homeContent.btnPrevVideo.setOnClickListener {
-        if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
+    val longPressHandler = Handler(Looper.getMainLooper())
+var longPressTriggered = false
+
+binding.homeContent.btnPrevVideo.setOnTouchListener { _, event ->
+    when (event.action) {
+        android.view.MotionEvent.ACTION_DOWN -> {
+            longPressTriggered = false
+            longPressHandler.postDelayed({
+                longPressTriggered = true
+                binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition - 5000).coerceAtLeast(0))
+            }, 1000)
+        }
+        android.view.MotionEvent.ACTION_UP -> {
+            longPressHandler.removeCallbacksAndMessages(null)
+            if (!longPressTriggered) {
+                if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
+            }
+        }
+        android.view.MotionEvent.ACTION_CANCEL -> longPressHandler.removeCallbacksAndMessages(null)
     }
-    binding.homeContent.btnNextVideo.setOnClickListener {
-        if (currentIndex < videoPlaylist.size - 1) { currentIndex++; reproducirVideoActual() }
+    true
+}
+
+binding.homeContent.btnNextVideo.setOnTouchListener { _, event ->
+    when (event.action) {
+        android.view.MotionEvent.ACTION_DOWN -> {
+            longPressTriggered = false
+            longPressHandler.postDelayed({
+                longPressTriggered = true
+                binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration))
+            }, 1000)
+        }
+        android.view.MotionEvent.ACTION_UP -> {
+            longPressHandler.removeCallbacksAndMessages(null)
+            if (!longPressTriggered) {
+                if (currentIndex < videoPlaylist.size - 1) { currentIndex++; reproducirVideoActual() }
+            }
+        }
+        android.view.MotionEvent.ACTION_CANCEL -> longPressHandler.removeCallbacksAndMessages(null)
     }
-    binding.homeContent.btnRewindTime.setOnClickListener {
-        binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition - 5000).coerceAtLeast(0))
-    }
-    binding.homeContent.btnForwardTime.setOnClickListener {
-        binding.homeContent.videoPlayer.seekTo((binding.homeContent.videoPlayer.currentPosition + 5000).coerceAtMost(binding.homeContent.videoPlayer.duration))
-    }
+    true
+}
 
     binding.homeContent.btnMixVideo.setOnClickListener {
         val subUri = selectedSubtitleUri
