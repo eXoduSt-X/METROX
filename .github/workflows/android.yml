@@ -2,7 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [ main, Add-video ] # Añadida tu rama para que se dispare con tus commits actuales
+    branches: [ main ] # Añadida tu rama para que se dispare con tus commits actuales
   pull_request:
     branches: [ main ]
   workflow_dispatch:
