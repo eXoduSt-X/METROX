@@ -316,6 +316,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         
         setFixedIcon(binding.homeContent.btnPrevVideo, R.drawable.ic_skip_previous)
         setFixedIcon(binding.homeContent.btnNextVideo, R.drawable.ic_skip_next)
+        setPlayPauseIcon(false)
       
         fullscreenGestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -858,9 +859,9 @@ override fun onPause() {
         val player = binding.homeContent.videoPlayer
         player.seekTo(savedPosition)
         if (wasPlayingBeforePause) {
-            player.start()
-            binding.homeContent.btnPlayPause.text = "Pause"
-        }
+        player.start()
+        setPlayPauseIcon(true)
+       }
     }
 }
 override fun onDestroyView() {
