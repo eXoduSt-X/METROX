@@ -77,11 +77,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
 
     private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        if (uris.isNotEmpty()) {
-            selectedAudioUris = uris.toMutableList()
-            Toast.makeText(requireContext(), "${uris.size} audios seleccionados", Toast.LENGTH_SHORT).show()
-        }
+    if (uris.isNotEmpty()) {
+        selectedAudioUris = uris.toMutableList()
+        mostrarConfirmacionConvertirAudio()
     }
+}
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
     }
@@ -130,7 +130,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
 
                 if (pendingHardcodeBurn) {
                     pendingHardcodeBurn = false
-                    hardcodearSubtitulos()
+                    mostrarConfirmacionIncrustarSubtitulos()
                 }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error al leer subtítulos", Toast.LENGTH_SHORT).show()
@@ -160,7 +160,14 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             }
         }
     }
-
+          private fun mostrarConfirmacionIncrustarSubtitulos() {
+    AlertDialog.Builder(requireContext())
+        .setTitle("¿Incrustar subtítulos?")
+        .setMessage("Se quemarán los subtítulos cargados en el video actual. El resultado se guardará en Descargas.")
+        .setPositiveButton("Listo") { _, _ -> hardcodearSubtitulos() }
+        .setNegativeButton("Cancelar", null)
+        .show()
+}
     private fun mostrarDialogoUnirVideos(uris: List<Uri>) {
         val nombres = uris.map { uri ->
             requireContext().contentResolver.query(
@@ -179,7 +186,14 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             .setNegativeButton("Cancelar", null)
             .show()
     }
-
+        private fun mostrarConfirmacionConvertirAudio() {
+    AlertDialog.Builder(requireContext())
+        .setTitle("¿Convertir a MP3?")
+        .setMessage("Se convertirán ${selectedAudioUris.size} archivo(s) a MP3 y se guardarán en Descargas.")
+        .setPositiveButton("Listo") { _, _ -> convertirAudiosAMp3(selectedAudioUris) }
+        .setNegativeButton("Cancelar") { _, _ -> selectedAudioUris.clear() }
+        .show()
+}
    private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
     Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
@@ -450,17 +464,17 @@ binding.homeContent.btnNextVideo.setOnTouchListener { _, event ->
     }
 
     binding.homeContent.btnHardcodeSubtitles.setOnClickListener {
-        if (videoPlaylist.isEmpty()) {
-            Toast.makeText(requireContext(), "Primero carga un video en el reproductor", Toast.LENGTH_SHORT).show()
-            return@setOnClickListener
-        }
-        if (selectedSubtitleUri != null) {
-            hardcodearSubtitulos()
-        } else {
-            pendingHardcodeBurn = true
-            subtitlePickerLauncher.launch("*/*")
-        }
+    if (videoPlaylist.isEmpty()) {
+        Toast.makeText(requireContext(), "Primero carga un video en el reproductor", Toast.LENGTH_SHORT).show()
+        return@setOnClickListener
     }
+    if (selectedSubtitleUri != null) {
+        mostrarConfirmacionIncrustarSubtitulos()
+    } else {
+        pendingHardcodeBurn = true
+        subtitlePickerLauncher.launch("*/*")
+    }
+}
     binding.homeContent.btnCreateVideoFromPhotos.setOnClickListener {
         photosPickerLauncher.launch("image/*")
     }
@@ -468,7 +482,9 @@ binding.homeContent.btnNextVideo.setOnTouchListener { _, event ->
     binding.homeContent.btnMergeVideos.setOnClickListener {
         videoPickerLauncher.launch("video/*")
     }
-
+binding.homeContent.btnConvertAudio.setOnClickListener {
+    multiaudioPickerLauncher.launch("audio/*")
+}
     // NUEVO: exportar el video actual del reproductor a GIF.
     // Requiere un botón con id "btnCreateGif" en home_content.xml.
     binding.homeContent.btnCreateGif.setOnClickListener {
@@ -726,17 +742,7 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
             findNavController().navigate(R.id.detailListFragment, bundleOf(EXTRA_PLAYLIST_TYPE to HISTORY_PLAYLIST))
             setSharedAxisYTransitions()
         }
-        binding.homeContent.btnSelectAudio.setOnClickListener {
-            multiaudioPickerLauncher.launch("audio/*")
-        }
-
-        binding.homeContent.btnConvert.setOnClickListener {
-            if (selectedAudioUris.isNotEmpty()) {
-                convertirAudiosAMp3(selectedAudioUris)
-            } else {
-                Toast.makeText(requireContext(), "Selecciona audios primero", Toast.LENGTH_SHORT).show()
-            }
-        }
+       
         binding.imageLayout.userImage.setOnClickListener {
             findNavController().navigate(R.id.user_info_fragment, null, null, FragmentNavigatorExtras(binding.imageLayout.userImage to "user_image"))
         }
