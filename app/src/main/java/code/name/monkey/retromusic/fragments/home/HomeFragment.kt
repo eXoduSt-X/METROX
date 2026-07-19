@@ -229,6 +229,17 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         }
     }.start()
 }
+   private fun getVideoWidth(file: File): Int {
+    return try {
+        val retriever = android.media.MediaMetadataRetriever()
+        retriever.setDataSource(file.absolutePath)
+        val width = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 624
+        retriever.release()
+        width
+    } catch (e: Exception) {
+        624
+    }
+}
    private fun parseSrt(inputStream: java.io.InputStream) {
     subtitleList.clear()
     val lines = inputStream.bufferedReader().readLines()
@@ -598,7 +609,7 @@ private fun limpiarCacheTemporal() {
         return fontDir
     }
 
-private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): String {
+private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String, fontSize: Int): String {
     return subtitles.joinToString(",") { sub ->
         val safeText = sub.text
             .replace("\\", "\\\\")
@@ -612,7 +623,7 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
             .replace("}", "\\}")
         val startSec = sub.startTime / 1000.0
         val endSec = sub.endTime / 1000.0
-        "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=24:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+        "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=$fontSize:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
     }
 }
 
@@ -977,7 +988,11 @@ private fun hardcodearSubtitulos() {
         val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
             .replace(":", "\\:")
 
-        val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile)
+       val videoWidth = getVideoWidth(videoFile)
+// Aproximadamente 1 carácter ocupa ~0.6x el fontsize de ancho; calculamos
+// un tamaño que deje margen para líneas largas sin desbordar el cuadro.
+       val fontSize = (videoWidth / 22).coerceIn(12, 36)
+       val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile, fontSize)
 
         if (drawtextFilter.isBlank()) {
             android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
