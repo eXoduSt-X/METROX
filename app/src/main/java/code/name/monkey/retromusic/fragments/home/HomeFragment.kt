@@ -52,7 +52,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
-data class Subtitle(val startTime: Long, val endTime: Long, val text: String)
+data class Subtitle(val startTime: Long, val endTime: Long, val original: String, val translation: String?)
 
 class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHelper {
 
@@ -240,7 +240,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         624
     }
 }
-   private fun parseSrt(inputStream: java.io.InputStream) {
+  private fun parseSrt(inputStream: java.io.InputStream) {
     subtitleList.clear()
     val lines = inputStream.bufferedReader().readLines()
     var i = 0
@@ -256,7 +256,9 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 j++
             }
             if (textLines.isNotEmpty()) {
-                subtitleList.add(Subtitle(start, end, textLines.joinToString("\n")))
+                val original = textLines[0]
+                val translation = if (textLines.size > 1) textLines.drop(1).joinToString(" ") else null
+                subtitleList.add(Subtitle(start, end, original, translation))
             }
             i = j
         } else {
@@ -609,21 +611,53 @@ private fun limpiarCacheTemporal() {
         return fontDir
     }
 
-private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String, fontSize: Int): String {
+private fun getItalicFontDir(): File {
+    val fontDir = File(requireContext().cacheDir, "subtitle_fonts")
+    if (!fontDir.exists()) fontDir.mkdirs()
+    val fontFile = File(fontDir, "roboto_italic.ttf")
+    if (!fontFile.exists()) {
+        resources.openRawResource(R.raw.roboto_italic).use { input ->
+            fontFile.outputStream().use { output -> input.copyTo(output) }
+        }
+    }
+    return fontDir
+}
+    
+private fun buildDrawtextFilters(
+    subtitles: List<Subtitle>,
+    fontFileRegular: String,
+    fontFileItalic: String,
+    fontSize: Int
+): String {
+    fun escape(text: String) = text
+        .replace("\\", "\\\\")
+        .replace("'", "\u2019")
+        .replace(":", "\\:")
+        .replace(",", "\\,")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
+        .replace("%", "\\%")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+
     return subtitles.joinToString(",") { sub ->
-        val safeText = sub.text
-            .replace("\\", "\\\\")
-            .replace("'", "\u2019")
-            .replace(":", "\\:")
-            .replace(",", "\\,")
-            .replace("[", "\\[")
-            .replace("]", "\\]")
-            .replace("%", "\\%")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
         val startSec = sub.startTime / 1000.0
         val endSec = sub.endTime / 1000.0
-        "drawtext=fontfile=$fontFile:text='$safeText':enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h-th-50:fontsize=$fontSize:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+
+       // Original: abajo, blanco, fuente regular
+val originalFilter = "drawtext=fontfile=$fontFileRegular:text='${escape(sub.original)}':" +
+        "enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h*0.85:" +
+        "fontsize=$fontSize:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2"
+
+if (sub.translation != null) {
+    // Traducción: arriba, amarillo, fuente cursiva
+    val translationFilter = "drawtext=fontfile=$fontFileItalic:text='${escape(sub.translation)}':" +
+            "enable='between(t,$startSec,$endSec)':x=(w-text_w)/2:y=h*0.10:" +
+            "fontsize=$fontSize:fontcolor=yellow:shadowcolor=black:shadowx=2:shadowy=2"
+    "$originalFilter,$translationFilter"
+} else {
+    originalFilter
+}
     }
 }
 
@@ -985,14 +1019,15 @@ private fun hardcodearSubtitulos() {
 
         val durationMs = getDurationMs(videoFile)
 
-        val fontFile = File(getFontDir(), "roboto_regular.ttf").absolutePath
-            .replace(":", "\\:")
+       val fontFileRegular = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
+        val fontFileItalic = File(getItalicFontDir(), "roboto_italic.ttf").absolutePath.replace(":", "\\:")
 
        val videoWidth = getVideoWidth(videoFile)
 // Aproximadamente 1 carácter ocupa ~0.6x el fontsize de ancho; calculamos
 // un tamaño que deje margen para líneas largas sin desbordar el cuadro.
        val fontSize = (videoWidth / 22).coerceIn(12, 36)
-       val drawtextFilter = buildDrawtextFilters(subtitleList, fontFile, fontSize)
+   val drawtextFilter = buildDrawtextFilters(subtitleList, fontFileRegular, fontFileItalic, fontSize)
+
 
         if (drawtextFilter.isBlank()) {
             android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
