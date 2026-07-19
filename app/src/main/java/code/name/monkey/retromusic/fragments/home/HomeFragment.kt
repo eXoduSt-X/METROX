@@ -804,8 +804,6 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         val playbackVisibility = if (isLandscape && !isFullscreen) View.GONE else View.VISIBLE
         binding.homeContent.videoSeekBar.visibility = playbackVisibility
         binding.homeContent.btnPrevVideo.visibility = playbackVisibility
-        binding.homeContent.btnRewindTime.visibility = playbackVisibility
-        binding.homeContent.btnForwardTime.visibility = playbackVisibility
         binding.homeContent.btnNextVideo.visibility = playbackVisibility
         binding.homeContent.btnPlayPause.visibility = playbackVisibility
         binding.homeContent.btnFullscreen.visibility = playbackVisibility
