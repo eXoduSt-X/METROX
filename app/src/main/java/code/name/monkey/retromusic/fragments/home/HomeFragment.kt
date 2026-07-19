@@ -562,7 +562,7 @@ private fun limpiarCacheTemporal() {
             savedPosition = 0
             binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
             binding.homeContent.videoPlayer.start()
-            binding.homeContent.setPlayPauseIcon(true)
+            binding.homeContent.btnPlayPause.text = "Pause"
         }
     }
 
