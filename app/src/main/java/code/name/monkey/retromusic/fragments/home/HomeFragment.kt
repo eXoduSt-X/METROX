@@ -363,15 +363,17 @@ private fun setupVideoListeners() {
     }
 
     binding.homeContent.btnPlayPause.setOnClickListener {
-        val player = binding.homeContent.videoPlayer
-        if (player.isPlaying) {
-            player.pause()
-            binding.homeContent.btnPlayPause.text = "PLAY"
-        } else {
-            player.start()
-            binding.homeContent.btnPlayPause.text = "PAUSE"
-        }
+    val player = binding.homeContent.videoPlayer
+    if (player.isPlaying) {
+        player.pause()
+        binding.homeContent.btnPlayPause.text = "PLAY"
+        binding.homeContent.btnPlayPause.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_play_arrow, 0, 0)
+    } else {
+        player.start()
+        binding.homeContent.btnPlayPause.text = "PAUSE"
+        binding.homeContent.btnPlayPause.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_pause, 0, 0)
     }
+}
 
     binding.homeContent.btnPrevVideo.setOnClickListener {
         if (currentIndex > 0) { currentIndex--; reproducirVideoActual() }
