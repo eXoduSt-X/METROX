@@ -313,7 +313,10 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         handler.post(updateSubtitleTask)
         setupListeners()
         setupVideoListeners()
-
+        
+        setFixedIcon(binding.homeContent.btnPrevVideo, R.drawable.ic_skip_previous)
+        setFixedIcon(binding.homeContent.btnNextVideo, R.drawable.ic_skip_next)
+      
         fullscreenGestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 toggleFullscreen()
@@ -687,6 +690,12 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
     icon?.setBounds(0, 0, sizePx, sizePx)
     binding.homeContent.btnPlayPause.setCompoundDrawables(null, icon, null, null)
     binding.homeContent.btnPlayPause.text = if (isPlaying) "PAUSE" else "PLAY"
+     }
+     private fun setFixedIcon(button: android.widget.Button, drawableRes: Int) {
+    val sizePx = (20 * resources.displayMetrics.density).toInt()
+    val icon = androidx.core.content.ContextCompat.getDrawable(requireContext(), drawableRes)
+    icon?.setBounds(0, 0, sizePx, sizePx)
+    button.setCompoundDrawables(null, icon, null, null)
      }
     private fun adjustPlaylistButtons() {
         val buttons = listOf(
