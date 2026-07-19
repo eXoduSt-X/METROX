@@ -356,30 +356,23 @@ private fun setupVideoListeners() {
     })
 
     binding.homeContent.videoPlayer.setOnPreparedListener { mp ->
-        mp.seekTo(savedPosition)
-        mp.start()
-        binding.homeContent.videoSeekBar.max = mp.duration
-        binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
-    }
+    mp.seekTo(savedPosition)
+    mp.start()
+    binding.homeContent.videoSeekBar.max = mp.duration
+    binding.homeContent.tvTotalTime.text = formatTime(mp.duration)
+    setPlayPauseIcon(true)
+}
 
     binding.homeContent.btnPlayPause.setOnClickListener {
     val player = binding.homeContent.videoPlayer
-    val sizePx = (20 * resources.displayMetrics.density).toInt()
     if (player.isPlaying) {
         player.pause()
-        binding.homeContent.btnPlayPause.text = "PLAY"
-        val icon = resources.getDrawable(R.drawable.ic_play_arrow, null)
-        icon.setBounds(0, 0, sizePx, sizePx)
-        binding.homeContent.btnPlayPause.setCompoundDrawables(null, icon, null, null)
+        setPlayPauseIcon(false)
     } else {
         player.start()
-        binding.homeContent.btnPlayPause.text = "PAUSE"
-        val icon = resources.getDrawable(R.drawable.ic_pause, null)
-        icon.setBounds(0, 0, sizePx, sizePx)
-        binding.homeContent.btnPlayPause.setCompoundDrawables(null, icon, null, null)
+        setPlayPauseIcon(true)
     }
 }
-
     val longPressHandler = Handler(Looper.getMainLooper())
 var longPressTriggered = false
 
@@ -569,7 +562,7 @@ private fun limpiarCacheTemporal() {
             savedPosition = 0
             binding.homeContent.videoPlayer.setVideoURI(videoPlaylist[currentIndex])
             binding.homeContent.videoPlayer.start()
-            binding.homeContent.btnPlayPause.text = "Pause"
+            binding.homeContent.setPlayPauseIcon(true)
         }
     }
 
@@ -687,7 +680,14 @@ private fun buildDrawtextFilters(subtitles: List<Subtitle>, fontFile: String): S
         val minutes = (millis / (1000 * 60)) % 60
         return String.format("%02d:%02d", minutes, seconds)
     }
-
+     private fun setPlayPauseIcon(isPlaying: Boolean) {
+    val sizePx = (20 * resources.displayMetrics.density).toInt()
+    val drawableRes = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow
+    val icon = androidx.core.content.ContextCompat.getDrawable(requireContext(), drawableRes)
+    icon?.setBounds(0, 0, sizePx, sizePx)
+    binding.homeContent.btnPlayPause.setCompoundDrawables(null, icon, null, null)
+    binding.homeContent.btnPlayPause.text = if (isPlaying) "PAUSE" else "PLAY"
+     }
     private fun adjustPlaylistButtons() {
         val buttons = listOf(
             binding.homeContent.absPlaylists.history,
