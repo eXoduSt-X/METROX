@@ -94,11 +94,10 @@
 
         <LinearLayout
             android:id="@+id/cutRow"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            android:gravity="center_vertical">
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:orientation="horizontal"
+    android:layout_marginTop="12dp">
             <EditText
                 android:id="@+id/etStartTime"
                 android:layout_width="0dp"
