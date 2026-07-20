@@ -98,6 +98,16 @@
     android:layout_height="48dp"
     android:orientation="horizontal"
     android:layout_marginTop="12dp">
+           <Button
+                android:id="@+id/btnSetStart"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="8dp"
+                android:backgroundTint="#333333"
+                android:text="["
+                android:textSize="10sp"
+                android:layout_marginHorizontal="3dp" />
             <EditText
                 android:id="@+id/etStartTime"
                 android:layout_width="0dp"
@@ -109,16 +119,7 @@
                 android:textSize="10sp"
                 android:inputType="text"
                 android:backgroundTint="#333333" />
-            <Button
-                android:id="@+id/btnSetStart"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:minWidth="0dp"
-                android:paddingHorizontal="8dp"
-                android:backgroundTint="#333333"
-                android:text="["
-                android:textSize="10sp"
-                android:layout_marginHorizontal="3dp" />
+
             <EditText
                 android:id="@+id/etEndTime"
                 android:layout_width="0dp"
