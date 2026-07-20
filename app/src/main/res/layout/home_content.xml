@@ -85,16 +85,12 @@
     android:orientation="horizontal"
     android:weightSum="5"
     android:layout_marginTop="4dp"> 
-    
-    <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#6200EE" android:text="CREAR&#10;MKV" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    
-    <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="BORRAR&#10;CACHE" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    
-    <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    
-    <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="VIDEO&#10;SEL." android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    
-    <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="CARPETA&#10;VIDEOS" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+
+    <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#6200EE" android:text="CREAR&#10;MKV" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="BORRAR&#10;CACHE" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:maxLines="1" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="ELEGIR&#10;VIDEO" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="ELEGIR&#10;CARPETA" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
 </LinearLayout>
 
         <LinearLayout
@@ -147,17 +143,17 @@
                 android:textSize="10sp"
                 android:layout_marginStart="3dp"
                 android:layout_marginEnd="3dp" />
-            <Button
+<Button
     android:id="@+id/btnSplit"
     android:layout_width="0dp"
     android:layout_weight="1.2"
-    android:layout_height="56dp"
+    android:layout_height="48dp"
     android:backgroundTint="#333333"
     android:text="CORTAR&#10;VIDEO"
     android:textColor="#FFFFFF"
     android:maxLines="2"
     android:gravity="center"
-    android:textSize="9sp" />
+    android:textSize="8sp" />
             <Button
                 android:id="@+id/btnCreateGif"
                 android:layout_width="0dp"
