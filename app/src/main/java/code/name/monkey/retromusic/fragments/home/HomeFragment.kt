@@ -210,7 +210,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         .setNegativeButton("Cancelar") { _, _ -> selectedAudioUris.clear() }
         .show()
 }
-   private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
+private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
     Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
 
@@ -219,34 +219,41 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             val archivos = uris.mapIndexed { i, uri ->
                 cacheUriToFile(uri, "merge_input_$i.mp4")
             }
-          
+
             val listaFile = File(requireContext().cacheDir, "merge_list.txt")
-        listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
+            listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
 
-        val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
-        val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
-        if (outputFile.exists()) {
-            outputFile.delete()
-        }
+            val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
+            val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
+            if (outputFile.exists()) {
+                outputFile.delete()
+            }
 
-        // Esta línea ya no debería causar error de indentación al estar alineada
-        val durationMs = archivos.sumOf { getDurationMs(it) }
+            val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
+            android.util.Log.d("FFmpegMerge", "Comando: $command")
 
-        val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
-
-        FFmpegKit.executeAsync(command) { session ->
-            if (ReturnCode.isSuccess(session.returnCode)) {
-                // ... (lógica de guardado en MediaStore) ...
+            FFmpegKit.executeAsync(command) { session ->
+                if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                    saveToDownloads(outputFile, nombreSalida, "video/mp4")
+                } else {
+                    android.util.Log.e("FFmpegMerge", session.allLogsAsString)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), "Error al unir videos (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 archivos.forEach { it.delete() }
                 listaFile.delete()
-                outputFile.delete()
+                if (outputFile.exists()) outputFile.delete()
+                ocultarProgreso()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FFmpegMerge", "Error preparando archivos: ${e.message}")
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), "Error preparando los archivos", Toast.LENGTH_SHORT).show()
             }
             ocultarProgreso()
         }
-    } catch (e: Exception) {
-        ocultarProgreso()
-    }
-}.start()
+    }.start()
 }
 
     
