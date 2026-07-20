@@ -221,11 +221,12 @@
 </LinearLayout>
 
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvDownloads"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:paddingBottom="20dp" />
+<androidx.recyclerview.widget.RecyclerView
+    android:id="@+id/rvDownloads"
+    android:layout_width="match_parent"
+    android:layout_height="320dp"
+    android:nestedScrollingEnabled="false"
+    android:layout_marginTop="16dp"
+    android:paddingBottom="20dp" />
     </LinearLayout>
 </LinearLayout>
