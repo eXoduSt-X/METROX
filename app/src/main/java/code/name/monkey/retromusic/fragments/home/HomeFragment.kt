@@ -100,7 +100,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 val player = binding.homeContent.videoPlayer
                 val currentPos = player.currentPosition
                 val currentSub = subtitleList.find { currentPos.toLong() in it.startTime..it.endTime }
-                binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
+               // binding.homeContent.tvSubtitleOverlay.text = currentSub?.text ?: ""
+               (binding.homeContent.tvSubtitleOverlay as TextView).text = currentSub?.text ?: ""
                 binding.homeContent.videoSeekBar.max = player.duration
                 binding.homeContent.videoSeekBar.progress = currentPos
                 binding.homeContent.tvCurrentTime.text = formatTime(currentPos)
