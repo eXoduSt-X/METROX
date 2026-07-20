@@ -1047,11 +1047,11 @@ private fun hardcodearSubtitulos() {
         val fontSize = (videoWidth / 22).coerceIn(12, 36)
         val drawtextFilter = buildDrawtextFilters(subtitleList, fontFileRegular, fontFileItalic, fontSize)
 
-           if (drawtextFilter.isBlank()) {
+        if (drawtextFilter.isBlank()) {
             android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
             requireActivity().runOnUiThread {
                 Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
-            }
+        }
             ocultarProgreso()
             videoFile.delete()
             return@Thread
