@@ -78,26 +78,24 @@
     <Button android:id="@+id/btnPlayPause" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="PLAY" android:textSize="8sp" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
     <Button android:id="@+id/btnNextVideo" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="NEXT" android:textSize="8sp" android:drawablePadding="2dp" android:drawableTint="#FFFFFF" />
 </LinearLayout>   
-<LinearLayout
-    android:id="@+id/toolsRow"
-    android:layout_width="match_parent"
-    android:layout_height="48dp"
-    android:orientation="horizontal"
-    android:layout_marginTop="4dp"> 
-
-    <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#6200EE" android:text="CREAR&#10;MKV" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="BORRAR&#10;CACHE" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="ELEGIR&#10;VIDEO" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-    <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="ELEGIR&#10;CARPETA" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
-</LinearLayout>
-
         <LinearLayout
             android:id="@+id/cutRow"
     android:layout_width="match_parent"
     android:layout_height="48dp"
     android:orientation="horizontal"
     android:layout_marginTop="12dp">
+             <Button
+        android:id="@+id/btnMergeVideos"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginHorizontal="2dp"
+        android:backgroundTint="#333333"
+        android:textColor="#FFFFFF"
+        android:text="UNIR\nVIDEOS"
+        android:maxLines="2"
+        android:gravity="center"
+        android:textSize="8sp" />
            <Button
                 android:id="@+id/btnSetStart"
                 android:layout_width="wrap_content"
@@ -153,25 +151,27 @@
         android:maxLines="2"
         android:gravity="center"
         android:textSize="8sp" />
-    <Button
-        android:id="@+id/btnCreateGif"
-        android:layout_width="0dp"
-        android:layout_weight="1.0"
-        android:layout_height="match_parent"
-        android:layout_marginStart="3dp"
-        android:backgroundTint="#6200EE" 
-        android:text="GIF"
-        android:maxLines="2"
-        android:gravity="center"
-        android:textSize="8sp" />
+    
 </LinearLayout>
+<LinearLayout
+    android:id="@+id/toolsRow"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:orientation="horizontal"
+    android:layout_marginTop="4dp"> 
 
+    <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#6200EE" android:text="CREAR&#10;MKV" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="BORRAR&#10;CACHE" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="ELEGIR&#10;VIDEO" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+    <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="ELEGIR&#10;CARPETA" android:maxLines="2" android:gravity="center" android:textSize="8sp" />
+</LinearLayout>
         <LinearLayout
     android:id="@+id/extraActionsContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:weightSum="4"
+    android:weightSum="5"
     android:layout_marginTop="8dp">
 
     <!-- Aplica exactamente las mismas propiedades a los 4 botones -->
@@ -210,19 +210,18 @@
         android:maxLines="2"
         android:gravity="center"
         android:textSize="8sp" />
-
-    <Button
-        android:id="@+id/btnMergeVideos"
+<Button
+        android:id="@+id/btnCreateGif"
         android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:layout_weight="1"
-        android:layout_marginHorizontal="2dp"
-        android:backgroundTint="#333333"
-        android:textColor="#FFFFFF"
-        android:text="UNIR\nVIDEOS"
+        android:layout_weight="1.0"
+        android:layout_height="match_parent"
+        android:layout_marginStart="3dp"
+        android:backgroundTint="#6200EE" 
+        android:text="GIF"
         android:maxLines="2"
         android:gravity="center"
         android:textSize="8sp" />
+   
 </LinearLayout>
 
 
