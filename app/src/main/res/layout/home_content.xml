@@ -11,12 +11,14 @@
         android:id="@+id/abs_playlists"
         layout="@layout/abs_playlists" />
 
-    <LinearLayout
+        <LinearLayout
         android:id="@+id/contentPadding"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="vertical"
         android:padding="16dp">
+
 
         <FrameLayout
             android:id="@+id/videoContainer"
@@ -224,9 +226,11 @@
 <androidx.recyclerview.widget.RecyclerView
     android:id="@+id/rvDownloads"
     android:layout_width="match_parent"
-    android:layout_height="320dp"
-    android:nestedScrollingEnabled="false"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:nestedScrollingEnabled="true"
     android:layout_marginTop="16dp"
     android:paddingBottom="20dp" />
+
     </LinearLayout>
 </LinearLayout>
