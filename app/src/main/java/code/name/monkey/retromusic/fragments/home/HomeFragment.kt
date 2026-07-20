@@ -1019,19 +1019,19 @@ private fun hardcodearSubtitulos() {
         val outputFile = File(requireContext().cacheDir, "output_hardcode.mp4")
         if (outputFile.exists()) outputFile.delete()
 
-        val durationMs = getDurationMs(videoFile)
+          val durationMs = getDurationMs(videoFile)
 
-       val fontFileRegular = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
-        val fontFileItalic = File(getItalicFontDir(), "roboto_italic.ttf").absolutePath.replace(":", "\\:")
+         val fontFileRegular = File(getFontDir(), "roboto_regular.ttf").absolutePath.replace(":", "\\:")
+         val fontFileItalic = File(getItalicFontDir(), "roboto_italic.ttf").absolutePath.replace(":", "\\:")
 
-       val videoWidth = getVideoWidth(videoFile)
-// Aproximadamente 1 carácter ocupa ~0.6x el fontsize de ancho; calculamos
-// un tamaño que deje margen para líneas largas sin desbordar el cuadro.
-       val fontSize = (videoWidth / 22).coerceIn(12, 36)
-   val drawtextFilter = buildDrawtextFilters(subtitleList, fontFileRegular, fontFileItalic, fontSize)
+         val videoWidth = getVideoWidth(videoFile)
+             // Aproximadamente 1 carácter ocupa ~0.6x el fontsize de ancho; calculamos
+             // un tamaño que deje margen para líneas largas sin desbordar el cuadro.
+          val fontSize = (videoWidth / 22).coerceIn(12, 36)
+          val drawtextFilter = buildDrawtextFilters(subtitleList, fontFileRegular, fontFileItalic, fontSize)
 
 
-        if (drawtextFilter.isBlank()) {
+           if (drawtextFilter.isBlank()) {
             android.util.Log.e("FFmpegHardcode", "subtitleList está vacía, no se generó ningún filtro drawtext")
             requireActivity().runOnUiThread {
                 Toast.makeText(requireContext(), "No hay subtítulos cargados para incrustar", Toast.LENGTH_SHORT).show()
@@ -1048,7 +1048,7 @@ private fun hardcodearSubtitulos() {
         android.util.Log.d("FFmpegHardcode", "Comando: $command")
         android.util.Log.d("FFmpegHardcode", "Contenido del filtro: $drawtextFilter")
 
-       FFmpegKit.executeAsync(command) { session ->
+        FFmpegKit.executeAsync(command) { session ->
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "video/mp4")
             }
