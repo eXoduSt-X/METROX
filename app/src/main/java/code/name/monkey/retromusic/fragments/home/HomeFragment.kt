@@ -157,7 +157,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             Toast.makeText(requireContext(), "Audio cargado: $name", Toast.LENGTH_SHORT).show()
         }
     }
-
+     private val audioForVideoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    uri?.let {
+        if (videoPlaylist.isNotEmpty()) {
+            agregarAudioAVideo(videoPlaylist[currentIndex], it)
+        }
+    }
+}
     private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
             videoPlaylist.clear()
@@ -471,9 +477,13 @@ binding.homeContent.btnNextVideo.setOnTouchListener { _, event ->
         }
     }
 
-    binding.homeContent.btnFullscreen.setOnClickListener {
-        limpiarCacheTemporal()
+  binding.homeContent.btnFullscreen.setOnClickListener {
+    if (videoPlaylist.isEmpty()) {
+        Toast.makeText(requireContext(), "Primero carga un video en el reproductor", Toast.LENGTH_SHORT).show()
+        return@setOnClickListener
     }
+    audioForVideoPickerLauncher.launch("audio/*")
+  }
 
     binding.homeContent.btnSetStart.setOnClickListener {
         binding.homeContent.etStartTime.setText(formatTime(binding.homeContent.videoPlayer.currentPosition))
@@ -578,30 +588,6 @@ videoParams.height = if (fullscreen) {
     binding.container.isNestedScrollingEnabled = !fullscreen
     
     binding.homeContent.videoContainer.requestLayout()
-}
-
-private fun limpiarCacheTemporal() {
-    Thread {
-        var espacioLiberado = 0L
-        try {
-            requireContext().cacheDir.listFiles()?.forEach { file ->
-                if (file.name == "subtitle_fonts") return@forEach
-                if (file.isFile) {
-                    espacioLiberado += file.length()
-                    file.delete()
-                } else if (file.isDirectory) {
-                    espacioLiberado += file.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-                    file.deleteRecursively()
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("LimpiarCache", "Error: ${e.message}")
-        }
-        val mb = espacioLiberado / (1024.0 * 1024.0)
-        requireActivity().runOnUiThread {
-            Toast.makeText(requireContext(), "Caché limpiada: %.1f MB liberados".format(mb), Toast.LENGTH_LONG).show()
-        }
-    }.start()
 }
 
     private fun reproducirVideoActual() {
@@ -717,6 +703,47 @@ if (sub.translation != null) {
             0L
         }
     }
+    private fun agregarAudioAVideo(videoUri: Uri, audioUri: Uri) {
+    Toast.makeText(requireContext(), "Agregando audio al video...", Toast.LENGTH_LONG).show()
+    mostrarProgreso()
+
+    Thread {
+        val videoFile = cacheUriToFile(videoUri, "input_addaudio.mp4")
+        val audioFile = cacheUriToFile(audioUri, "input_addaudio_track")
+
+        val originalName = requireContext().contentResolver.query(
+            videoUri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+            ?: "Video_${System.currentTimeMillis()}"
+        val baseName = originalName.substringBeforeLast(".")
+        val fileName = "${baseName}_audio.mp4"
+
+        val outputFile = File(requireContext().cacheDir, "output_addaudio.mp4")
+        if (outputFile.exists()) outputFile.delete()
+
+        // -map 0:v toma solo el video del original, -map 1:a toma solo el audio
+        // del archivo nuevo: el audio elegido queda como pista principal/única.
+        // -shortest corta al más corto de los dos (evita video mudo al final
+        // si el audio es más largo, o audio cortado si el video es más largo).
+        val command = "-y -i ${videoFile.absolutePath} -i ${audioFile.absolutePath} -map 0:v -map 1:a -c:v copy -c:a aac -shortest ${outputFile.absolutePath}"
+        android.util.Log.d("FFmpegAddAudio", "Comando: $command")
+
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
+                saveToDownloads(outputFile, fileName, "video/mp4")
+            } else {
+                android.util.Log.e("FFmpegAddAudio", session.allLogsAsString)
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Error al agregar audio (revisa Logcat)", Toast.LENGTH_SHORT).show()
+                }
+            }
+            ocultarProgreso()
+            videoFile.delete()
+            audioFile.delete()
+            if (outputFile.exists()) outputFile.delete()
+        }
+    }.start()
+}
    private fun convertirVideoAGif(videoUri: Uri, fps: Int = 10, anchoMax: Int = 480) {
     Toast.makeText(requireContext(), "Creando GIF, puede tardar...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
