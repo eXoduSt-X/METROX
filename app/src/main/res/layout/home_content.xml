@@ -162,61 +162,63 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/extraActionsContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="8dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <Button android:id="@+id/btnConvertAudio" android:layout_width="match_parent" android:layout_height="40dp" android:backgroundTint="#333333" android:text="A MP3" android:textSize="10sp" />
-              </LinearLayout>
+    android:id="@+id/extraActionsContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:weightSum="4"
+    android:layout_marginTop="8dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-                <Button
-                    android:id="@+id/btnHardcodeSubtitles"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="48dp"
-                    android:backgroundTint="#333333"
-                    android:textColor="#FFFFFF"
-                    android:layout_marginEnd="3dp"
-                    android:text="INCRUSTAR\nSUBTITULOS"
-                    android:maxLines="2"
-                    android:gravity="center"
-                    android:textSize="8sp" />
-                <Button
-                    android:id="@+id/btnCreateVideoFromPhotos"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="48dp"
-                    android:backgroundTint="#333333"
-                    android:textColor="#FFFFFF"
-                    android:layout_marginHorizontal="3dp"
-                    android:text="VIDEO DESDE\nFOTOS"
-                    android:maxLines="2"
-                    android:gravity="center"
-                    android:textSize="8sp" />
-                <Button
-                    android:id="@+id/btnMergeVideos"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="48dp"
-                    android:backgroundTint="#333333"
-                    android:textColor="#FFFFFF"
-                    android:layout_marginStart="3dp"
-                    android:text="UNIR\nVIDEOS"
-                    android:maxLines="2"
-                    android:gravity="center"
-                    android:textSize="8sp" />
-            </LinearLayout>
-        </LinearLayout>
+    <Button
+        android:id="@+id/btnConvertAudio"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginEnd="2dp"
+        android:backgroundTint="#333333"
+        android:text="A MP3"
+        android:textSize="8sp" />
+
+    <Button
+        android:id="@+id/btnHardcodeSubtitles"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginHorizontal="2dp"
+        android:backgroundTint="#333333"
+        android:textColor="#FFFFFF"
+        android:text="INCRUSTAR\nSUB"
+        android:maxLines="2"
+        android:gravity="center"
+        android:textSize="8sp" />
+
+    <Button
+        android:id="@+id/btnCreateVideoFromPhotos"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginHorizontal="2dp"
+        android:backgroundTint="#333333"
+        android:textColor="#FFFFFF"
+        android:text="VIDEO\nFOTOS"
+        android:maxLines="2"
+        android:gravity="center"
+        android:textSize="8sp" />
+
+    <Button
+        android:id="@+id/btnMergeVideos"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginStart="2dp"
+        android:backgroundTint="#333333"
+        android:textColor="#FFFFFF"
+        android:text="UNIR\nVIDEOS"
+        android:maxLines="2"
+        android:gravity="center"
+        android:textSize="8sp" />
+</LinearLayout>
+
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvDownloads"
