@@ -205,8 +205,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
             val archivos = uris.mapIndexed { i, uri ->
                 cacheUriToFile(uri, "merge_input_$i.mp4")
             }
-
- val listaFile = File(requireContext().cacheDir, "merge_list.txt")
+          
+            val listaFile = File(requireContext().cacheDir, "merge_list.txt")
         listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
 
         val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
@@ -234,6 +234,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     }
 }.start()
 }
+
+    
    private fun getVideoWidth(file: File): Int {
     return try {
         val retriever = android.media.MediaMetadataRetriever()
