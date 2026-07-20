@@ -83,11 +83,11 @@
             android:orientation="horizontal"
             android:weightSum="5"
             android:layout_marginTop="4dp"> 
-            <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#6200EE" android:text="MKV" android:textSize="9sp" />
-            <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="AAC" android:textSize="9sp" />
+            <Button android:id="@+id/btnMixVideo" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginEnd="2dp" android:backgroundTint="#6200EE" android:text="CREAR MKV" android:textSize="9sp" />
+            <Button android:id="@+id/btnFullscreen" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="Borrar/nCache" android:textSize="9sp" />
             <Button android:id="@+id/btnLoadSubtitles" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="SRT" android:textSize="9sp" />
-            <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="FILE" android:textSize="9sp" />
-            <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="DIR" android:textSize="9sp" />
+            <Button android:id="@+id/btnOpenFile" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginHorizontal="2dp" android:backgroundTint="#333333" android:text="VIDEO/nSELECCIONAR" android:textSize="9sp" />
+            <Button android:id="@+id/btnChooseFolder" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:layout_marginStart="2dp" android:backgroundTint="#333333" android:text="CARPETA/nVIDEOS" android:textSize="9sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -115,7 +115,7 @@
                 android:minWidth="0dp"
                 android:paddingHorizontal="8dp"
                 android:backgroundTint="#333333"
-                android:text="I"
+                android:text="["
                 android:textSize="10sp"
                 android:layout_marginHorizontal="3dp" />
             <EditText
@@ -136,7 +136,7 @@
                 android:minWidth="0dp"
                 android:paddingHorizontal="8dp"
                 android:backgroundTint="#333333"
-                android:text="F"
+                android:text="]"
                 android:textSize="10sp"
                 android:layout_marginStart="3dp"
                 android:layout_marginEnd="3dp" />
@@ -146,7 +146,7 @@
                 android:layout_weight="1.2"
                 android:layout_height="40dp"
                 android:backgroundTint="#333333"
-                android:text="CORTAR"
+                android:text="CORTAR VIDEO"
                 android:textColor="#FFFFFF"
                 android:textSize="9sp" />
             <Button
@@ -169,14 +169,15 @@
     android:weightSum="4"
     android:layout_marginTop="8dp">
 
+    <!-- Aplica exactamente las mismas propiedades a los 4 botones -->
     <Button
         android:id="@+id/btnConvertAudio"
         android:layout_width="0dp"
         android:layout_height="48dp"
         android:layout_weight="1"
-        android:layout_marginEnd="2dp"
+        android:layout_marginHorizontal="2dp"
         android:backgroundTint="#333333"
-        android:text="A MP3"
+        android:text="CONVERTIDOR MP3"
         android:textSize="8sp" />
 
     <Button
@@ -200,7 +201,7 @@
         android:layout_marginHorizontal="2dp"
         android:backgroundTint="#333333"
         android:textColor="#FFFFFF"
-        android:text="VIDEO\nFOTOS"
+        android:text="FOTOS A\nVIDEO"
         android:maxLines="2"
         android:gravity="center"
         android:textSize="8sp" />
@@ -210,7 +211,7 @@
         android:layout_width="0dp"
         android:layout_height="48dp"
         android:layout_weight="1"
-        android:layout_marginStart="2dp"
+        android:layout_marginHorizontal="2dp"
         android:backgroundTint="#333333"
         android:textColor="#FFFFFF"
         android:text="UNIR\nVIDEOS"
