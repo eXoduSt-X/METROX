@@ -206,30 +206,33 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
                 cacheUriToFile(uri, "merge_input_$i.mp4")
             }
 
-            val listaFile = File(requireContext().cacheDir, "merge_list.txt")
-            listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
+ val listaFile = File(requireContext().cacheDir, "merge_list.txt")
+        listaFile.writeText(archivos.joinToString("\n") { "file '${it.absolutePath}'" })
 
-            val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
-            val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
-            if (outputFile.exists()) outputFile.delete()
+        val nombreSalida = "Video_Unido_${System.currentTimeMillis()}.mp4"
+        val outputFile = File(requireContext().cacheDir, "merge_output.mp4")
+        if (outputFile.exists()) {
+            outputFile.delete()
+        }
 
-            val durationMs = archivos.sumOf { getDurationMs(it) }
+        // Esta línea ya no debería causar error de indentación al estar alineada
+        val durationMs = archivos.sumOf { getDurationMs(it) }
 
-            val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
+        val command = "-f concat -safe 0 -i ${listaFile.absolutePath} -c copy ${outputFile.absolutePath}"
 
-           FFmpegKit.executeAsync(command) { session ->
-                if (ReturnCode.isSuccess(session.returnCode)) {
-                    // ... (lógica de guardado en MediaStore) ...
-                    archivos.forEach { it.delete() }
-                    listaFile.delete()
-                    outputFile.delete()
-                }
-                ocultarProgreso()
+        FFmpegKit.executeAsync(command) { session ->
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                // ... (lógica de guardado en MediaStore) ...
+                archivos.forEach { it.delete() }
+                listaFile.delete()
+                outputFile.delete()
             }
-        } catch (e: Exception) {
             ocultarProgreso()
         }
-    }.start()
+    } catch (e: Exception) {
+        ocultarProgreso()
+    }
+}.start()
 }
    private fun getVideoWidth(file: File): Int {
     return try {
