@@ -534,9 +534,7 @@ binding.homeContent.btnNextVideo.setOnTouchListener { _, event ->
 binding.homeContent.btnConvertAudio.setOnClickListener {
     multiaudioPickerLauncher.launch("audio/*")
 }
-binding.homeContent.btnTagEditor.setOnClickListener {
-    tagEditorPickerLauncher.launch("audio/*")
-}
+
     // NUEVO: exportar el video actual del reproductor a GIF.
     // Requiere un botón con id "btnCreateGif" en home_content.xml.
     binding.homeContent.btnCreateGif.setOnClickListener {
