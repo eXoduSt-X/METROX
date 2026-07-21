@@ -82,14 +82,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         mostrarConfirmacionConvertirAudio()
     }
 }
-    private var filesParaEtiquetar: List<Uri> = emptyList()
-
-private val tagEditorPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-    if (uris.isNotEmpty()) {
-        filesParaEtiquetar = uris
-        mostrarDialogoEdicionMasiva()
-    }
-}
+    
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
@@ -219,110 +212,8 @@ private val tagEditorPickerLauncher = registerForActivityResult(ActivityResultCo
         .setNegativeButton("Cancelar") { _, _ -> selectedAudioUris.clear() }
         .show()
 }
-        private fun mostrarDialogoEdicionMasiva() {
-    val layout = android.widget.LinearLayout(requireContext()).apply {
-        orientation = android.widget.LinearLayout.VERTICAL
-        setPadding(48, 24, 48, 0)
-    }
-    val etArtist = android.widget.EditText(requireContext()).apply { hint = "Artista (opcional)" }
-    val etAlbum = android.widget.EditText(requireContext()).apply { hint = "Álbum (opcional)" }
-    val etTrack = android.widget.EditText(requireContext()).apply { hint = "Pista / Track (opcional, ej. 1)" }
-    val etYear = android.widget.EditText(requireContext()).apply { hint = "Año (opcional)" }
-    val etPattern = android.widget.EditText(requireContext()).apply {
-        hint = "Patrón de nombre: %track% - %artist% - %title%"
-        setText("%track% - %artist% - %title%")
-    }
-    listOf(etArtist, etAlbum, etTrack, etYear, etPattern).forEach { layout.addView(it) }
-
-    AlertDialog.Builder(requireContext())
-        .setTitle("Editar ${filesParaEtiquetar.size} archivo(s)")
-        .setView(layout)
-        .setPositiveButton("Aplicar a todos") { _, _ ->
-            aplicarEdicionMasiva(
-                artist = etArtist.text.toString().trim(),
-                album = etAlbum.text.toString().trim(),
-                track = etTrack.text.toString().trim(),
-                year = etYear.text.toString().trim(),
-                pattern = etPattern.text.toString().trim().ifEmpty { "%track% - %artist% - %title%" }
-            )
-        }
-        .setNegativeButton("Cancelar", null)
-        .show()
-}
-        private fun aplicarEdicionMasiva(artist: String, album: String, track: String, year: String, pattern: String) {
-    Toast.makeText(requireContext(), "Procesando ${filesParaEtiquetar.size} archivo(s)...", Toast.LENGTH_LONG).show()
-    mostrarProgreso()
-
-    Thread {
-        var exitosos = 0
-        filesParaEtiquetar.forEachIndexed { index, uri ->
-            val originalName = requireContext().contentResolver.query(
-                uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
-            )?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: "Audio_$index"
-
-            val extension = originalName.substringAfterLast(".", "mp3")
-            val originalTitle = originalName.substringBeforeLast(".")
-
-            val inputFile = cacheUriToFile(uri, "tag_input_$index.tmp")
-            val outputFile = File(requireContext().cacheDir, "tag_output_$index.$extension")
-            if (outputFile.exists()) outputFile.delete()
-
-            // Si el usuario no especificó un número de pista manual, usamos el índice secuencial (index + 1)
-            val trackFinal = track.ifEmpty { (index + 1).toString() }
-
-            // Construcción segura de la lista de argumentos para FFmpegKit
-            val commandList = mutableListOf("-y", "-i", inputFile.absolutePath)
-
-            if (artist.isNotEmpty()) {
-                commandList.add("-metadata")
-                commandList.add("artist=$artist")
-            }
-            if (album.isNotEmpty()) {
-                commandList.add("-metadata")
-                commandList.add("album=$album")
-            }
-            if (trackFinal.isNotEmpty()) {
-                commandList.add("-metadata")
-                commandList.add("track=$trackFinal")
-            }
-            if (year.isNotEmpty()) {
-                commandList.add("-metadata")
-                commandList.add("date=$year")
-            }
-            // AQUÍ ESTABA EL ERROR: originalTitle ahora se pasa con seguridad evitando que los espacios o comillas rompan el parser
-            commandList.add("-metadata")
-            commandList.add("title=$originalTitle")
-
-            commandList.add("-c")
-            commandList.add("copy")
-            commandList.add(outputFile.absolutePath)
-
-            android.util.Log.d("TagEditor", "Comando ejecutado: ${commandList.joinToString(" ")}")
-            
-            // FFmpegKit soporta la ejecución limpia mediante Array/List de argumentos evitando problemas de espacios en blanco
-            val session = FFmpegKit.execute(commandList.toTypedArray())
-
-            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
-                val nombreFinal = pattern
-                    .replace("%artist%", artist.ifEmpty { "Unknown" })
-                    .replace("%title%", originalTitle)
-                    .replace("%album%", album.ifEmpty { "Unknown" })
-                    .replace("%track%", trackFinal) + ".$extension"
-                
-                saveToDownloads(outputFile, nombreFinal, "audio/mpeg")
-                exitosos++
-            } else {
-                android.util.Log.e("TagEditor", session.allLogsAsString)
-            }
-            inputFile.delete()
-            if (outputFile.exists()) outputFile.delete()
-        }
-        ocultarProgreso()
-        requireActivity().runOnUiThread {
-            Toast.makeText(requireContext(), "Etiquetado: $exitosos/${filesParaEtiquetar.size} archivos", Toast.LENGTH_LONG).show()
-        }
-    }.start()
-}
+      
+        
 private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
     Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
