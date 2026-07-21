@@ -270,17 +270,37 @@ private val tagEditorPickerLauncher = registerForActivityResult(ActivityResultCo
             // Si el usuario no especificó un número de pista manual, usamos el índice secuencial (index + 1)
             val trackFinal = track.ifEmpty { (index + 1).toString() }
 
-            // -c copy: remux sin recodificar, solo cambia los metadatos.
-            val metadataArgs = StringBuilder()
-            if (artist.isNotEmpty()) metadataArgs.append("-metadata artist=\"$artist\" ")
-            if (album.isNotEmpty()) metadataArgs.append("-metadata album=\"$album\" ")
-            if (trackFinal.isNotEmpty()) metadataArgs.append("-metadata track=\"$trackFinal\" ")
-            if (year.isNotEmpty()) metadataArgs.append("-metadata date=\"$year\" ")
-            metadataArgs.append("-metadata title=\"$originalTitle\" ")
+            // Construcción segura de la lista de argumentos para FFmpegKit
+            val commandList = mutableListOf("-y", "-i", inputFile.absolutePath)
 
-            val command = "-y -i ${inputFile.absolutePath} $metadataArgs-c copy ${outputFile.absolutePath}"
-            android.util.Log.d("TagEditor", "Comando: $command")
-            val session = FFmpegKit.execute(command)
+            if (artist.isNotEmpty()) {
+                commandList.add("-metadata")
+                commandList.add("artist=$artist")
+            }
+            if (album.isNotEmpty()) {
+                commandList.add("-metadata")
+                commandList.add("album=$album")
+            }
+            if (trackFinal.isNotEmpty()) {
+                commandList.add("-metadata")
+                commandList.add("track=$trackFinal")
+            }
+            if (year.isNotEmpty()) {
+                commandList.add("-metadata")
+                commandList.add("date=$year")
+            }
+            // AQUÍ ESTABA EL ERROR: originalTitle ahora se pasa con seguridad evitando que los espacios o comillas rompan el parser
+            commandList.add("-metadata")
+            commandList.add("title=$originalTitle")
+
+            commandList.add("-c")
+            commandList.add("copy")
+            commandList.add(outputFile.absolutePath)
+
+            android.util.Log.d("TagEditor", "Comando ejecutado: ${commandList.joinToString(" ")}")
+            
+            // FFmpegKit soporta la ejecución limpia mediante Array/List de argumentos evitando problemas de espacios en blanco
+            val session = FFmpegKit.execute(commandList.toTypedArray())
 
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 val nombreFinal = pattern
@@ -303,7 +323,6 @@ private val tagEditorPickerLauncher = registerForActivityResult(ActivityResultCo
         }
     }.start()
 }
-
 private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
     Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
     mostrarProgreso()
