@@ -222,6 +222,19 @@
         android:maxLines="2"
         android:gravity="center"
         android:textSize="8sp" />
+            
+  <Button
+        android:id="@+id/btnTagEditor"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginHorizontal="2dp"
+        android:backgroundTint="#333333"
+        android:textColor="#FFFFFF"
+        android:text="EDITOR\nTAGS"
+        android:maxLines="2"
+        android:gravity="center"
+        android:textSize="8sp" />
    </LinearLayout>
 
 
