@@ -258,7 +258,7 @@
                 android:clickable="true"
                 android:focusable="false"
                 android:gravity="center"
-                android:text=">|"
+                android:text="|&lt;"
                 android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="bold" />
