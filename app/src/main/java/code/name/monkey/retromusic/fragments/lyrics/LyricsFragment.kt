@@ -142,7 +142,7 @@ binding.saveFab.setOnClickListener {
         val allButtons = listOf(
             binding.btnRew, binding.btnFwd, binding.btnMark, binding.btnPlayPause,
             binding.btnLeft, binding.btnRight, binding.btnUp, binding.btnDown,
-            binding.btnSrt, binding.btnLoadVideo
+            binding.btnSrt, binding.btnLoadVideo, binding.btnHome, binding.btnEnd
         )
         allButtons.forEach { view ->
             view.isFocusable = false
@@ -200,7 +200,31 @@ binding.saveFab.setOnClickListener {
 
         binding.btnUp.setOnClickListener { moveCursorLine(-1); binding.etLyrics.requestFocus() }
         binding.btnDown.setOnClickListener { moveCursorLine(1); binding.etLyrics.requestFocus() }
-    }
+        binding.btnHome.setOnClickListener { moveCursorToLineStart() }
+        binding.btnEnd.setOnClickListener { moveCursorToLineEnd() }
+     }
+
+    private fun moveCursorToLineStart() {
+    val pos = binding.etLyrics.selectionStart
+    val text = binding.etLyrics.text.toString()
+    if (text.isEmpty()) return
+
+    val currentLineStart = text.lastIndexOf("\n", pos - 1) + 1
+    binding.etLyrics.setSelection(currentLineStart)
+    binding.etLyrics.requestFocus()
+}
+
+private fun moveCursorToLineEnd() {
+    val pos = binding.etLyrics.selectionStart
+    val text = binding.etLyrics.text.toString()
+    if (text.isEmpty()) return
+
+    var currentLineEnd = text.indexOf("\n", pos)
+    if (currentLineEnd == -1) currentLineEnd = text.length
+
+    binding.etLyrics.setSelection(currentLineEnd)
+    binding.etLyrics.requestFocus()
+}
 
     private fun seekToProgress(ms: Int) {
         currentProgressMillis = ms
