@@ -227,7 +227,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- ÁREA PRINCIPAL: Editor o Contenido de Letras -->
+    <!-- ÁREA PRINCIPAL CON VISTAS REFERENCIADAS -->
     <FrameLayout
         android:id="@+id/containerContent"
         android:layout_width="0dp"
@@ -235,6 +235,38 @@
         app:layout_constraintTop_toBottomOf="@id/llSincroControls"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <VideoView
+            android:id="@+id/videoView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/normalLyrics"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:textColor="@android:color/white"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:id="@+id/lyricsView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <EditText
+            android:id="@+id/etLyrics"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="top|start"
+            android:padding="16dp"
+            android:textColor="@android:color/white"
+            android:background="@null"
+            android:inputType="textMultiLine" />
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
