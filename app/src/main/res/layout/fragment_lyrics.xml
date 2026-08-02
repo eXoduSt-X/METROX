@@ -40,74 +40,10 @@
             android:textColor="@android:color/white"
             android:textStyle="bold" />
 
-        <!-- FILA 1: Controles de Reproducción y Media -->
+        <!-- FILA 1: Navegación de Cursor (Home, Left, Up, Down, Right, End) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRew"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#2D2D2D"
-                android:text="-5s" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPlayPause"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#2D2D2D"
-                android:text="Play" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnFwd"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#2D2D2D"
-                android:text="+5s" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLoadVideo"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1.2"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#3A3A3A"
-                android:text="Video" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSrt"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="2dp"
-                android:layout_weight="1"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#3A3A3A"
-                android:text="SRT" />
-        </LinearLayout>
-
-        <!-- FILA 2: Dirección y Selección (Home, Left, Up, MARCAR, Down, Right, End) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -156,20 +92,6 @@
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnMark"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="0dp"
-                android:layout_height="46dp"
-                android:layout_margin="2dp"
-                android:layout_weight="1.4"
-                android:textColor="@android:color/white"
-                app:backgroundTint="#3A3A3A"
-                android:text="MARCAR"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:textStyle="bold" />
-
             <TextView
                 android:id="@+id/btnDown"
                 android:layout_width="0dp"
@@ -214,6 +136,94 @@
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- FILA 2: Controles de Sincronización y Media (Video, -5s, Play, MARCAR, +5s, SRT) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLoadVideo"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_margin="2dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="Video" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRew"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_margin="2dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="-5s" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPlayPause"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_margin="2dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="Play" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMark"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_margin="2dp"
+                android:layout_weight="1.4"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#0066FF"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="MARCAR"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFwd"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_margin="2dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="+5s" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSrt"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_margin="2dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2D2D2D"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="SRT" />
         </LinearLayout>
     </LinearLayout>
 
