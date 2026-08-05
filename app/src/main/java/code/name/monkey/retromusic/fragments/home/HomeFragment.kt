@@ -855,7 +855,7 @@ private fun formatTime(millis: Int): String {
 
     private fun setupTitle() {
         binding.appBarLayout.toolbar.setNavigationOnClickListener { findNavController().navigate(R.id.action_search, null, navOptions) }
-        binding.appBarLayout.title = "VIDEO EDITOR"
+        binding.appBarLayout.title = "Video Editor"
     }
 
     private fun loadProfile() {
