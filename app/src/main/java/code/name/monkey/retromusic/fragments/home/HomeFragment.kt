@@ -75,14 +75,12 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var isFullscreen = false
     private lateinit var fullscreenGestureDetector: GestureDetector
 
-
     private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
     if (uris.isNotEmpty()) {
         selectedAudioUris = uris.toMutableList()
-        mostrarConfirmacionConvertirAudio()
+        mostrarSelectorCalidad(uris)  // ← Ahora muestra el diálogo
     }
 }
-    
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) loadVideosFromDownloads() else Toast.makeText(requireContext(), "Permiso denegado, no podemos cargar videos", Toast.LENGTH_SHORT).show()
@@ -212,7 +210,25 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         .setNegativeButton("Cancelar") { _, _ -> selectedAudioUris.clear() }
         .show()
 }
-      
+      private fun mostrarSelectorCalidad(uris: List<Uri>) {
+    val calidades = arrayOf(
+        "Excelente (320kbps) - Archivo grande",
+        "Muy buena (256kbps) - Calidad alta", 
+        "Buena (192kbps) - Balance ideal",
+        "Estándar (128kbps) - Tamaño pequeño",
+        "Baja (64kbps) - Mínimo tamaño"
+    )
+    val valoresCalidad = arrayOf(0, 2, 4, 5, 7)
+    
+    AlertDialog.Builder(requireContext())
+        .setTitle("Calidad del MP3")
+        .setItems(calidades) { _, which ->
+            val calidad = valoresCalidad[which]
+            convertirAudiosAMp3(uris, calidad)
+        }
+        .setNegativeButton("Cancelar", null)
+        .show()
+      }
         
 private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
     Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
@@ -532,6 +548,7 @@ binding.homeContent.btnNextVideo.setOnTouchListener { _, event ->
         videoPickerLauncher.launch("video/*")
     }
 binding.homeContent.btnConvertAudio.setOnClickListener {
+    // Primero selecciona los archivos
     multiaudioPickerLauncher.launch("audio/*")
 }
 
@@ -1365,7 +1382,7 @@ private fun hardcodearSubtitulos() {
             val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
             if (outputFile.exists()) outputFile.delete()
 
-            val command = "-i ${inputFile.absolutePath} -map_metadata 0 -id3v2_version 3 -c:a libmp3lame -q:a 2 ${outputFile.absolutePath}"
+            val command = "-i ${inputFile.absolutePath} -map_metadata 0 -id3v2_version 3 -c:a libmp3lame -q:a $calidad ${outputFile.absolutePath}"
             val session = FFmpegKit.execute(command)
 
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
