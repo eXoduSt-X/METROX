@@ -75,10 +75,11 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
     private var isFullscreen = false
     private lateinit var fullscreenGestureDetector: GestureDetector
 
-    private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+// 1. El launcher (alrededor de la línea 227)
+private val multiaudioPickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
     if (uris.isNotEmpty()) {
         selectedAudioUris = uris.toMutableList()
-        mostrarSelectorCalidad(uris)  // ← Ahora muestra el diálogo
+        mostrarSelectorCalidad(uris)  // ← No pasa calidad, solo URIs
     }
 }
 
@@ -210,7 +211,8 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         .setNegativeButton("Cancelar") { _, _ -> selectedAudioUris.clear() }
         .show()
 }
-      private fun mostrarSelectorCalidad(uris: List<Uri>) {
+    // 2. El selector de calidad (nuevo método)
+    private fun mostrarSelectorCalidad(uris: List<Uri>) {
     val calidades = arrayOf(
         "Excelente (320kbps) - Archivo grande",
         "Muy buena (256kbps) - Calidad alta", 
@@ -224,11 +226,13 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home), IScrollHel
         .setTitle("Calidad del MP3")
         .setItems(calidades) { _, which ->
             val calidad = valoresCalidad[which]
-            convertirAudiosAMp3(uris, calidad)
+            convertirAudiosAMp3(uris, calidad)  // ← Pasa la calidad seleccionada
         }
-        .setNegativeButton("Cancelar", null)
+        .setNegativeButton("Cancelar") { _, _ -> 
+            selectedAudioUris.clear() 
+        }
         .show()
-      }
+}
         
 private fun unirVideos(uris: List<Uri>, nombres: List<String>) {
     Toast.makeText(requireContext(), "Uniendo ${uris.size} videos...", Toast.LENGTH_LONG).show()
@@ -1355,36 +1359,33 @@ private fun hardcodearSubtitulos() {
         }.start()
     }
 
-    private fun convertirAudiosAMp3(uris: List<Uri>) {
-    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
 
+// 3. La función de conversión modificada (alrededor de la línea 1340)
+private fun convertirAudiosAMp3(uris: List<Uri>, calidad: Int = 2) {  // ← AÑADE calidad como parámetro
+    Toast.makeText(requireContext(), "Iniciando conversión masiva...", Toast.LENGTH_LONG).show()
     Thread {
         var exitosos = 0
         var fallidos = 0
-
         uris.forEachIndexed { index, uri ->
             val originalName = requireContext().contentResolver.query(
                 uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
             )?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-                ?: "Audio_${System.currentTimeMillis()}_$index"
-
+            ?: "Audio_${System.currentTimeMillis()}_$index"
             val baseName = originalName.substringBeforeLast(".")
             val fileName = "$baseName.mp3"
-
             val inputFile = cacheUriToFile(uri, "temp_input_audio_$index.tmp")
-
             if (!inputFile.exists() || inputFile.length() == 0L) {
                 android.util.Log.e("ConvertMp3", "Archivo de entrada vacío o inexistente: $uri")
                 fallidos++
                 return@forEachIndexed
             }
-
             val outputFile = File(requireContext().cacheDir, "output_temp_$index.mp3")
             if (outputFile.exists()) outputFile.delete()
-
+            
+            // ← USA EL PARÁMETRO calidad AQUÍ
             val command = "-i ${inputFile.absolutePath} -map_metadata 0 -id3v2_version 3 -c:a libmp3lame -q:a $calidad ${outputFile.absolutePath}"
+            
             val session = FFmpegKit.execute(command)
-
             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists() && outputFile.length() > 0) {
                 saveToDownloads(outputFile, fileName, "audio/mpeg")
                 exitosos++
@@ -1392,11 +1393,9 @@ private fun hardcodearSubtitulos() {
                 fallidos++
                 android.util.Log.e("ConvertMp3", "FALLÓ para $uri: ${session.allLogsAsString}")
             }
-
             if (inputFile.exists()) inputFile.delete()
             if (outputFile.exists()) outputFile.delete()
         }
-
         requireActivity().runOnUiThread {
             Toast.makeText(requireContext(), "Conversión: $exitosos ok, $fallidos fallidos", Toast.LENGTH_LONG).show()
         }
